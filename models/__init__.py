@@ -33,6 +33,8 @@ def load_model(name):
         return models.resnet18()
     elif name == 'r18-imagenet':
         return models.resnet18(pretrained=True)
+    elif name == 'r152-imagenet':
+        return models.resnet152(pretrained=True)
     elif name == 'r50-barlow-twins':
         return torch.hub.load('facebookresearch/barlowtwins:main', 'resnet50')
     elif name == 'r50-random':
@@ -71,7 +73,8 @@ def load_model(name):
     elif name == 'vit-b16-random':
         return random_vit()
     else:
-        raise ValueError('unknown model')
+        net = getattr(models, name)
+        return net(pretrained=True)
 
 
 def get_normalization_for_model(name):
