@@ -10,7 +10,8 @@ import numpy as np
 import pandas as pd
 
 from PIL import Image
-from typing import Tuple
+from typing import Any, Tuple
+from dataclasses import dataclass
 
 Array = np.ndarray
 Tensor = torch.Tensor
@@ -18,10 +19,16 @@ Tensor = torch.Tensor
 object_concepts_link = "https://raw.githubusercontent.com/ViCCo-Group/THINGSvision/master/thingsvision/data/things_concepts.tsv"
 
 class THINGSTriplet(torch.utils.data.Dataset):
-    
+
     def __init__(self, root, train=True, transform=None, target_transform=None, download=True):
-        super(THINGSTriplet, self).__init__(root, train, transform, target_transform, download)
+        super(THINGSTriplet, self).__init__()
+        self.root = root
+        self.train = train
+        self.transform = transform
+        self.target_transform = target_transform
+        self.download = download
         self.target = 2
+    
         
         with open(os.path.join(self.root, 'triplets', 'train_90.npy' if train else 'test_10.npy'), 'rb') as f:
             self.triplets = np.load(f)
