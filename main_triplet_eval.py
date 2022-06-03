@@ -1,6 +1,4 @@
 import torch.nn
-from data.cifar100 import CIFAR100Triplet
-from data.things import THINGSTriplet
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import argparse
@@ -8,6 +6,7 @@ from models import load_model, get_normalization_for_model
 import torch.nn.functional as F
 from tqdm import tqdm
 import pandas as pd
+from data.utils import load_dataset
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--models', nargs='+')
@@ -32,15 +31,7 @@ for model_name in tqdm(args.models):
     if normalization is not None:
         transform = transforms.Compose([transform, transforms.Normalize(*normalization)])
 
-if args.dataset == 'cifar100':
-    # for all the imagenet models, we just use the train split for more samples
-    dataset = CIFAR100Triplet(root='resources/datasets', train=True,
-                            download=True, transform=transform,
-                            samples=10000, seed=args.seed)
-elif args.dataset == 'things':
-    # for all the imagenet models, we just use the train split for more samples
-    dataset = THINGSTriplet(root=args.data_root, train=True,
-                            download=True, transform=transform)
+    dataset = load_dataset(name=args.dataset, data_dir=args.data_root, transform=transform)
 
     model = load_model(model_name)
     model.fc = torch.nn.Identity()
