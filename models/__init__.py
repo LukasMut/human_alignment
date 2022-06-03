@@ -78,6 +78,6 @@ def load_model(name):
 
 
 def get_normalization_for_model(name):
-    if name == 'r50-colorization':
+    if name == 'vit-b16-supervised':
         return None
     return IMAGENET_NORM

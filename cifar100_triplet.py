@@ -3,9 +3,10 @@ from data.cifar100 import CIFAR100Triplet
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import argparse
-from models import load_model
+from models import load_model, get_normalization_for_model
 import torch.nn.functional as F
 from tqdm import tqdm
+import pandas as pd
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--models', nargs='+')
@@ -14,24 +15,26 @@ parser.add_argument('--input-dim', default=224)
 parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--batch-size', type=int, default=64)
 parser.add_argument('--device', default='cuda')
+parser.add_argument('--out-file', default='results.csv')
 args = parser.parse_args()
-
-IMAGENET_NORM = [[0.485, 0.456, 0.406], [0.229, 0.224, 0.225]]
 
 device = args.device
 
-transform = transforms.Compose([
-    transforms.Resize((args.input_dim, args.input_dim)),
-    transforms.ToTensor(),
-    transforms.Normalize(*IMAGENET_NORM)
-])
-
-# for all the imagenet models, we just use the train split for more samples
-dataset = CIFAR100Triplet(root='resources/datasets', train=True,
-                          download=True, transform=transform,
-                          samples=10000, seed=args.seed)
-
+results = []
 for model_name in tqdm(args.models):
+    transform = transforms.Compose([
+        transforms.Resize((args.input_dim, args.input_dim)),
+        transforms.ToTensor(),
+    ])
+    normalization = get_normalization_for_model(model_name)
+    if normalization is not None:
+        transform = transforms.Compose([transform, transforms.Normalize(*normalization)])
+
+    # for all the imagenet models, we just use the train split for more samples
+    dataset = CIFAR100Triplet(root='resources/datasets', train=True,
+                              download=True, transform=transform,
+                              samples=10000, seed=args.seed)
+
     model = load_model(model_name)
     model.fc = torch.nn.Identity()
     model = model.to(device)
@@ -50,4 +53,12 @@ for model_name in tqdm(args.models):
             odd_one_out_idx = torch.argmin(similarities, dim=0)
             correct += (odd_one_out_idx == y).sum()
             total += x1.shape[0]
-    print(model_name, round((correct / total * 100).cpu().numpy().item(), 2))
+    accuracy = round((correct / total * 100).cpu().numpy().item(), 2)
+    print(model_name, accuracy)
+    results.append({
+        'model': model_name,
+        'accuracy': accuracy
+    })
+results = pd.DataFrame(results)
+print(results)
+results.to_csv(args.out_file)
