@@ -20,7 +20,7 @@ object_concepts_link = "https://raw.githubusercontent.com/ViCCo-Group/THINGSvisi
 class THINGSTriplet(torch.utils.data.Dataset):
     
     def __init__(self, root, train=True, transform=None, target_transform=None, download=True):
-        super(THINGSTriplet, self).__init__(root, train, tansform, target_transform, download)
+        super(THINGSTriplet, self).__init__(root, train, transform, target_transform, download)
         self.target = 2
         
         with open(os.path.join(self.root, 'triplets', 'train_90.npy' if train else 'test_10.npy'), 'rb') as f:
