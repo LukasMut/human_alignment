@@ -18,7 +18,7 @@ with bike and train being in the same coarse category and tree being the odd one
 * Linear probing on top of representations/finetuning
 * Can we correlate accuracy with CKA similarity of representations?
 * How uniformly do models make mistakes vs. humans?
-* Fine-tune each model on THINGS (multi-class classification for THINGS) and then compare models against humans?
+* Fine-tune each model on THINGS (multi-class classification) and then compare models against humans?
 * Predict the similarity space of a different model (use predictions of one model as label).
 * Do self-supervised learning on then THINGS dataset and then measure the performance.
 
