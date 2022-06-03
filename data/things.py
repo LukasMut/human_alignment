@@ -18,6 +18,7 @@ Tensor = torch.Tensor
 
 object_concepts_link = "https://raw.githubusercontent.com/ViCCo-Group/THINGSvision/master/thingsvision/data/things_concepts.tsv"
 
+
 class THINGSTriplet(torch.utils.data.Dataset):
 
     def __init__(self, root, train=True, transform=None, target_transform=None, download=True):
@@ -29,10 +30,10 @@ class THINGSTriplet(torch.utils.data.Dataset):
         self.download = download
         self.target = 2
     
-        
+
         with open(os.path.join(self.root, 'triplets', 'train_90.npy' if train else 'test_10.npy'), 'rb') as f:
             self.triplets = np.load(f).astype(int)
-        
+
         if download:
             f = urllib.request.urlopen(object_concepts_link)
         else:
@@ -41,7 +42,7 @@ class THINGSTriplet(torch.utils.data.Dataset):
         things_objects = pd.read_csv(f, sep='\t', encoding='utf-8')
         object_names = things_objects['uniqueID'].values
 
-        self.names = list(map(lambda n:n+'.jpg', object_names))
+        self.names = list(map(lambda n: n + '.jpg', object_names))
 
     def __getitem__(self, index: int) -> Tuple[Tensor, Tensor, Tensor, int]:
         triplet = self.triplets[index]

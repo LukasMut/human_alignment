@@ -1,11 +1,17 @@
-from data.cifar100 import CIFAR100Triplet
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import torch
+import argparse
+from data.utils import load_dataset
 
-dataset = CIFAR100Triplet(root='resources/datasets', train=True,
-                          download=True, transform=transforms.ToTensor(), samples=10000, seed=0)
+parser = argparse.ArgumentParser()
+parser.add_argument('--data-dir')
+parser.add_argument('--dataset', default='cifar100', choices=['things', 'cifar100'])
+args = parser.parse_args()
+
+dataset = load_dataset(name=args.dataset, data_dir=args.data_dir, transform=transforms.ToTensor())
+
 dl = DataLoader(dataset, batch_size=1)
 it = iter(dl)
 for _ in range(10):
