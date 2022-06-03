@@ -14,6 +14,7 @@ with bike and train being in the same coarse category and tree being the odd one
 * How does model size/embeddings size affect accuracy?
 * Does scaling really help to peform close to human-level intelligence?
 * How does model architecture affect accuracy? (e. g. VGGs vs. ResNets vs. ViTs)
+<<<<<<< HEAD
 * Which models make the same mistakes?
 * Linear probing on top of representations/finetuning
 * Can we correlate accuracy with CKA similarity of representations?
@@ -21,6 +22,15 @@ with bike and train being in the same coarse category and tree being the odd one
 * Fine-tune each model on THINGS (multi-class classification) and then compare models against humans?
 * Predict the similarity space of a different model (use predictions of one model as label).
 * Do self-supervised learning on then THINGS dataset and then measure the performance.
+=======
+* Which models do the same mistakes?
+* Linear probing on top of representations/finetuning
+* Can we correlate accuracy with CKA similarity of representations?
+* How uniformly does the model makes mistakes vs humans?
+* Fine-tune each model on THINGS (multi-class classification) and then compare against humans?
+* Predict the similarity space of a different model (use predictions of one model as label).
+* Do self-supervised learning on THINGS dataset and then measure the performance.
+>>>>>>> Update README.md
 
 ## Results
 | Model                 | Things | Cifar-100-0 | #parameters | Imagenet Accuracy |
