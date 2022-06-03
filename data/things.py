@@ -31,8 +31,11 @@ class THINGSTriplet(torch.utils.data.Dataset):
         self.target = 2
     
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 =======
+=======
+>>>>>>> fixed typo
         
 >>>>>>> fixed typo
         with open(os.path.join(self.root, 'triplets', 'train_90.npy' if train else 'test_10.npy'), 'rb') as f:
