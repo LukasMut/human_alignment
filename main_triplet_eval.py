@@ -1,5 +1,6 @@
 import torch.nn
 from data.cifar100 import CIFAR100Triplet
+from data.things import THINGSTriplet
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import argparse
@@ -9,7 +10,8 @@ from tqdm import tqdm
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--models', nargs='+')
-parser.add_argument('--data-root')
+parser.add_argument('--dataset', type=str, default='cifar100', choices=['things', 'cifar100'])
+parser.add_argument('--data_root')
 parser.add_argument('--input-dim', default=224)
 parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--batch-size', type=int, default=64)
@@ -26,10 +28,15 @@ transform = transforms.Compose([
     transforms.Normalize(*IMAGENET_NORM)
 ])
 
-# for all the imagenet models, we just use the train split for more samples
-dataset = CIFAR100Triplet(root='resources/datasets', train=True,
-                          download=True, transform=transform,
-                          samples=10000, seed=args.seed)
+if args.dataset == 'cifar100':
+    # for all the imagenet models, we just use the train split for more samples
+    dataset = CIFAR100Triplet(root='resources/datasets', train=True,
+                            download=True, transform=transform,
+                            samples=10000, seed=args.seed)
+elif args.dataset == 'things':
+    # for all the imagenet models, we just use the train split for more samples
+    dataset = THINGSTriplet(root=args.data_root, train=True,
+                            download=True, transform=transform)
 
 for model_name in tqdm(args.models):
     model = load_model(model_name)
