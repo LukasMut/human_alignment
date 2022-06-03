@@ -5,6 +5,7 @@
 Generate triplets by combining two samples of Cifar100 with the same coarse label (20 labels) and one "odd-one-out" 
 with a different coarse label. This results for example in the following triplet:
 ![](images/cifar_triplet_0.png)
+
 with bike and train being in the same coarse category and tree being the odd one out.
 
 
