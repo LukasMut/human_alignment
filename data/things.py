@@ -58,4 +58,4 @@ class THINGSTriplet(torch.utils.data.Dataset):
         return images[0], images[1], images[2], self.target
 
     def __len__(self) -> int:
-        return triplets.shape[0]
+        return self.triplets.shape[0]
