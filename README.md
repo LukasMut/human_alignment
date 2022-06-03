@@ -19,6 +19,7 @@ with bike and train being in the same coarse category and tree being the odd one
 * How uniformly does the model makes mistakes vs humans?
 * Fine-tune each model on THINGS (multi-class classification) and then compare against humans?
 * predict the similarity space of a different model (use predictions of one model as label)
+* do self supervised learning on THINGS dataset and then measure the performance
 
 ## Results
 | Model                 | Things | Cifar-100-0 | #parameters | Imagenet Accuracy |
