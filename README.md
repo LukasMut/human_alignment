@@ -22,6 +22,18 @@ with bike and train being in the same coarse category and tree being the odd one
 * Predict the similarity space of a different model (use predictions of one model as label).
 * Do self-supervised learning on then THINGS dataset and then measure the performance.
 
+## Usage
+
+Run evaluation on things triplet task with Imagenet pretrained Resnet18 and Resnet50.
+
+```
+python main_triplet_eval.py --models resnet18 resnet50 \
+--dataset things \
+--data_root /home/space/datasets/things \
+--out-file results.csv
+```
+
+
 ## Results
 | Model                 | Things | Cifar-100-0 | #parameters | Imagenet Accuracy |
 |-----------------------|--------|-------------|-------------|-------------------|
