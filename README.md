@@ -28,5 +28,5 @@ with bike and train being in the same coarse category and tree being the odd one
 | Resnet 18             | 47.33  | 62.09       |             | 69.758            |
 | Resnet 50             | 47.74  | 64.75       |             | 76.130            |
 | Resnet 50 BarlowTwins | 43.84  | 59.72       |             | 73.5              |
-| Resnet 152            |        | 68.32       |             | 78.312            |
+| Resnet 152            | 47.24  | 68.32       |             | 78.312            |
 | Vit-B 16              | 50.89  | 75.8        |             | (81.072)          |
