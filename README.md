@@ -42,3 +42,4 @@ python main_triplet_eval.py --models resnet18 resnet50 \
 | Resnet 50 BarlowTwins | 43.84  | 59.72       |             | 73.5              |
 | Resnet 152            | 47.24  | 68.32       |             | 78.312            |
 | Vit-B 16              | 50.89  | 75.8        |             | (81.072)          |
+| VGG 19                | 51.83  | 66.49       |             | 74.218            |
