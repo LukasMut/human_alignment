@@ -33,6 +33,10 @@ class THINGSTriplet(torch.utils.data.Dataset):
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> 2fa34bb05e6fd22bcc520528cc9a3aab015eb73d
 
 =======
 =======
@@ -48,6 +52,15 @@ class THINGSTriplet(torch.utils.data.Dataset):
 =======
         
 >>>>>>> fixed typo
+<<<<<<< HEAD
+=======
+=======
+
+        with open(os.path.join(self.root, 'triplets', 'train_90.npy' if train else 'test_10.npy'), 'rb') as f:
+            self.triplets = np.load(f).astype(int)
+
+>>>>>>> deb5af878fb99ac68f3cb4414c37fa7dbe588762
+>>>>>>> 2fa34bb05e6fd22bcc520528cc9a3aab015eb73d
         if download:
             f = urllib.request.urlopen(object_concepts_link)
         else:
