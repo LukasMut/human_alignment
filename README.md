@@ -16,6 +16,7 @@ with bike and train being in the same coarse category and tree being the odd one
 * How does model architecture affect accuracy? (e. g. VGGs vs. ResNets vs. ViTs)
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 * Which models make the same mistakes?
 * Linear probing on top of representations/finetuning
 * Can we correlate accuracy with CKA similarity of representations?
@@ -39,6 +40,15 @@ with bike and train being in the same coarse category and tree being the odd one
 =======
 * Do self-supervised learning on then THINGS dataset and then measure the performance.
 >>>>>>> Update README.md
+=======
+* Which models make the same mistakes?
+* Linear probing on top of representations/finetuning
+* Can we correlate accuracy with CKA similarity of representations?
+* How uniformly do models make mistakes vs. humans?
+* Fine-tune each model on THINGS (multi-class classification) and then compare models against humans?
+* Predict the similarity space of a different model (use predictions of one model as label).
+* Do self-supervised learning on then THINGS dataset and then measure the performance.
+>>>>>>> deb5af878fb99ac68f3cb4414c37fa7dbe588762
 
 ## Results
 | Model                 | Things | Cifar-100-0 | #parameters | Imagenet Accuracy |
