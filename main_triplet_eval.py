@@ -26,7 +26,7 @@ device = args.device
 
 
 def entropy(p):
-    return np.where(p > 0., p*np.log(p), 0.)
+    return -(np.where(p > 0., p*np.log(p), 0)).sum()
 
 def vdot(X, Y):
     return vmap(lambda x, y: x @ y)(X, Y)
