@@ -14,6 +14,12 @@ with bike and train being in the same coarse category and tree being the odd one
 * How does model size/embeddings size affect accuracy?
 * Does scaling really help to peform close to human-level intelligence?
 * How does model architecture affect accuracy? (e. g. VGGs vs. ResNets vs. ViTs)
+<<<<<<< HEAD
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> 2fa34bb05e6fd22bcc520528cc9a3aab015eb73d
 * Which models make the same mistakes?
 * Linear probing on top of representations/finetuning
 * Can we correlate accuracy with CKA similarity of representations?
@@ -21,6 +27,34 @@ with bike and train being in the same coarse category and tree being the odd one
 * Fine-tune each model on THINGS (multi-class classification) and then compare models against humans?
 * Predict the similarity space of a different model (use predictions of one model as label).
 * Do self-supervised learning on then THINGS dataset and then measure the performance.
+=======
+* Which models do the same mistakes?
+=======
+* Which models make the same mistakes?
+>>>>>>> Update README.md
+* Linear probing on top of representations/finetuning
+* Can we correlate accuracy with CKA similarity of representations?
+* How uniformly do models make mistakes vs. humans?
+* Fine-tune each model on THINGS (multi-class classification for THINGS) and then compare models against humans?
+* Predict the similarity space of a different model (use predictions of one model as label).
+<<<<<<< HEAD
+* Do self-supervised learning on THINGS dataset and then measure the performance.
+>>>>>>> Update README.md
+=======
+* Do self-supervised learning on then THINGS dataset and then measure the performance.
+>>>>>>> Update README.md
+<<<<<<< HEAD
+=======
+=======
+* Which models make the same mistakes?
+* Linear probing on top of representations/finetuning
+* Can we correlate accuracy with CKA similarity of representations?
+* How uniformly do models make mistakes vs. humans?
+* Fine-tune each model on THINGS (multi-class classification) and then compare models against humans?
+* Predict the similarity space of a different model (use predictions of one model as label).
+* Do self-supervised learning on then THINGS dataset and then measure the performance.
+>>>>>>> deb5af878fb99ac68f3cb4414c37fa7dbe588762
+>>>>>>> 2fa34bb05e6fd22bcc520528cc9a3aab015eb73d
 
 ## Usage
 
