@@ -73,12 +73,14 @@ for model_name in tqdm(args.models):
             total += x1.shape[0]
     
     triplet_probas = np.asarray(triplet_probas)
-    triplet_entropies = np.apply_along_axis(entropy, axis=1, arr=triplet_probas).tolist()
+    triplet_entropies = np.apply_along_axis(entropy, axis=1, arr=triplet_probas)
     accuracy = round((correct / total * 100).cpu().numpy().item(), 2)
     print(model_name, accuracy)
     results.append({
         'model': model_name,
         'accuracy': accuracy,
+        'mean_entropy': np.mean(triplet_entropies),
+        'median_entropy': np.median(triplet_entropies),
         'entropies': triplet_entropies,
     })
 results = pd.DataFrame(results)
