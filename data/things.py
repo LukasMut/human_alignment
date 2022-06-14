@@ -32,8 +32,11 @@ class THINGSTriplet(torch.utils.data.Dataset):
     
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 =======
+=======
+>>>>>>> fixed typo
 =======
 >>>>>>> fixed typo
         
