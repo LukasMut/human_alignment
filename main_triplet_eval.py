@@ -10,7 +10,7 @@ from data.utils import load_dataset
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--models', nargs='+')
-parser.add_argument('--dataset', type=str, default='cifar100', choices=['things', 'cifar100'])
+parser.add_argument('--dataset', type=str, default='cifar100', choices=['things', 'cifar100', 'things-5k'])
 parser.add_argument('--data_root')
 parser.add_argument('--input-dim', default=224)
 parser.add_argument('--seed', type=int, default=0)
@@ -43,12 +43,13 @@ for model_name in tqdm(args.models):
         for x1, x2, x3, y in tqdm(dl):
             y = y.to(device)
             z = torch.stack([model(x.to(device)) for x in [x1, x2, x3]])
-            similarities = torch.zeros(3, x1.shape[0], device=device)
+            distances = torch.zeros(3, x1.shape[0], device=device)
             for i, j in [(0, 1), (0, 2), (1, 2)]:
-                sim = F.cosine_similarity(z[i], z[j], dim=1)
-                similarities[i] += sim
-                similarities[j] += sim
-            odd_one_out_idx = torch.argmin(similarities, dim=0)
+                dist = 1 - F.cosine_similarity(z[i], z[j], dim=1)
+                distances[i] += dist
+                distances[j] += dist
+            odd_one_out_idx = torch.argmax(distances, dim=0)
+
             correct += (odd_one_out_idx == y).sum()
             total += x1.shape[0]
     accuracy = round((correct / total * 100).cpu().numpy().item(), 2)

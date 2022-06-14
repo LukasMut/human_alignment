@@ -56,11 +56,37 @@ with bike and train being in the same coarse category and tree being the odd one
 >>>>>>> deb5af878fb99ac68f3cb4414c37fa7dbe588762
 >>>>>>> 2fa34bb05e6fd22bcc520528cc9a3aab015eb73d
 
+## Usage
+
+Run evaluation on things triplet task with Imagenet pretrained Resnet18 and Resnet50.
+
+```
+python main_triplet_eval.py --models resnet18 resnet50 \
+--dataset things \
+--data_root /home/space/datasets/things \
+--out-file results.csv
+```
+
+
 ## Results
 | Model                 | Things | Cifar-100-0 | #parameters | Imagenet Accuracy |
 |-----------------------|--------|-------------|-------------|-------------------|
+| Efficientnet B0       | 45.35  |             |             |                   |
+| Efficientnet B1       | 43.01  |             |             |                   |
+| Efficientnet B2       | 43.39  |             |             |                   |
+| Efficientnet B3       | 38.90  |             |             |                   |
+| Efficientnet B4       | 43.84  |             |             |                   |
+| Efficientnet B5       | 44.80  |             |             |                   |
+| Efficientnet B6       | 45.57  |             |             |                   |
+| Efficientnet B7       | 45.53  |             |             |                   |
 | Resnet 18             | 47.33  | 62.09       |             | 69.758            |
+| Resnet 34             | 47.44  |             |             |                   |
 | Resnet 50             | 47.74  | 64.75       |             | 76.130            |
 | Resnet 50 BarlowTwins | 43.84  | 59.72       |             | 73.5              |
-| Resnet 152            |        | 68.32       |             | 78.312            |
-| Vit-B 16              | 50.89  | 75.8        |             | (81.072)          |
+| Resnet 101            | 47.56  |             |             |                   |
+| Resnet 152            | 47.24  | 68.32       |             | 78.312            |
+| Vit-B 16              | 50.89  |             |             | (81.072)          |
+| VGG 11                | 51.96  |             |             |                   |
+| VGG 13                | 52.19  |             |             |                   |
+| VGG 16                | 52.06  |             |             |                   |
+| VGG 19                | 51.83  | 66.49       |             |                   |
