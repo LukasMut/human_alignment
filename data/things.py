@@ -40,7 +40,11 @@ class THINGSTriplet(torch.utils.data.Dataset):
 >>>>>>> fixed typo
         with open(os.path.join(self.root, 'triplets', 'train_90.npy' if train else 'test_10.npy'), 'rb') as f:
             self.triplets = np.load(f).astype(int)
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> fixed typo
         if download:
             f = urllib.request.urlopen(object_concepts_link)
         else:
