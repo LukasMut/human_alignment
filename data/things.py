@@ -28,10 +28,9 @@ class THINGSTriplet(torch.utils.data.Dataset):
         self.target_transform = target_transform
         self.download = download
         self.target = 2
-    
+
         with open(os.path.join(self.root, 'triplets', 'train_90.npy' if train else 'test_10.npy'), 'rb') as f:
             self.triplets = np.load(f).astype(int)
-
         if download:
             f = urllib.request.urlopen(object_concepts_link)
         else:
