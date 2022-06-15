@@ -18,6 +18,14 @@ class ModelWrapper(torch.nn.Module):
         return self.fc(self.model(x))
 
 
+def load_vissl_regnet(file, base_dir='vissl/models', strict=True):
+    state_dict = torch.load(os.path.join(base_dir, file), map_location=torch.device('cpu'))
+    model = models.regnet_x_32gf()
+    model.fc = torch.nn.Identity()
+    model.load_state_dict(state_dict, strict=strict)
+    return model
+
+
 def load_vissl_r50(file, base_dir='vissl/models', grayscale=False, strict=True):
     state_dict = torch.load(os.path.join(base_dir, file), map_location=torch.device('cpu'))
     model = models.resnet50()
@@ -26,6 +34,38 @@ def load_vissl_r50(file, base_dir='vissl/models', grayscale=False, strict=True):
     model.fc = torch.nn.Identity()
     model.load_state_dict(state_dict, strict=strict)
     return model
+
+
+class VGGWrapper(torch.nn.Module):
+
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
+        self.features = self.model.features
+        self.avgpool = self.model.avgpool
+        self.classifier = self.model.classifier[:4]
+
+    def forward(self, x):
+        x = self.features(x)
+        x = self.avgpool(x).reshape(x.shape[0], -1)
+        x = self.classifier(x)
+        return x
+
+
+class AlexnetWrapper(torch.nn.Module):
+
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
+        self.features = self.model.features
+        self.avgpool = self.model.avgpool
+        self.classifier = self.model.classifier[:5]
+
+    def forward(self, x):
+        x = self.features(x)
+        x = self.avgpool(x).reshape(x.shape[0], -1)
+        x = self.classifier(x)
+        return x
 
 
 def load_model(name):
@@ -72,6 +112,19 @@ def load_model(name):
         return supervised_vit()
     elif name == 'vit-b16-random':
         return random_vit()
+    elif name == 'seer-regnet_x_32gf':
+        return load_vissl_regnet(file='converted_vissl_seer-RegNetY-32Gf.torch')
+    elif name.startswith('vgg'):
+        net = getattr(models, name)
+        return VGGWrapper(net(pretrained=True))
+    elif name == 'alexnet':
+        net = getattr(models, name)
+        return AlexnetWrapper(net(pretrained=True))
+    elif name.startswith('efficientnet'):
+        net = getattr(models, name)
+        model = net(pretrained=True)
+        model.classifier = torch.nn.Identity()
+        return model
     else:
         net = getattr(models, name)
         return net(pretrained=True)

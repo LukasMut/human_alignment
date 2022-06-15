@@ -1,5 +1,5 @@
 from data.cifar100 import CIFAR100Triplet, CIFAR100CoarseTriplet, CIFAR10Triplet
-from data.things import THINGSTriplet
+from data.things import THINGSTriplet, THINGS
 from torch.utils.data import Subset
 import random
 
@@ -20,6 +20,9 @@ def load_dataset(name, data_dir, transform):
     elif name == 'things':
         dataset = THINGSTriplet(root=data_dir, train=True,
                                 download=True, transform=transform)
+    elif name == 'things-new':
+        dataset = THINGS(root=data_dir, train=True,
+                         download=True, transform=transform)
     elif name == 'things-5k':
         dataset = THINGSTriplet(root=data_dir, train=True,
                                 download=True, transform=transform)
