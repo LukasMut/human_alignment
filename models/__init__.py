@@ -124,6 +124,7 @@ def load_model(name):
         net = getattr(models, name)
         model = net(pretrained=True)
         model.classifier = torch.nn.Identity()
+        return model
     else:
         net = getattr(models, name)
         return net(pretrained=True)
