@@ -120,6 +120,10 @@ def load_model(name):
     elif name == 'alexnet':
         net = getattr(models, name)
         return AlexnetWrapper(net(pretrained=True))
+    elif name.startswith('efficientnet'):
+        net = getattr(models, name)
+        model = net(pretrained=True)
+        model.classifier = torch.nn.Identity()
     else:
         net = getattr(models, name)
         return net(pretrained=True)
