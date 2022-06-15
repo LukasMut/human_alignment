@@ -13,7 +13,8 @@ import numpy as np
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--models', nargs='+')
-parser.add_argument('--dataset', type=str, default='cifar100', choices=['things', 'cifar100', 'things-5k'])
+parser.add_argument('--dataset', type=str, default='cifar100', choices=['things', 'cifar100-fine', 'things-5k',
+                                                                        'cifar100-coarse', 'cifar10'])
 parser.add_argument('--data_root')
 parser.add_argument('--input-dim', default=224)
 parser.add_argument('--seed', type=int, default=0)
