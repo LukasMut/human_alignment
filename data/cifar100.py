@@ -1,5 +1,5 @@
 import numpy as np
-from torchvision.datasets import CIFAR100
+from torchvision.datasets import CIFAR100, CIFAR10
 import random
 from PIL import Image
 
@@ -44,9 +44,8 @@ class CIFAR100Coarse(CIFAR100):
                         ['lawn_mower', 'rocket', 'streetcar', 'tank', 'tractor']]
 
 
-class CIFAR100Triplet(CIFAR100Coarse):
-    def __init__(self, root, seed=0, samples=10000, *args, **kwargs):
-        super().__init__(root, *args, **kwargs)
+class RandomMatchingMixin:
+    def setup(self, seed: int, samples: int):
         random.seed(seed)
         labels = np.unique(self.targets)
         class_indices = []
@@ -67,7 +66,7 @@ class CIFAR100Triplet(CIFAR100Coarse):
             triplet.append(idx)
             self.triplets.append((triplet, 2))
 
-    def __getitem__(self, index: int):
+    def get_triplet(self, index):
         triplet = self.triplets[index]
         sample_indices, target = triplet
 
@@ -82,6 +81,39 @@ class CIFAR100Triplet(CIFAR100Coarse):
         if self.target_transform is not None:
             target = self.target_transform(target)
         return images[0], images[1], images[2], target
+
+
+class CIFAR100CoarseTriplet(CIFAR100Coarse, RandomMatchingMixin):
+    def __init__(self, root, seed=0, samples=10000, *args, **kwargs):
+        super().__init__(root, *args, **kwargs)
+        self.setup(seed=seed, samples=samples)
+
+    def __getitem__(self, index):
+        return self.get_triplet(index)
+
+    def __len__(self):
+        return len(self.triplets)
+
+
+class CIFAR100Triplet(CIFAR100, RandomMatchingMixin):
+    def __init__(self, root, seed=0, samples=10000, *args, **kwargs):
+        super().__init__(root, *args, **kwargs)
+        self.setup(seed=seed, samples=samples)
+
+    def __getitem__(self, index):
+        return self.get_triplet(index)
+
+    def __len__(self):
+        return len(self.triplets)
+
+
+class CIFAR10Triplet(CIFAR10, RandomMatchingMixin):
+    def __init__(self, root, seed=0, samples=10000, *args, **kwargs):
+        super().__init__(root, *args, **kwargs)
+        self.setup(seed=seed, samples=samples)
+
+    def __getitem__(self, index):
+        return self.get_triplet(index)
 
     def __len__(self):
         return len(self.triplets)
