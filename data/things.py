@@ -77,8 +77,8 @@ class THINGS(torch.utils.data.Dataset):
             f = os.path.join(self.root, 'concepts', 'things_concepts.tsv')
 
         things_objects = pd.read_csv(f, sep='\t', encoding='utf-8')
-        object_names = things_objects['uniqueID'].values
-        self.names = list(map(lambda n: n + '.jpg', object_names))
+        self.object_names = things_objects['uniqueID'].values
+        self.names = list(map(lambda n: n + '.jpg', self.object_names))
 
     def __getitem__(self, idx: int) -> Tuple[Tensor, Tensor, Tensor, int]:
         img = os.path.join(self.root, 'images', self.names[idx])
@@ -89,7 +89,6 @@ class THINGS(torch.utils.data.Dataset):
 
     def __len__(self) -> int:
         return self.object_names.shape[0]
-    
-    @property
-    def triplets(self):
+
+    def get_triplets(self):
         return iter(self.triplets)
