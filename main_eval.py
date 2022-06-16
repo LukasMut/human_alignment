@@ -44,6 +44,9 @@ def parseargs():
         help="whether evaluation should be performed on CPU or GPU (i.e., CUDA).")
     aa( "--num_threads", type=int, default=4,
         help="number of threads used for intraop parallelism on CPU; use only if device is CPU")
+    aa("--temperature", type=float, default=1.,
+        choices=[1., 0.1, 0.01, 0.001, 0.0001],
+        help='temperature scaling (i.e., beta param in softmax function)')
     aa("--rnd_seed", type=int, default=42,
         help="random seed for reproducibility of results")
     aa("--logits", action="store_true",
@@ -72,26 +75,33 @@ def load_triplets(triplets_dir: str, train: bool = True) -> Array:
     ).astype(int)
 
 
-def compute_similarities(triplet: Tensor, pairs: List[Tuple[int]]) -> Tensor:
+def compute_similarities(triplet: Tensor, pairs: List[Tuple[int]], sim: str = 'dot') -> Tensor:
+    if sim == 'dot':
+        sim_fun = lambda u, v: u @ v
+    elif sim == 'cosine':
+        sim_fun = lambda u, v: F.cosine_similarity(u, v, dim=0)
+    else:
+        raise Exception('Similarity function other than dot product or cosine sim is not yet implemented')
     similarities = torch.tensor(
-        [F.cosine_similarity(triplet[i], triplet[j], dim=0) for i, j in pairs]
+        [sim_fun(triplet[i], triplet[j]) for i, j in pairs]
     )
     return similarities
 
 
-def get_predictions(features: Array, triplets: Array) -> List[bool]:
+def get_predictions(features: Array, triplets: Array, temperature: float) -> List[bool]:
     features = torch.from_numpy(features)
     pairs = [(0, 1), (0, 2), (1, 2)]
     indices = {0, 1, 2}
     choices, probas = [], []
-    print(f"\nShape of embeddings{features.shape}\n")
+    print(f"\nShape of embeddings {features.shape}\n")
     for i, j, k in triplets:
         triplet = torch.stack([features[i], features[j], features[k]])
-        similarities = compute_similarities(triplet, pairs)
-        most_sim_pair = pairs[torch.argmax(similarities).item()]
+        cosine_similarities = compute_similarities(triplet, pairs, sim='cosine')
+        dots = compute_similarities(triplet, pairs, sim='dot')
+        most_sim_pair = pairs[torch.argmax(cosine_similarities).item()]
         ooo_idx = indices.difference(most_sim_pair).pop()
         choices.append(ooo_idx == 2)
-        probas.append(F.softmax(similarities, dim=0).tolist())
+        probas.append(F.softmax(dots * temperature, dim=0).tolist())
     probas = torch.tensor(probas)
     return choices, probas
 
@@ -102,7 +112,7 @@ def accuracy(choices: List[bool]) -> float:
 
 def ventropy(probabilities: Tensor) -> Tensor:
     def entropy(p: Tensor) -> Tensor:
-        return -(torch.where(p > 0.0, p * torch.log(p), 0)).sum()
+        return -(torch.where(p > torch.tensor(0.), p * torch.log(p), torch.tensor(0.))).sum()
 
     return vmap(entropy)(probabilities)
 
@@ -141,7 +151,7 @@ def evaluate(args, backend: str = "pt") -> None:
             clip=True if re.compile(r"^clip").search(model_name.lower()) else False,
             return_probabilities=False,
         )
-        choices, probas = get_predictions(features, triplets)
+        choices, probas = get_predictions(features, triplets, args.temperature)
         acc = accuracy(choices)
         entropies = ventropy(probas)
         mean_entropy = entropies.mean().item()
@@ -175,7 +185,7 @@ if __name__ == "__main__":
     random.seed(args.rnd_seed)
     torch.manual_seed(args.rnd_seed)
     # set number of threads used by PyTorch if device is CPU
-    # if re.compile(r'^cpu').search(args.device.lower()):
-    #    torch.set_num_threads(args.num_threads)
+    if re.compile(r'^cpu').search(args.device.lower()):
+        torch.set_num_threads(args.num_threads)
     # run evaluation script
     evaluate(args)
