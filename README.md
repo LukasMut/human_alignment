@@ -25,13 +25,18 @@ with bike and train being in the same coarse category and tree being the odd one
 
 Run evaluation on things triplet task with Imagenet pretrained Resnet18 and Resnet50.
 
+```python
+python main_eval.py --data_root /home/space/datasets/things/images \
+--triplets_dir /home/space/datasets/things/triplets
+--model_names vgg16 alexnet resnet18 resnet50 \
+--module_names classifier.3 classifier.4 avgpool avgpool \
+--batch_size 128 \
+--out_path /path/to/results \
+--device cuda \
+--temperature 1.0 \
+--rnd_seed 42 \
+--verbose
 ```
-python main_triplet_eval.py --models resnet18 resnet50 \
---dataset things \
---data_root /home/space/datasets/things \
---out-file results.csv
-```
-
 
 ## Results
 | Model                 | Things | Cifar-100-0 | #parameters | Imagenet Accuracy |
