@@ -42,15 +42,13 @@ def parseargs():
     aa("--out_path", type=str, help="path/to/results")
     aa("--device", type=str, default="cuda",
         help="whether evaluation should be performed on CPU or GPU (i.e., CUDA).")
-    aa( "--num_threads", type=int, default=4,
+    aa("--num_threads", type=int, default=4,
         help="number of threads used for intraop parallelism on CPU; use only if device is CPU")
     aa("--temperature", type=float, default=1.,
         choices=[1., 0.1, 0.01, 0.001, 0.0001],
         help='temperature scaling (i.e., beta param in softmax function)')
     aa("--rnd_seed", type=int, default=42,
         help="random seed for reproducibility of results")
-    aa("--logits", action="store_true",
-        help="if set uses logits instead of penultimate layer representations")
     aa("--verbose", action="store_true",
         help="whether to display print statements about model performance during training")
     args = parser.parse_args()
