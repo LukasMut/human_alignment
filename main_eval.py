@@ -90,22 +90,22 @@ def get_predictions(features: Array, triplets: Array, temperature: float) -> Lis
     features = torch.from_numpy(features)
     pairs = [(0, 1), (0, 2), (1, 2)]
     indices = {0, 1, 2}
-    choices, probas = [], []
+    choices = torch.zeros(triplets.shape[0])
+    probas = torch.zeros(triplets.shape[0], len(indices))
     print(f"\nShape of embeddings {features.shape}\n")
-    for i, j, k in triplets:
+    for s, (i, j, k) in enumerate(triplets):
         triplet = torch.stack([features[i], features[j], features[k]])
         cosine_similarities = compute_similarities(triplet, pairs, sim='cosine')
         dots = compute_similarities(triplet, pairs, sim='dot')
         most_sim_pair = pairs[torch.argmax(cosine_similarities).item()]
         ooo_idx = indices.difference(most_sim_pair).pop()
-        choices.append(ooo_idx == 2)
-        probas.append(F.softmax(dots * temperature, dim=0).tolist())
-    probas = torch.tensor(probas)
+        choices[s] += (ooo_idx == 2)
+        probas[s] += F.softmax(dots * temperature, dim=0)
     return choices, probas
 
 
 def accuracy(choices: List[bool]) -> float:
-    return round(sum(choices) / len(choices), 4)
+    return round((choices.sum() / choices.shape[0]).item(), 4)
 
 
 def ventropy(probabilities: Tensor) -> Tensor:
