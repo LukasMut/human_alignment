@@ -28,9 +28,23 @@ class THINGSTriplet(torch.utils.data.Dataset):
         self.target_transform = target_transform
         self.download = download
         self.target = 2
+<<<<<<< HEAD
+    
+<<<<<<< HEAD
 
         with open(os.path.join(self.root, 'triplets', 'train_90.npy' if train else 'test_10.npy'), 'rb') as f:
             self.triplets = np.load(f).astype(int)
+
+=======
+        with open(os.path.join(self.root, 'triplets', 'train_90.npy' if train else 'test_10.npy'), 'rb') as f:
+            self.triplets = np.load(f).astype(int)
+
+>>>>>>> added additional things class for faster feature extraction
+=======
+
+        with open(os.path.join(self.root, 'triplets', 'train_90.npy' if train else 'test_10.npy'), 'rb') as f:
+            self.triplets = np.load(f).astype(int)
+>>>>>>> 9fc0f7d6f31f770dcf301a7d2499641b030c31c2
         if download:
             f = urllib.request.urlopen(object_concepts_link)
         else:
