@@ -105,10 +105,12 @@ def get_predictions(features: Array, triplets: Array, temperature: float) -> Lis
 
 
 def accuracy(choices: List[bool]) -> float:
+    """Computes the odd-one-out triplet accuracy."""
     return round((choices.sum() / choices.shape[0]).item(), 4)
 
 
 def ventropy(probabilities: Tensor) -> Tensor:
+    """Computes the entropy for a batch of (discrete) probability distributions."""
     def entropy(p: Tensor) -> Tensor:
         return -(torch.where(p > torch.tensor(0.), p * torch.log(p), torch.tensor(0.))).sum()
 
@@ -118,6 +120,7 @@ def ventropy(probabilities: Tensor) -> Tensor:
 def save_triplet_probas(
     probas: Tensor, out_path: str, model_name: str, module_name: str
 ) -> None:
+    """Saves triplet probabilities to disk."""
     out_path = os.path.join(out_path, model_name, module_name)
     if not os.path.exists(out_path):
         print("\nCreating output directory...\n")
