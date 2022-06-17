@@ -38,6 +38,9 @@ def parseargs():
         help="models for which we want to extract featues")
     aa("--module_names", type=str, nargs="+",
         help="modules of models for which to extract features")
+    aa("--distance", type=str, default='cosine',
+        choices=['cosine', 'euclidean'],
+        help='distance function used for predicting the odd-one-out')
     aa("--input_dim", type=int, default=224, help="input image dimensionality")
     aa("--batch_size", metavar="B", type=int, default=128,
         help="number of triplets sampled during each step (i.e., mini-batch size)")
@@ -159,7 +162,7 @@ def evaluate(args, backend: str = "pt") -> None:
             return_probabilities=False
             )
         triplets = things_behavior.get_triplets()
-        choices, probas = get_predictions(features, triplets, args.temperature)
+        choices, probas = get_predictions(features, triplets, args.temperature, args.distance)
         acc = accuracy(choices)
         entropies = ventropy(probas)
         mean_entropy = entropies.mean().item()
