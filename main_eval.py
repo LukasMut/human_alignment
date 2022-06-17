@@ -5,7 +5,9 @@ from typing import Any, List, Tuple
 from tqdm import tqdm
 from ml_collections import config_dict
 from thingsvision.model_class import Model
+from torch.utils.data import DataLoader
 from functorch import vmap
+from data import THINGSBehavior
 
 import os
 import random
@@ -30,8 +32,7 @@ def parseargs():
     def aa(*args, **kwargs):
         parser.add_argument(*args, **kwargs)
 
-    aa("--data_root", type=str, help="path/to/images")
-    aa("--triplets_dir", type=str, help="directory from where to load triplets")
+    aa("--data_root", type=str, help="path/to/things")
     aa("--model_names", type=str, nargs="+",
         help="models for which we want to extract featues")
     aa("--module_names", type=str, nargs="+",
@@ -65,12 +66,6 @@ def create_hyperparam_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
     data_cfg.root = args.data_root
     data_cfg = config_dict.FrozenConfigDict(data_cfg)
     return model_cfg, data_cfg
-
-
-def load_triplets(triplets_dir: str, train: bool = True) -> Array:
-    return np.load(
-        os.path.join(triplets_dir, "train_90.npy" if train else "test_10.npy")
-    ).astype(int)
 
 
 def compute_similarities(triplet: Tensor, pairs: List[Tuple[int]], sim: str = 'dot') -> Tensor:
@@ -132,26 +127,30 @@ def save_triplet_probas(
 def evaluate(args, backend: str = "pt") -> None:
     device = torch.device(args.device)
     model_cfg, data_cfg = create_hyperparam_dicts(args)
-    triplets = load_triplets(args.triplets_dir)
     results = []
     for model_name, module_name in tqdm(zip(model_cfg.names, model_cfg.modules)):
         model = Model(
             model_name, pretrained=True, model_path=None, device=device, backend=backend
         )
-        dl = vision.load_dl(
-            root=data_cfg.root,
-            out_path=f"./{model_name}/{module_name}/features",
+        things_behavior = THINGSBehavior(
+            root=data_cfg.root, 
+            transform=model.get_transformations(),
+            download=False
+            )
+        dl = DataLoader(
+            dataset=things_behavior,
             batch_size=args.batch_size,
-            transforms=model.get_transformations(),
-            backend=backend,
-        )
+            shuffle=False,
+            drop_last=False
+            )
         features, _ = model.extract_features(
             data_loader=dl,
             module_name=module_name,
             flatten_acts=True,
             clip=True if re.compile(r"^clip").search(model_name.lower()) else False,
-            return_probabilities=False,
-        )
+            return_probabilities=False
+            )
+        triplets = things_behavior.get_triplets()
         choices, probas = get_predictions(features, triplets, args.temperature)
         acc = accuracy(choices)
         entropies = ventropy(probas)

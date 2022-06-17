@@ -28,33 +28,10 @@ class THINGSTriplet(torch.utils.data.Dataset):
         self.target_transform = target_transform
         self.download = download
         self.target = 2
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> 7940d1249d2a4184e81633b5061bdf6dea77774c
     
-<<<<<<< HEAD
-
         with open(os.path.join(self.root, 'triplets', 'train_90.npy' if train else 'test_10.npy'), 'rb') as f:
             self.triplets = np.load(f).astype(int)
 
-=======
-<<<<<<< HEAD
-        with open(os.path.join(self.root, 'triplets', 'train_90.npy' if train else 'test_10.npy'), 'rb') as f:
-            self.triplets = np.load(f).astype(int)
-
->>>>>>> added additional things class for faster feature extraction
-=======
-        with open(os.path.join(self.root, 'triplets', 'train_90.npy' if train else 'test_10.npy'), 'rb') as f:
-            self.triplets = np.load(f).astype(int)
-
->>>>>>> added additional things class for faster feature extraction
-=======
-
-        with open(os.path.join(self.root, 'triplets', 'train_90.npy' if train else 'test_10.npy'), 'rb') as f:
-            self.triplets = np.load(f).astype(int)
->>>>>>> 9fc0f7d6f31f770dcf301a7d2499641b030c31c2
->>>>>>> 7940d1249d2a4184e81633b5061bdf6dea77774c
         if download:
             f = urllib.request.urlopen(object_concepts_link)
         else:
@@ -82,37 +59,44 @@ class THINGSTriplet(torch.utils.data.Dataset):
     def __len__(self) -> int:
         return self.triplets.shape[0]
 
-class THINGS(torch.utils.data.Dataset):
+class THINGSBehavior(torch.utils.data.Dataset):
 
-    def __init__(self, root, train=True, transform=None, target_transform=None, download=True):
-        super(THINGS, self).__init__()
+    def __init__(self, root, transform=None, target_transform=None, download=True):
+        super(THINGSBehavior, self).__init__()
         self.root = root
-        self.train = train
         self.transform = transform
         self.target_transform = target_transform
         self.download = download
-            
-        with open(os.path.join(self.root, 'triplets', 'train_90.npy' if train else 'test_10.npy'), 'rb') as f:
-            self.triplets = np.load(f).astype(int)
 
         if download:
-            f = urllib.request.urlopen(object_concepts_link)
+            concept_file = urllib.request.urlopen(object_concepts_link)
         else:
-            f = os.path.join(self.root, 'concepts', 'things_concepts.tsv')
+            concept_file = os.path.join(self.root, 'concepts', 'things_concepts.tsv')
 
-        things_objects = pd.read_csv(f, sep='\t', encoding='utf-8')
-        self.object_names = things_objects['uniqueID'].values
-        self.names = list(map(lambda n: n + '.jpg', self.object_names))
+        # load train and test triplets
+        train_triplets = self.load_triplets(train=True)
+        val_triplets = self.load_triplets(train=False)
+        self.triplets = np.vstack((train_triplets, val_triplets))
+        
+        # load object concept names according to which images have to be sorted
+        things_objects = pd.read_csv(concept_file, sep='\t', encoding='utf-8')
+        object_names = things_objects['uniqueID'].values
+        self.names = list(map(lambda n: n + '.jpg', object_names))
+
+    def load_triplets(self, train: bool = True) -> Array:
+        with open(os.path.join(self.root, 'triplets', 'train_90.npy' if train else 'test_10.npy'), 'rb') as f:
+            triplets = np.load(f).astype(int)
+        return triplets
 
     def __getitem__(self, idx: int) -> Tuple[Tensor, Tensor, Tensor, int]:
         img = os.path.join(self.root, 'images', self.names[idx])
         img = Image.open(img)
         if self.transform is not None:
             img = self.transform(img)
-        return img
+        return img, torch.tensor([idx])
 
     def __len__(self) -> int:
-        return self.object_names.shape[0]
-
+        return len(self.names)
+    
     def get_triplets(self):
-        return iter(self.triplets)
+        return self.triplets
