@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from turtle import distance
 from typing import Any, List, Tuple
 from tqdm import tqdm
 from ml_collections import config_dict
@@ -68,20 +69,27 @@ def create_hyperparam_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
     return model_cfg, data_cfg
 
 
-def compute_similarities(triplet: Tensor, pairs: List[Tuple[int]], sim: str = 'dot') -> Tensor:
-    if sim == 'dot':
-        sim_fun = lambda u, v: u @ v
-    elif sim == 'cosine':
-        sim_fun = lambda u, v: F.cosine_similarity(u, v, dim=0)
-    else:
-        raise Exception('Similarity function other than dot product or cosine sim is not yet implemented')
-    similarities = torch.tensor(
-        [sim_fun(triplet[i], triplet[j]) for i, j in pairs]
+def compute_dots(triplet: Tensor, pairs: List[Tuple[int]]) -> Tensor:
+    dots = torch.tensor(
+        [triplet[i] @ triplet[j] for i, j in pairs]
     )
-    return similarities
+    return dots
 
 
-def get_predictions(features: Array, triplets: Array, temperature: float) -> List[bool]:
+def compute_distances(triplet: Tensor, pairs: List[Tuple[int]], dist: str) -> Tensor:
+    if dist == 'cosine':
+        dist_fun = lambda u, v: 1 - F.cosine_similarity(u, v, dim=0)
+    elif dist == 'euclidean':
+        dist_fun = lambda u, v: torch.linalg.norm(u - v, ord=2)
+    else:
+        raise Exception('Distance function other than cosine or Euclidean distance is not yet implemented')
+    distances = torch.tensor(
+        [dist_fun(triplet[i], triplet[j]) for i, j in pairs]
+    )
+    return distances
+
+
+def get_predictions(features: Array, triplets: Array, temperature: float, dist: str = 'cosine') -> List[bool]:
     features = torch.from_numpy(features)
     pairs = [(0, 1), (0, 2), (1, 2)]
     indices = {0, 1, 2}
@@ -90,9 +98,9 @@ def get_predictions(features: Array, triplets: Array, temperature: float) -> Lis
     print(f"\nShape of embeddings {features.shape}\n")
     for s, (i, j, k) in enumerate(triplets):
         triplet = torch.stack([features[i], features[j], features[k]])
-        cosine_similarities = compute_similarities(triplet, pairs, sim='cosine')
-        dots = compute_similarities(triplet, pairs, sim='dot')
-        most_sim_pair = pairs[torch.argmax(cosine_similarities).item()]
+        distances = compute_distances(triplet, pairs, dist)
+        dots = compute_dots(triplet, pairs)
+        most_sim_pair = pairs[torch.argmin(distances).item()]
         ooo_idx = indices.difference(most_sim_pair).pop()
         choices[s] += (ooo_idx == 2)
         probas[s] += F.softmax(dots * temperature, dim=0)
