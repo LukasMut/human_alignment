@@ -1,7 +1,6 @@
 import numpy as np
 from torchvision.datasets import CIFAR100, CIFAR10
 import random
-from PIL import Image
 
 
 class CIFAR100Coarse(CIFAR100):
@@ -64,23 +63,10 @@ class RandomMatchingMixin:
             idx = random.choice(class_indices[other_cls])
             class_indices[other_cls].remove(idx)
             triplet.append(idx)
-            self.triplets.append((triplet, 2))
+            self.triplets.append(triplet)
 
-    def get_triplet(self, index):
-        triplet = self.triplets[index]
-        sample_indices, target = triplet
-
-        images = []
-        for index in sample_indices:
-            img = self.data[index]
-            img = Image.fromarray(img)
-            if self.transform is not None:
-                img = self.transform(img)
-            images.append(img)
-
-        if self.target_transform is not None:
-            target = self.target_transform(target)
-        return images[0], images[1], images[2], target
+    def get_triplets(self):
+        return self.triplets
 
 
 class CIFAR100CoarseTriplet(CIFAR100Coarse, RandomMatchingMixin):
@@ -88,32 +74,14 @@ class CIFAR100CoarseTriplet(CIFAR100Coarse, RandomMatchingMixin):
         super().__init__(root, *args, **kwargs)
         self.setup(seed=seed, samples=samples)
 
-    def __getitem__(self, index):
-        return self.get_triplet(index)
-
-    def __len__(self):
-        return len(self.triplets)
-
 
 class CIFAR100Triplet(CIFAR100, RandomMatchingMixin):
     def __init__(self, root, seed=0, samples=10000, *args, **kwargs):
         super().__init__(root, *args, **kwargs)
         self.setup(seed=seed, samples=samples)
 
-    def __getitem__(self, index):
-        return self.get_triplet(index)
-
-    def __len__(self):
-        return len(self.triplets)
-
 
 class CIFAR10Triplet(CIFAR10, RandomMatchingMixin):
     def __init__(self, root, seed=0, samples=10000, *args, **kwargs):
         super().__init__(root, *args, **kwargs)
         self.setup(seed=seed, samples=samples)
-
-    def __getitem__(self, index):
-        return self.get_triplet(index)
-
-    def __len__(self):
-        return len(self.triplets)
