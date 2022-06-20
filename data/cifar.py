@@ -64,6 +64,7 @@ class RandomMatchingMixin:
             class_indices[other_cls].remove(idx)
             triplet.append(idx)
             self.triplets.append(triplet)
+        self.triplets = np.array(self.triplets)
 
     def get_triplets(self):
         return self.triplets

@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from turtle import distance
 from typing import Any, List, Tuple
 from tqdm import tqdm
 from ml_collections import config_dict
 from thingsvision.model_class import Model
 from torch.utils.data import DataLoader
 from functorch import vmap
-from data import THINGSBehavior
+from data import load_dataset, DATASETS
 
 import os
 import random
@@ -19,8 +18,6 @@ import argparse
 import numpy as np
 import pandas as pd
 import torch.nn.functional as F
-import thingsvision.vision as vision
-
 
 FrozenDict = Any
 Tensor = torch.Tensor
@@ -34,28 +31,29 @@ def parseargs():
         parser.add_argument(*args, **kwargs)
 
     aa("--data_root", type=str, help="path/to/things")
+    aa("--dataset", type=str, help="Which dataset to use", choices=DATASETS)
     aa("--model_names", type=str, nargs="+",
-        help="models for which we want to extract featues")
+       help="models for which we want to extract featues")
     aa("--module_names", type=str, nargs="+",
-        help="modules of models for which to extract features")
+       help="modules of models for which to extract features")
     aa("--distance", type=str, default='cosine',
-        choices=['cosine', 'euclidean'],
-        help='distance function used for predicting the odd-one-out')
+       choices=['cosine', 'euclidean'],
+       help='distance function used for predicting the odd-one-out')
     aa("--input_dim", type=int, default=224, help="input image dimensionality")
     aa("--batch_size", metavar="B", type=int, default=128,
-        help="number of triplets sampled during each step (i.e., mini-batch size)")
+       help="number of triplets sampled during each step (i.e., mini-batch size)")
     aa("--out_path", type=str, help="path/to/results")
     aa("--device", type=str, default="cuda",
-        help="whether evaluation should be performed on CPU or GPU (i.e., CUDA).")
+       help="whether evaluation should be performed on CPU or GPU (i.e., CUDA).")
     aa("--num_threads", type=int, default=4,
-        help="number of threads used for intraop parallelism on CPU; use only if device is CPU")
+       help="number of threads used for intraop parallelism on CPU; use only if device is CPU")
     aa("--temperature", type=float, default=1.,
-        choices=[1., 0.1, 0.01, 0.001, 0.0001],
-        help='temperature scaling (i.e., beta param in softmax function)')
+       choices=[1., 0.1, 0.01, 0.001, 0.0001],
+       help='temperature scaling (i.e., beta param in softmax function)')
     aa("--rnd_seed", type=int, default=42,
-        help="random seed for reproducibility of results")
+       help="random seed for reproducibility of results")
     aa("--verbose", action="store_true",
-        help="whether to display print statements about model performance during training")
+       help="whether to display print statements about model performance during training")
     args = parser.parse_args()
     return args
 
@@ -117,6 +115,7 @@ def accuracy(choices: List[bool]) -> float:
 
 def ventropy(probabilities: Tensor) -> Tensor:
     """Computes the entropy for a batch of (discrete) probability distributions."""
+
     def entropy(p: Tensor) -> Tensor:
         return -(torch.where(p > torch.tensor(0.), p * torch.log(p), torch.tensor(0.))).sum()
 
@@ -124,7 +123,7 @@ def ventropy(probabilities: Tensor) -> Tensor:
 
 
 def save_triplet_probas(
-    probas: Tensor, out_path: str, model_name: str, module_name: str
+        probas: Tensor, out_path: str, model_name: str, module_name: str
 ) -> None:
     """Saves triplet probabilities to disk."""
     out_path = os.path.join(out_path, model_name, module_name)
@@ -143,25 +142,21 @@ def evaluate(args, backend: str = "pt") -> None:
         model = Model(
             model_name, pretrained=True, model_path=None, device=device, backend=backend
         )
-        things_behavior = THINGSBehavior(
-            root=data_cfg.root, 
-            transform=model.get_transformations(),
-            download=False
-            )
+        dataset = load_dataset(name=args.dataset, data_dir=data_cfg.root, transform=model.get_transformations())
         dl = DataLoader(
-            dataset=things_behavior,
+            dataset=dataset,
             batch_size=args.batch_size,
             shuffle=False,
             drop_last=False
-            )
+        )
         features, _ = model.extract_features(
             data_loader=dl,
             module_name=module_name,
             flatten_acts=True,
             clip=True if re.compile(r"^clip").search(model_name.lower()) else False,
             return_probabilities=False
-            )
-        triplets = things_behavior.get_triplets()
+        )
+        triplets = dataset.get_triplets()
         choices, probas = get_predictions(features, triplets, args.temperature, args.distance)
         acc = accuracy(choices)
         entropies = ventropy(probas)

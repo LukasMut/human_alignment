@@ -125,6 +125,11 @@ def load_model(name):
         model = net(pretrained=True)
         model.classifier = torch.nn.Identity()
         return model
+    elif name.startswith('convnext'):
+        net = getattr(models, name)
+        model = net(pretrained=True)
+        model.classifier[-1] = torch.nn.Identity()
+        return model
     else:
         net = getattr(models, name)
         return net(pretrained=True)
