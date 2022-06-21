@@ -10,8 +10,7 @@ import numpy as np
 import pandas as pd
 
 from PIL import Image
-from typing import Any, Tuple
-from dataclasses import dataclass
+from typing import Tuple
 
 Array = np.ndarray
 Tensor = torch.Tensor
