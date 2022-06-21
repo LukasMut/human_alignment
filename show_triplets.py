@@ -3,11 +3,11 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 import torch
 import argparse
-from data.utils import load_dataset
+from data import load_dataset, DATASETS
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data-dir')
-parser.add_argument('--dataset', default='cifar100', choices=['things', 'cifar100'])
+parser.add_argument('--dataset', default='cifar100', choices=DATASETS)
 args = parser.parse_args()
 
 dataset = load_dataset(name=args.dataset, data_dir=args.data_dir, transform=transforms.ToTensor())

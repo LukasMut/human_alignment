@@ -1,7 +1,8 @@
-from data.cifar100 import CIFAR100Triplet, CIFAR100CoarseTriplet, CIFAR10Triplet
-from data.things import THINGSTriplet, THINGS
-from torch.utils.data import Subset
-import random
+from .things import THINGSBehavior
+from .cifar import CIFAR100Triplet, CIFAR100CoarseTriplet, CIFAR10Triplet
+from .things import THINGSTriplet, THINGSBehavior
+
+DATASETS = ['cifar100-coarse', 'cifar100-fine', 'cifar10', 'things']
 
 
 def load_dataset(name, data_dir, transform):
@@ -18,19 +19,7 @@ def load_dataset(name, data_dir, transform):
                                  download=True, transform=transform,
                                  samples=10000, seed=0)
     elif name == 'things':
-        dataset = THINGSTriplet(root=data_dir, train=True,
-                                download=True, transform=transform)
-    elif name == 'things-new':
-        dataset = THINGS(root=data_dir, train=True,
-                         download=True, transform=transform)
-    elif name == 'things-5k':
-        dataset = THINGSTriplet(root=data_dir, train=True,
-                                download=True, transform=transform)
-        k = 5000
-        indices = list(range(5000))
-        random.seed(0)
-        random.shuffle(indices)
-        dataset = Subset(dataset, indices=indices[:k])
+        dataset = THINGSBehavior(root=data_dir, download=True, transform=transform)
     else:
         raise ValueError('Unknown dataset')
 
