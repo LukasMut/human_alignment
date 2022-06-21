@@ -82,12 +82,12 @@ def compute_distances(triplet: Tensor, pairs: List[Tuple[int]], dist: str) -> Te
         dist_fun = lambda u, v: 1 - F.cosine_similarity(u, v, dim=0)
     elif dist == "euclidean":
         dist_fun = lambda u, v: torch.linalg.norm(u - v, ord=2)
-    elif dist == 'jshannon':
+    elif dist == 'jensenshannon':
         dist_fun = lambda u, v:  utils.jensenshannon(
             F.softmax(u, dim=0), F.softmax(v, dim=0))
     else:
         raise Exception(
-            "Distance function other than cosine or Euclidean distance is not yet implemented"
+            "Distance function other than Jensen-Shannon, Cosine or Euclidean distance is not yet implemented"
         )
     distances = torch.tensor([dist_fun(triplet[i], triplet[j]) for i, j in pairs])
     return distances

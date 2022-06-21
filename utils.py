@@ -17,7 +17,7 @@ def jensenshannon(p: Tensor, q: Tensor, base=None, *, dim=0) -> float:
     Compute the Jensen-Shannon distance (metric) between
     two probability tensors. This is the square root
     of the Jensen-Shannon divergence.
-    
+
     The Jensen-Shannon distance between two probability
     vectors `p` and `q` is defined as,
     .. math::
@@ -30,8 +30,8 @@ def jensenshannon(p: Tensor, q: Tensor, base=None, *, dim=0) -> float:
     p /= torch.sum(p, dim=dim)
     q /= torch.sum(q, dim=dim)
     m = (p + q) / 2.0
-    left = rel_entropy(p.double(), m)
-    right = rel_entropy(q.double(), m)
+    left = rel_entropy(p, m)
+    right = rel_entropy(q, m)
     left_sum = torch.sum(left, dim=dim)
     right_sum = torch.sum(right, dim=dim)
     js = left_sum + right_sum
