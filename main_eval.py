@@ -83,7 +83,8 @@ def compute_distances(triplet: Tensor, pairs: List[Tuple[int]], dist: str) -> Te
     elif dist == "euclidean":
         dist_fun = lambda u, v: torch.linalg.norm(u - v, ord=2)
     elif dist == 'jshannon':
-        dist_fun = lambda u, v:  utils.jensenshannon(F.softmax(u, dim=0), F.softmax(v, dim=0))
+        dist_fun = lambda u, v:  utils.jensenshannon(
+            F.softmax(u, dim=0), F.softmax(v, dim=0))
     else:
         raise Exception(
             "Distance function other than cosine or Euclidean distance is not yet implemented"
