@@ -38,24 +38,25 @@ python main_eval.py --data_root /home/space/datasets/things \
 ```
 
 ## Results
-| Model                 | Things | Cifar-100-0 | #parameters | Imagenet Accuracy |
-|-----------------------|--------|-------------|-------------|-------------------|
-| Efficientnet B0       | 45.35  |             |             | 77.692            |
-| Efficientnet B1       | 43.01  |             |             | 78.642            |
-| Efficientnet B2       | 43.39  |             |             | 80.608            |
-| Efficientnet B3       | 38.90  |             |             | 82.008            |
-| Efficientnet B4       | 43.84  |             |             | 83.384            |
-| Efficientnet B5       | 44.80  |             |             | 83.444            |
-| Efficientnet B6       | 45.57  |             |             | 84.008            |
-| Efficientnet B7       | 45.53  |             |             | 84.122            |
-| Resnet 18             | 47.33  | 62.09       |             | 69.758            |
-| Resnet 34             | 47.44  |             |             | 73.314            |
-| Resnet 50             | 47.74  | 64.75       |             | 76.130            |
-| Resnet 50 BarlowTwins | 43.84  | 59.72       |             | 73.5              |
-| Resnet 101            | 47.56  |             |             | 77.374            |
-| Resnet 152            | 47.24  | 68.32       |             | 78.312            |
-| Vit-B 16              | 50.89  |             |             | (81.072)          |
-| VGG 11                | 51.96  |             |             | 69.020            |
-| VGG 13                | 52.19  |             |             | 69.928            |
-| VGG 16                | 52.06  |             |             | 71.592            |
-| VGG 19                | 51.83  | 66.49       |             | 72.376            |
+| Model                 | Things (Penultimate) | Things (Logits; Dot) | Cifar-100-0 | #parameters | Imagenet Accuracy |
+|-----------------------|----------------------|----------------------|-------------|-------------|-------------------|
+| Efficientnet B0       |                      | 45.35                |             |             | 77.692            |
+| Efficientnet B1       |                      | 43.01                |             |             | 78.642            |
+| Efficientnet B2       |                      | 43.39                |             |             | 80.608            |
+| Efficientnet B3       |                      | 38.90                |             |             | 82.008            |
+| Efficientnet B4       |                      | 43.84                |             |             | 83.384            |
+| Efficientnet B5       |                      | 44.80                |             |             | 83.444            |
+| Efficientnet B6       |                      | 45.57                |             |             | 84.008            |
+| Efficientnet B7       |                      | 45.53                |             |             | 84.122            |
+| Resnet 18             | 47.33                |                      | 62.09       |             | 69.758            |
+| Resnet 34             | 47.44                |                      |             |             | 73.314            |
+| Resnet 50             | 47.74                |                      | 64.75       |             | 76.130            |
+| Resnet 50 BarlowTwins | 43.84                |                      | 59.72       |             | 73.5              |
+| Resnet 101            | 47.56                |                      |             |             | 77.374            |
+| Resnet 152            | 47.24                |                      | 68.32       |             | 78.312            |
+| Vit-B 16              | 50.89                |                      |             |             | (81.072)          |
+| VGG 11                |                      | 51.96                |             |             | 69.020            |
+| VGG 13                |                      | 52.19                |             |             | 69.928            |
+| VGG 16                |                      | 52.06                |             |             | 71.592            |
+| VGG 19                |                      | 51.83                | 66.49       |             | 72.376            |
+| AlexNet               |                      |                      |             |             |                   |
