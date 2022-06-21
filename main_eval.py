@@ -14,6 +14,7 @@ import random
 import re
 import torch
 import argparse
+import utils
 
 import numpy as np
 import pandas as pd
@@ -37,7 +38,7 @@ def parseargs():
     aa("--module_names", type=str, nargs="+",
        help="modules of models for which to extract features")
     aa("--distance", type=str, default='cosine',
-       choices=['cosine', 'euclidean'],
+       choices=['cosine', 'euclidean', 'jensenshannon'],
        help='distance function used for predicting the odd-one-out')
     aa("--input_dim", type=int, default=224, help="input image dimensionality")
     aa("--batch_size", metavar="B", type=int, default=128,
@@ -72,26 +73,28 @@ def create_hyperparam_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
 
 
 def compute_dots(triplet: Tensor, pairs: List[Tuple[int]]) -> Tensor:
-    dots = torch.tensor(
-        [triplet[i] @ triplet[j] for i, j in pairs]
-    )
+    dots = torch.tensor([triplet[i] @ triplet[j] for i, j in pairs])
     return dots
 
 
 def compute_distances(triplet: Tensor, pairs: List[Tuple[int]], dist: str) -> Tensor:
-    if dist == 'cosine':
+    if dist == "cosine":
         dist_fun = lambda u, v: 1 - F.cosine_similarity(u, v, dim=0)
-    elif dist == 'euclidean':
+    elif dist == "euclidean":
         dist_fun = lambda u, v: torch.linalg.norm(u - v, ord=2)
+    elif dist == 'jshannon':
+        dist_fun = lambda u, v:  utils.jensenshannon(F.softmax(u, dim=0), F.softmax(v, dim=0))
     else:
-        raise Exception('Distance function other than cosine or Euclidean distance is not yet implemented')
-    distances = torch.tensor(
-        [dist_fun(triplet[i], triplet[j]) for i, j in pairs]
-    )
+        raise Exception(
+            "Distance function other than cosine or Euclidean distance is not yet implemented"
+        )
+    distances = torch.tensor([dist_fun(triplet[i], triplet[j]) for i, j in pairs])
     return distances
 
 
-def get_predictions(features: Array, triplets: Array, temperature: float, dist: str = 'cosine') -> List[bool]:
+def get_predictions(
+    features: Array, triplets: Array, temperature: float, dist: str = "cosine"
+) -> List[bool]:
     features = torch.from_numpy(features)
     pairs = [(0, 1), (0, 2), (1, 2)]
     indices = {0, 1, 2}
@@ -104,7 +107,7 @@ def get_predictions(features: Array, triplets: Array, temperature: float, dist: 
         dots = compute_dots(triplet, pairs)
         most_sim_pair = pairs[torch.argmin(distances).item()]
         ooo_idx = indices.difference(most_sim_pair).pop()
-        choices[s] += (ooo_idx == 2)
+        choices[s] += ooo_idx == 2
         probas[s] += F.softmax(dots * temperature, dim=0)
     return choices, probas
 
@@ -118,13 +121,15 @@ def ventropy(probabilities: Tensor) -> Tensor:
     """Computes the entropy for a batch of (discrete) probability distributions."""
 
     def entropy(p: Tensor) -> Tensor:
-        return -(torch.where(p > torch.tensor(0.), p * torch.log(p), torch.tensor(0.))).sum()
+        return -(
+            torch.where(p > torch.tensor(0.0), p * torch.log(p), torch.tensor(0.0))
+        ).sum()
 
     return vmap(entropy)(probabilities)
 
 
 def save_triplet_probas(
-        probas: Tensor, out_path: str, model_name: str, module_name: str
+    probas: Tensor, out_path: str, model_name: str, module_name: str
 ) -> None:
     """Saves triplet probabilities to disk."""
     out_path = os.path.join(out_path, model_name, module_name)
@@ -143,22 +148,25 @@ def evaluate(args, backend: str = "pt") -> None:
         model = Model(
             model_name, pretrained=True, model_path=None, device=device, backend=backend
         )
-        dataset = load_dataset(name=args.dataset, data_dir=data_cfg.root, transform=model.get_transformations())
+        dataset = load_dataset(
+            name=args.dataset,
+            data_dir=data_cfg.root,
+            transform=model.get_transformations(),
+        )
         dl = DataLoader(
-            dataset=dataset,
-            batch_size=args.batch_size,
-            shuffle=False,
-            drop_last=False
+            dataset=dataset, batch_size=args.batch_size, shuffle=False, drop_last=False
         )
         features, _ = model.extract_features(
             data_loader=dl,
             module_name=module_name,
             flatten_acts=True,
             clip=True if re.compile(r"^clip").search(model_name.lower()) else False,
-            return_probabilities=False
+            return_probabilities=False,
         )
         triplets = dataset.get_triplets()
-        choices, probas = get_predictions(features, triplets, args.temperature, args.distance)
+        choices, probas = get_predictions(
+            features, triplets, args.temperature, args.distance
+        )
         acc = accuracy(choices)
         entropies = ventropy(probas)
         mean_entropy = entropies.mean().item()
@@ -192,7 +200,7 @@ if __name__ == "__main__":
     random.seed(args.rnd_seed)
     torch.manual_seed(args.rnd_seed)
     # set number of threads used by PyTorch if device is CPU
-    if re.compile(r'^cpu').search(args.device.lower()):
+    if re.compile(r"^cpu").search(args.device.lower()):
         torch.set_num_threads(args.num_threads)
     # run evaluation script
     evaluate(args)
