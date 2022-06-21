@@ -19,27 +19,39 @@ object_concepts_link = "https://raw.githubusercontent.com/ViCCo-Group/THINGSvisi
 
 class THINGSTriplet(torch.utils.data.Dataset):
 
-    def __init__(self, root, train=True, transform=None, target_transform=None, download=True):
+    def __init__(self, root, aligned=True, transform=None, target_transform=None, download=True):
         super(THINGSTriplet, self).__init__()
         self.root = root
-        self.train = train
+        self.aligned = aligned
         self.transform = transform
         self.target_transform = target_transform
         self.download = download
         self.target = 2
-    
-        with open(os.path.join(self.root, 'triplets', 'train_90.npy' if train else 'test_10.npy'), 'rb') as f:
-            self.triplets = np.load(f).astype(int)
 
         if download:
             f = urllib.request.urlopen(object_concepts_link)
         else:
             f = os.path.join(self.root, 'concepts', 'things_concepts.tsv')
 
+        if self.aligned:
+            # load aligned triplets (i.e., triplets correctly predicted by VICE)
+            self.triplets = self.load_triplets(root, file_name='correct_triplets.npy')
+        else:
+            # load train and test triplets (i.e., all triplets)
+            train_triplets = self.load_triplets(root, file_name='train_90.npy')
+            val_triplets = self.load_triplets(root, file_name='test_10.npy')
+            self.triplets = np.vstack((train_triplets, val_triplets))
+
         things_objects = pd.read_csv(f, sep='\t', encoding='utf-8')
         object_names = things_objects['uniqueID'].values
 
         self.names = list(map(lambda n: n + '.jpg', object_names))
+    
+    @staticmethod
+    def load_triplets(root: str, file_name: str) -> Array:
+        with open(os.path.join(root, 'triplets', file_name), 'rb') as f:
+            triplets = np.load(f).astype(int)
+        return triplets
 
     def __getitem__(self, index: int) -> Tuple[Tensor, Tensor, Tensor, int]:
         triplet = self.triplets[index]
@@ -60,9 +72,10 @@ class THINGSTriplet(torch.utils.data.Dataset):
 
 class THINGSBehavior(torch.utils.data.Dataset):
 
-    def __init__(self, root, transform=None, target_transform=None, download=True):
+    def __init__(self, root, aligned=True, transform=None, target_transform=None, download=True):
         super(THINGSBehavior, self).__init__()
         self.root = root
+        self.aligned = aligned
         self.transform = transform
         self.target_transform = target_transform
         self.download = download
@@ -71,19 +84,24 @@ class THINGSBehavior(torch.utils.data.Dataset):
             concept_file = urllib.request.urlopen(object_concepts_link)
         else:
             concept_file = os.path.join(self.root, 'concepts', 'things_concepts.tsv')
-
-        # load train and test triplets
-        train_triplets = self.load_triplets(train=True)
-        val_triplets = self.load_triplets(train=False)
-        self.triplets = np.vstack((train_triplets, val_triplets))
+ 
+        if self.aligned:
+            # load aligned triplets (i.e., triplets correctly predicted by VICE)
+            self.triplets = self.load_triplets(root, file_name='correct_triplets.npy')
+        else:
+            # load train and test triplets (i.e., all triplets)
+            train_triplets = self.load_triplets(root, file_name='train_90.npy')
+            val_triplets = self.load_triplets(root, file_name='test_10.npy')
+            self.triplets = np.vstack((train_triplets, val_triplets))
         
         # load object concept names according to which images have to be sorted
         things_objects = pd.read_csv(concept_file, sep='\t', encoding='utf-8')
         object_names = things_objects['uniqueID'].values
         self.names = list(map(lambda n: n + '.jpg', object_names))
 
-    def load_triplets(self, train: bool = True) -> Array:
-        with open(os.path.join(self.root, 'triplets', 'train_90.npy' if train else 'test_10.npy'), 'rb') as f:
+    @staticmethod
+    def load_triplets(root: str, file_name: str) -> Array:
+        with open(os.path.join(root, 'triplets', file_name), 'rb') as f:
             triplets = np.load(f).astype(int)
         return triplets
 
