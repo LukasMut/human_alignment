@@ -44,6 +44,8 @@ class CIFAR100Coarse(CIFAR100):
 
 
 class RandomMatchingMixin:
+    """Randomly creates triplets by matching samples from the same class with one sample from a different class """
+
     def setup(self, seed: int, samples: int):
         random.seed(seed)
         labels = np.unique(self.targets)

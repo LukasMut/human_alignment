@@ -55,6 +55,7 @@ def parseargs():
     aa("--verbose", action="store_true",
        help="whether to display print statements about model performance during training")
     args = parser.parse_args()
+    assert len(args.model_names) == len(args.module_names), "Specify one module name for each model"
     return args
 
 
