@@ -1,4 +1,4 @@
-
+![code style](https://img.shields.io/badge/code%20style-black-black)
 # Predicting the "odd-one-out" on a triplet task
 
 ## Cifar-100 triplet task
