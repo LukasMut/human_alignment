@@ -189,6 +189,7 @@ def evaluate(args, backend: str = "pt") -> None:
             "accuracy": acc,
             "choices": choices.cpu().numpy(),
             "entropies": entropies.cpu().numpy(),
+            "probas": probas.cpu().numpy(),
         }
         results.append(summary)
         save_triplet_probas(probas, args.out_path, model_name, module_name)
