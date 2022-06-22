@@ -30,26 +30,29 @@ def unpickle_results(results_path: str) -> pd.DataFrame:
     return pd.read_pickle(os.path.join(results_path, 'results.pkl'))
 
 
+def get_vice_probas(data_root: str) -> Array:
+    return np.load(os.path.join(data_root, 'probas', 'probabilities_correct_triplets.npy'))
+
+
 def get_vice_entropies(data_root: str) -> Array:
     return np.load(os.path.join(data_root, 'entropies', 'entropies_correct_triplets.npy'))
 
 
-def append_vice(results: pd.DataFrame, vice_entropies: Array) -> pd.DataFrame:
+def append_vice(results: pd.DataFrame, vice_entropies: Array, vice_probas: Array) -> pd.DataFrame:
     vice_choices = np.ones_like(results[results.model==np.unique(results.model)[0]].choices[0])
-    vice = [{'model': 'vice', 'accuracy': float(1), 'entropies': vice_entropies, 'choices': vice_choices}]
+    vice = [{'model': 'vice', 'accuracy': float(1), 'entropies': vice_entropies, 'choices': vice_choices, 'probas': vice_probas}]
     return pd.concat([results, pd.DataFrame(vice)])
 
 
 def get_agreement(choices_i, choices_j) -> float:
-    assert choices_i.shape[0] == choices_j.shape[0], '\nChoices can only be compared for the same number of triplets.\n'
+    assert choices_i.shape[0] == choices_j.shape[0], '\nNumber of triplets needs to be same to compare choices.\n'
     triplet_agreements = np.where(choices_i == choices_j)[0]
     agreement_frac = triplet_agreements.shape[0] / choices_i.shape[0]
     return agreement_frac
 
     
-def compare_entropies(entropies_i: Array, entropies_j: Array) -> Array:
-    jsdistances = np.array(list(map(lambda x: jensenshannon(x[0], x[1]), zip(entropies_i, entropies_j))))
-    return jsdistances
+def compare_probabilities(probas_i: Array, probas_j: Array) -> Array:
+    return np.array(list(map(lambda x: jensenshannon(x[0], x[1]), zip(probas_i, probas_j))))
 
 
 def compare_models(results: pd.DataFrame, metric: str ='agreement') -> pd.DataFrame:
@@ -59,14 +62,16 @@ def compare_models(results: pd.DataFrame, metric: str ='agreement') -> pd.DataFr
         for j, model_j in enumerate(models):
             if i != j:
                 if metric == 'agreement':
-                    choices_i = results[results.model==model_j].choices.values[0]
+                    choices_i = results[results.model==model_i].choices.values[0]
                     choices_j = results[results.model==model_j].choices.values[0]
                     agreement = get_agreement(choices_i, choices_j)
                     model_comparison.iloc[i, j] = agreement
-                else: #jensen-shannon distance
-                    entropies_i = results[results.model==model_i].entropies.values[0]
-                    entropies_j = results[results.model==model_j].entropies.values[0]
-                    jsdistances = compare_entropies(entropies_i, entropies_j)
+                else: # Jensen-Shannon distance
+                    # TODO
+                    pass
+                    probas_i = results[results.model==model_i].probas.values[0]
+                    probas_j = results[results.model==model_j].probas.values[0]
+                    jsdistances = compare_probabilities(probas_i, probas_j)
                     model_comparison.iloc[i, j] = np.mean(jsdistances)
             else:
                 if metric == 'agreement':
@@ -81,10 +86,11 @@ if __name__ == "__main__":
     args = parseargs()
     # unpickle results
     results = unpickle_results(args.results_path)
-    # load vice entropies
+    # load vice entropies and probas
     vice_entropies = get_vice_entropies(args.data_root)
+    vice_probas = get_vice_probas(args.data_root)
     # add vice to results
-    results = append_vice(results, vice_entropies)
+    results = append_vice(results, vice_entropies, vice_probas)
     # compute triplet agreements and jensen-shannon distances
     agreements = compare_models(results, metric='agreement')
     js_distances = compare_models(results, metric='jsdistance')
