@@ -67,8 +67,6 @@ def compare_models(results: pd.DataFrame, metric: str ='agreement') -> pd.DataFr
                     agreement = get_agreement(choices_i, choices_j)
                     model_comparison.iloc[i, j] = agreement
                 else: # Jensen-Shannon distance
-                    # TODO
-                    pass
                     probas_i = results[results.model==model_i].probas.values[0]
                     probas_j = results[results.model==model_j].probas.values[0]
                     jsdistances = compare_probabilities(probas_i, probas_j)
