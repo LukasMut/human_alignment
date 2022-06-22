@@ -1,2 +1,10 @@
 .idea
 resources
+*.ipynb
+*.csv
+*.txt
+*.npy
+*.png
+*.jpg
+*.pkl
+*.DS_Store
