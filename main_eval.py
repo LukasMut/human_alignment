@@ -141,6 +141,15 @@ def save_triplet_probas(
         np.save(f, probas.cpu().numpy())
 
 
+def save_triplet_choices(
+    choices: Tensor, out_path: str, model_name: str, module_name: str
+) -> None:
+    """Saves triplet probabilities to disk."""
+    out_path = os.path.join(out_path, model_name, module_name)
+    with open(os.path.join(out_path, "triplet_choices.npy"), "wb") as f:
+        np.save(f, choices.cpu().numpy())
+
+
 def evaluate(args, backend: str = "pt") -> None:
     device = torch.device(args.device)
     model_cfg, data_cfg = create_hyperparam_dicts(args)
@@ -178,11 +187,12 @@ def evaluate(args, backend: str = "pt") -> None:
         summary = {
             "model": model_name,
             "accuracy": acc,
-            "mean_entropy": mean_entropy,
+            "choices": choices,
             "entropies": entropies.cpu().numpy(),
         }
         results.append(summary)
         save_triplet_probas(probas, args.out_path, model_name, module_name)
+        save_triplet_choices(choices, args.out_path, model_name, module_name)
 
     # convert results into Pandas DataFrame
     results = pd.DataFrame(results)
