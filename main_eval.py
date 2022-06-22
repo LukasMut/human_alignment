@@ -187,7 +187,7 @@ def evaluate(args, backend: str = "pt") -> None:
         summary = {
             "model": model_name,
             "accuracy": acc,
-            "choices": choices,
+            "choices": choices.cpu().numpy(),
             "entropies": entropies.cpu().numpy(),
         }
         results.append(summary)
