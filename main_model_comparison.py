@@ -22,7 +22,6 @@ def parseargs():
     aa("--dataset", type=str, help="Which dataset to use", choices=DATASETS)
     aa("--results_path", type=str, help="path/to/results")
     args = parser.parse_args()
-    assert len(args.model_names) == len(args.module_names), "Specify one module name for each model"
     return args
 
 
