@@ -1,6 +1,5 @@
 .idea
 resources
-*.ipynb
 *.csv
 *.txt
 *.npy
@@ -8,3 +7,4 @@ resources
 *.jpg
 *.pkl
 *.DS_Store
+*.ipynb_checkpoints/
