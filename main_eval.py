@@ -201,7 +201,9 @@ def evaluate(args, backend: str = "pt") -> None:
         print("\nCreating output directory...\n")
         os.makedirs(args.out_path)
 
-    results.to_csv(os.path.join(args.out_path, "results.csv"))
+    # save dataframe to pickle to preserve data types after loading
+    results.to_pickle(os.path.join(args.out_path, "results.pkl"))
+    # load back with pd.read_pickle(/path/to/file/pkl)
 
 
 if __name__ == "__main__":
