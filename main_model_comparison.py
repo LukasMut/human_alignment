@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from unittest import result
 from scipy.spatial.distance import jensenshannon
 from data import DATASETS
 
@@ -58,13 +59,13 @@ def compare_models(results: pd.DataFrame, metric: str ='agreement') -> pd.DataFr
         for j, model_j in enumerate(models):
             if i != j:
                 if metric == 'agreement':
-                    choices_i = results[results.model==model_j].choices[0]
-                    choices_j = results[results.model==model_j].choices[0]
+                    choices_i = results[results.model==model_j].choices.values[0]
+                    choices_j = results[results.model==model_j].choices.values[0]
                     agreement = get_agreement(choices_i, choices_j)
                     model_comparison.iloc[i, j] = agreement
                 else: #jensen-shannon distance
-                    entropies_i = results[results.model==model_i].entropies[0]
-                    entropies_j = results[results.model==model_j].entropies[0]
+                    entropies_i = results[results.model==model_i].entropies.values[0]
+                    entropies_j = results[results.model==model_j].entropies.values[0]
                     jsdistances = compare_entropies(entropies_i, entropies_j)
                     model_comparison.iloc[i, j] = np.mean(jsdistances)
             else:
@@ -88,8 +89,8 @@ if __name__ == "__main__":
     agreements = compare_models(results, metric='agreement')
     js_distances = compare_models(results, metric='jsdistance')
     # save dataframes as pkl files
-    agreements.to_pickle(os.path.join(args.results_path), 'agreements.pkl')
-    js_distances.to_pickle(os.path.join(args.results_path), 'js_distances.pkl')
+    agreements.to_pickle(os.path.join(args.results_path, 'agreements.pkl'))
+    js_distances.to_pickle(os.path.join(args.results_path, 'js_distances.pkl'))
 
 
 
