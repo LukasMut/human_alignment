@@ -15,6 +15,7 @@ import re
 import torch
 import argparse
 import utils
+import json
 
 import numpy as np
 import pandas as pd
@@ -35,8 +36,8 @@ def parseargs():
     aa("--dataset", type=str, help="Which dataset to use", choices=DATASETS)
     aa("--model_names", type=str, nargs="+",
        help="models for which we want to extract featues")
-    aa("--module_names", type=str, nargs="+",
-       help="modules of models for which to extract features")
+    aa("--module", type=str,
+       help="module for which to extract features")
     aa("--distance", type=str, default='cosine',
        choices=['cosine', 'euclidean', 'jensenshannon'],
        help='distance function used for predicting the odd-one-out')
@@ -56,15 +57,31 @@ def parseargs():
     aa("--verbose", action="store_true",
        help="whether to display print statements about model performance during training")
     args = parser.parse_args()
-    assert len(args.model_names) == len(args.module_names), "Specify one module name for each model"
     return args
 
 
+def load_model_config(root: str) -> dict:
+    with open(os.path.join(root, 'model_dict.json'), 'r') as f:
+        model_dict = json.load(f)
+    return model_dict
+
+def get_module_names(model_config, models: List[str], module: str) -> List[str]:
+    return [model_config[model][module]['module_name'] for model in models]
+
+def get_temperatures(model_config, models: List[str], module: str, objective: str = 'cosine') -> List[str]:
+    return [model_config[model][module]['temperature'][objective] for model in models]
+
 def create_hyperparam_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
+    model_config = load_model_config(args.data_root)
     model_cfg = config_dict.ConfigDict()
     data_cfg = config_dict.ConfigDict()
     model_cfg.names = args.model_names
-    model_cfg.modules = args.module_names
+    model_cfg.modules = get_module_names(
+        model_config, model_cfg.names, args.module
+    )
+    model_cfg.temperatures = get_temperatures(
+        model_config, model_cfg.names, args.module
+    )
     model_cfg.input_dim = args.input_dim
     model_cfg = config_dict.FrozenConfigDict(model_cfg)
     data_cfg.root = args.data_root
@@ -154,7 +171,7 @@ def evaluate(args, backend: str = "pt") -> None:
     device = torch.device(args.device)
     model_cfg, data_cfg = create_hyperparam_dicts(args)
     results = []
-    for model_name, module_name in tqdm(zip(model_cfg.names, model_cfg.modules)):
+    for i, model_name in tqdm(enumerate(model_cfg.names)):
         model = Model(
             model_name, pretrained=True, model_path=None, device=device, backend=backend
         )
@@ -168,14 +185,14 @@ def evaluate(args, backend: str = "pt") -> None:
         )
         features, _ = model.extract_features(
             data_loader=dl,
-            module_name=module_name,
+            module_name=model_cfg.modules[i],
             flatten_acts=True,
             clip=True if re.compile(r"^clip").search(model_name.lower()) else False,
             return_probabilities=False,
         )
         triplets = dataset.get_triplets()
         choices, probas = get_predictions(
-            features, triplets, args.temperature, args.distance
+            features, triplets, model_cfg.temperatures[i], args.distance
         )
         acc = accuracy(choices)
         entropies = ventropy(probas)
@@ -192,8 +209,8 @@ def evaluate(args, backend: str = "pt") -> None:
             "probas": probas.cpu().numpy(),
         }
         results.append(summary)
-        save_triplet_probas(probas, args.out_path, model_name, module_name)
-        save_triplet_choices(choices, args.out_path, model_name, module_name)
+        save_triplet_probas(probas, args.out_path, model_name, model_cfg.modules[i])
+        save_triplet_choices(choices, args.out_path, model_name, model_cfg.modules[i])
 
     # convert results into Pandas DataFrame
     results = pd.DataFrame(results)
