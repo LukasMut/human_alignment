@@ -28,11 +28,11 @@ Run evaluation on things triplet task with Imagenet pretrained Resnet18 and Resn
 ```python
 python main_eval.py --data_root /home/space/datasets/things \
 --model_names vgg16 alexnet resnet18 resnet50 clip-ViT \
---module_names classifier.3 classifier.4 avgpool avgpool \
+--module logits
 --batch_size 128 \
 --out_path /path/to/results \
 --device cuda \
---temperature 1.0 \
+--distance cosine \
 --rnd_seed 42 \
 --verbose
 ```
