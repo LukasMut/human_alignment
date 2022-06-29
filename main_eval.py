@@ -49,9 +49,6 @@ def parseargs():
        help="whether evaluation should be performed on CPU or GPU (i.e., CUDA).")
     aa("--num_threads", type=int, default=4,
        help="number of threads used for intraop parallelism on CPU; use only if device is CPU")
-    aa("--temperature", type=float, default=1.,
-       choices=[1., 0.1, 0.01, 0.001, 0.0001],
-       help='temperature scaling (i.e., beta param in softmax function)')
     aa("--rnd_seed", type=int, default=42,
        help="random seed for reproducibility of results")
     aa("--verbose", action="store_true",
@@ -167,6 +164,37 @@ def save_triplet_choices(
         np.save(f, choices.cpu().numpy())
 
 
+def convert_choices(probas: Array) -> Array:
+    """Labels for cross-entropy and clasification error are rotations of each other."""
+    pair_choices = probas.argmax(axis=1)
+    firt_conversion = np.where(pair_choices != 1, pair_choices-2, pair_choices)
+    ooo_choices = np.where(firt_conversion < 0, 2, firt_conversion)
+    return ooo_choices
+
+
+def get_model_choices(results: pd.DataFrame):
+    models = results.model.unique()
+    model_choices = np.stack(
+        [results[results.model==model].probas.apply(
+            convert_choices).values[0] for model in models], axis=1)
+    return model_choices
+
+
+def filter_failures(model_choices: Array, target: int = 2):
+    """Filter for triplets where every model predicted differently from humans."""
+    failures, choices = zip(*list(
+        filter(lambda kv: target not in kv[1], enumerate(model_choices))))
+    return failures, np.asarray(choices)
+
+
+def get_failures(results: pd.DataFrame) -> pd.DataFrame:
+    model_choices = get_model_choices(results)
+    failures, choices = filter_failures(model_choices)
+    model_failures = pd.DataFrame(
+        data=choices, index=failures, columns=results.model.unique())
+    return model_failures
+
+
 def evaluate(args, backend: str = "pt") -> None:
     device = torch.device(args.device)
     model_cfg, data_cfg = create_hyperparam_dicts(args)
@@ -214,15 +242,17 @@ def evaluate(args, backend: str = "pt") -> None:
 
     # convert results into Pandas DataFrame
     results = pd.DataFrame(results)
+    failures = get_failures(results)
 
     if not os.path.exists(args.out_path):
         print("\nCreating output directory...\n")
         os.makedirs(args.out_path)
 
     # save dataframe to pickle to preserve data types after loading
-    results.to_pickle(os.path.join(args.out_path, "results.pkl"))
     # load back with pd.read_pickle(/path/to/file/pkl)
-
+    results.to_pickle(os.path.join(args.out_path, "results.pkl"))
+    failures.to_pickle(os.path.join(args.out_path, "failures.pkl"))
+    
 
 if __name__ == "__main__":
     # parse arguments and set random seeds
