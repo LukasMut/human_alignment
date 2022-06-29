@@ -34,48 +34,78 @@ def parseargs():
 
     aa("--data_root", type=str, help="path/to/things")
     aa("--dataset", type=str, help="Which dataset to use", choices=DATASETS)
-    aa("--model_names", type=str, nargs="+",
-       help="models for which we want to extract featues")
-    aa("--module", type=str,
-       help="module for which to extract features")
-    aa("--distance", type=str, default='cosine',
-       choices=['cosine', 'euclidean', 'jensenshannon'],
-       help='distance function used for predicting the odd-one-out')
+    aa(
+        "--model_names",
+        type=str,
+        nargs="+",
+        help="models for which we want to extract featues",
+    )
+    aa("--module", type=str, help="module for which to extract features")
+    aa(
+        "--distance",
+        type=str,
+        default="cosine",
+        choices=["cosine", "euclidean", "jensenshannon"],
+        help="distance function used for predicting the odd-one-out",
+    )
     aa("--input_dim", type=int, default=224, help="input image dimensionality")
-    aa("--batch_size", metavar="B", type=int, default=128,
-       help="number of triplets sampled during each step (i.e., mini-batch size)")
+    aa(
+        "--batch_size",
+        metavar="B",
+        type=int,
+        default=128,
+        help="number of triplets sampled during each step (i.e., mini-batch size)",
+    )
     aa("--out_path", type=str, help="path/to/results")
-    aa("--device", type=str, default="cuda",
-       help="whether evaluation should be performed on CPU or GPU (i.e., CUDA).")
-    aa("--num_threads", type=int, default=4,
-       help="number of threads used for intraop parallelism on CPU; use only if device is CPU")
-    aa("--rnd_seed", type=int, default=42,
-       help="random seed for reproducibility of results")
-    aa("--verbose", action="store_true",
-       help="whether to display print statements about model performance during training")
+    aa(
+        "--device",
+        type=str,
+        default="cuda",
+        help="whether evaluation should be performed on CPU or GPU (i.e., CUDA).",
+    )
+    aa(
+        "--num_threads",
+        type=int,
+        default=4,
+        help="number of threads used for intraop parallelism on CPU; use only if device is CPU",
+    )
+    aa(
+        "--rnd_seed",
+        type=int,
+        default=42,
+        help="random seed for reproducibility of results",
+    )
+    aa(
+        "--verbose",
+        action="store_true",
+        help="whether to display print statements about model performance during training",
+    )
     args = parser.parse_args()
     return args
 
 
 def load_model_config(root: str) -> dict:
-    with open(os.path.join(root, 'model_dict.json'), 'r') as f:
+    with open(os.path.join(root, "model_dict.json"), "r") as f:
         model_dict = json.load(f)
     return model_dict
 
-def get_module_names(model_config, models: List[str], module: str) -> List[str]:
-    return [model_config[model][module]['module_name'] for model in models]
 
-def get_temperatures(model_config, models: List[str], module: str, objective: str = 'cosine') -> List[str]:
-    return [model_config[model][module]['temperature'][objective] for model in models]
+def get_module_names(model_config, models: List[str], module: str) -> List[str]:
+    return [model_config[model][module]["module_name"] for model in models]
+
+
+def get_temperatures(
+    model_config, models: List[str], module: str, objective: str = "cosine"
+) -> List[str]:
+    return [model_config[model][module]["temperature"][objective] for model in models]
+
 
 def create_hyperparam_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
     model_config = load_model_config(args.data_root)
     model_cfg = config_dict.ConfigDict()
     data_cfg = config_dict.ConfigDict()
     model_cfg.names = args.model_names
-    model_cfg.modules = get_module_names(
-        model_config, model_cfg.names, args.module
-    )
+    model_cfg.modules = get_module_names(model_config, model_cfg.names, args.module)
     model_cfg.temperatures = get_temperatures(
         model_config, model_cfg.names, args.module
     )
@@ -96,9 +126,10 @@ def compute_distances(triplet: Tensor, pairs: List[Tuple[int]], dist: str) -> Te
         dist_fun = lambda u, v: 1 - F.cosine_similarity(u, v, dim=0)
     elif dist == "euclidean":
         dist_fun = lambda u, v: torch.linalg.norm(u - v, ord=2)
-    elif dist == 'jensenshannon':
-        dist_fun = lambda u, v:  utils.jensenshannon(
-            F.softmax(u, dim=0), F.softmax(v, dim=0))
+    elif dist == "jensenshannon":
+        dist_fun = lambda u, v: utils.jensenshannon(
+            F.softmax(u, dim=0), F.softmax(v, dim=0)
+        )
     else:
         raise Exception(
             "Distance function other than Jensen-Shannon, Cosine or Euclidean distance is not yet implemented"
@@ -167,7 +198,7 @@ def save_triplet_choices(
 def convert_choices(probas: Array) -> Array:
     """Labels for cross-entropy and clasification error are rotations of each other."""
     pair_choices = probas.argmax(axis=1)
-    firt_conversion = np.where(pair_choices != 1, pair_choices-2, pair_choices)
+    firt_conversion = np.where(pair_choices != 1, pair_choices - 2, pair_choices)
     ooo_choices = np.where(firt_conversion < 0, 2, firt_conversion)
     return ooo_choices
 
@@ -175,15 +206,20 @@ def convert_choices(probas: Array) -> Array:
 def get_model_choices(results: pd.DataFrame):
     models = results.model.unique()
     model_choices = np.stack(
-        [results[results.model==model].probas.apply(
-            convert_choices).values[0] for model in models], axis=1)
+        [
+            results[results.model == model].probas.apply(convert_choices).values[0]
+            for model in models
+        ],
+        axis=1,
+    )
     return model_choices
 
 
 def filter_failures(model_choices: Array, target: int = 2):
     """Filter for triplets where every model predicted differently from humans."""
-    failures, choices = zip(*list(
-        filter(lambda kv: target not in kv[1], enumerate(model_choices))))
+    failures, choices = zip(
+        *list(filter(lambda kv: target not in kv[1], enumerate(model_choices)))
+    )
     return failures, np.asarray(choices)
 
 
@@ -191,7 +227,8 @@ def get_failures(results: pd.DataFrame) -> pd.DataFrame:
     model_choices = get_model_choices(results)
     failures, choices = filter_failures(model_choices)
     model_failures = pd.DataFrame(
-        data=choices, index=failures, columns=results.model.unique())
+        data=choices, index=failures, columns=results.model.unique()
+    )
     return model_failures
 
 
@@ -252,7 +289,7 @@ def evaluate(args, backend: str = "pt") -> None:
     # load back with pd.read_pickle(/path/to/file/pkl)
     results.to_pickle(os.path.join(args.out_path, "results.pkl"))
     failures.to_pickle(os.path.join(args.out_path, "failures.pkl"))
-    
+
 
 if __name__ == "__main__":
     # parse arguments and set random seeds
