@@ -42,6 +42,12 @@ def parseargs():
     )
     aa("--module", type=str, help="module for which to extract features")
     aa(
+        "--model_dict_path",
+        type=str,
+        default='/home/space/datasets/things/model_dict.json',
+        help="Path to the model_dict.json",
+    )
+    aa(
         "--distance",
         type=str,
         default="cosine",
@@ -81,6 +87,11 @@ def parseargs():
         help="whether to display print statements about model performance during training",
     )
     aa(
+        "--not_pretrained",
+        action="store_true",
+        help="load random model instead of pretrained",
+    )
+    aa(
         "--ssl_models_path",
         type=str,
         default="/home/space/datasets/things/ssl-models",
@@ -90,8 +101,8 @@ def parseargs():
     return args
 
 
-def load_model_config(root: str) -> dict:
-    with open(os.path.join(root, "model_dict.json"), "r") as f:
+def load_model_config(path: str) -> dict:
+    with open(path, "r") as f:
         model_dict = json.load(f)
     return model_dict
 
@@ -107,7 +118,7 @@ def get_temperatures(
 
 
 def create_hyperparam_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
-    model_config = load_model_config(args.data_root)
+    model_config = load_model_config(args.model_dict_path)
     model_cfg = config_dict.ConfigDict()
     data_cfg = config_dict.ConfigDict()
     model_cfg.names = args.model_names
@@ -160,6 +171,27 @@ def get_predictions(
         most_sim_pair = pairs[torch.argmin(distances).item()]
         ooo_idx = indices.difference(most_sim_pair).pop()
         choices[s] += ooo_idx
+        probas[s] += F.softmax(dots * temperature, dim=0)
+    return choices, probas
+
+
+def get_2afc_predictions(
+        features: Array, triplets: Array, temperature: float, dist: str = "cosine"
+) -> List[bool]:
+    features = torch.from_numpy(features)
+    # 0 is the reference, 2 is the odd_one_out
+    pairs = [(0, 1), (0, 2)]
+    choices = torch.zeros(triplets.shape[0])
+    probas = torch.zeros(triplets.shape[0], 2)
+    print(f"\nShape of embeddings {features.shape}\n")
+    for s, (i, j, k) in enumerate(triplets):
+        triplet = torch.stack([features[i], features[j], features[k]])
+        distances = compute_distances(triplet, pairs, dist)
+        dots = compute_dots(triplet, pairs)
+        most_sim_pair = pairs[torch.argmin(distances).item()]
+        sim_index = most_sim_pair[1]  # 1 or 2
+        assert sim_index in [1, 2]
+        choices[s] += sim_index != 2
         probas[s] += F.softmax(dots * temperature, dim=0)
     return choices, probas
 
@@ -235,9 +267,8 @@ def evaluate(args, backend: str = "pt") -> None:
     results = []
     for i, model_name in tqdm(enumerate(model_cfg.names)):
         model = CustomModel(
-            model_name=model_name, pretrained=True, model_path=None, device=device, backend=backend,
-            ssl_models_path=args.ssl_models_path
-        )
+            model_name=model_name, pretrained=not args.not_pretrained, model_path=None, device=device, backend=backend,
+            ssl_models_path=args.ssl_models_path)
         dataset = load_dataset(
             name=args.dataset,
             data_dir=data_cfg.root,
@@ -254,9 +285,14 @@ def evaluate(args, backend: str = "pt") -> None:
             return_probabilities=False,
         )
         triplets = dataset.get_triplets()
-        choices, probas = get_predictions(
-            features, triplets, model_cfg.temperatures[i], args.distance
-        )
+        if args.dataset == 'bapps':
+            choices, probas = get_2afc_predictions(
+                features, triplets, model_cfg.temperatures[i], args.distance
+            )
+        else:
+            choices, probas = get_predictions(
+                features, triplets, model_cfg.temperatures[i], args.distance
+            )
         acc = accuracy(choices)
         entropies = ventropy(probas)
         mean_entropy = entropies.mean().item()

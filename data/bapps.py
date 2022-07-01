@@ -88,7 +88,7 @@ class TwoAFCDataset(torch.utils.data.Dataset):
         path = self.paths[index]
         img = Image.open(path).convert('RGB')
         img = self.transform(img)
-        return img
+        return img, index
 
     def __len__(self):
         return len(self.paths)

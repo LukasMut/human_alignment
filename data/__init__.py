@@ -1,8 +1,9 @@
 from .things import THINGSBehavior
 from .cifar import CIFAR100Triplet, CIFAR100CoarseTriplet, CIFAR10Triplet
 from .things import THINGSTriplet, THINGSBehavior
+from .bapps import TwoAFCDataset
 
-DATASETS = ['cifar100-coarse', 'cifar100-fine', 'cifar10', 'things', 'things-aligned']
+DATASETS = ['cifar100-coarse', 'cifar100-fine', 'cifar10', 'things', 'things-aligned', 'bapps']
 
 
 def load_dataset(name, data_dir, transform):
@@ -29,6 +30,8 @@ def load_dataset(name, data_dir, transform):
         dataset = THINGSBehavior(
             root=data_dir, aligned=True,
             download=True, transform=transform)
+    elif name == 'bapps':
+        dataset = TwoAFCDataset(data_roots=[data_dir], transform=transform)
     else:
         raise ValueError('\nUnknown dataset\n')
 
