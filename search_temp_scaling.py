@@ -38,7 +38,19 @@ def parseargs():
         "--temperatures",
         type=float,
         nargs="+",
-        default=[1.0, 0.1, 0.01, 0.001, 0.0001, 0.00001],
+        default=[
+            1.0,
+            0.5,
+            0.1,
+            0.05,
+            0.01,
+            0.005,
+            0.001,
+            0.0005,
+            0.0001,
+            0.00005,
+            0.00001,
+        ],
     )
     aa(
         "--overwrite",
@@ -93,8 +105,6 @@ def get_penult_module_name(model: Model):
             torch.nn.ReLU,
             torch.nn.GELU,
             torch.nn.Dropout,
-            torch.nn.AdaptiveAvgPool2d,
-            torch.nn.AvgPool2d,
         ]
         module_to_iterate = model.model
         for mod_name, mod in module_to_iterate.named_modules():
@@ -164,15 +174,20 @@ def seach_temperatures(
                     os.path.join(results_root, model_name, module_name)
                 )
                 if run_models or not results_exists:
+                    # Save a configuration to be loaded in the evaluate function
+                    model_dict[model_name][module_type_name]["temperature"][
+                        distance
+                    ] = temp
+                    save_dict(model_dict, out_path, overwrite)
+
                     config = DotDict(
                         {
                             "data_root": things_root,
-                            "dataset": "things",
+                            "dataset": "things-aligned",
                             "model_names": [model_name],
-                            "module_names": [module_name],
+                            "module": module_type_name,
                             "distance": distance,
                             "out_path": results_root,
-                            "temperature": temp,
                             "device": device,
                             "batch_size": 8,
                             "num_threads": 4,
@@ -202,20 +217,43 @@ def seach_temperatures(
 
                 probas = np.load(os.path.join(results_path, "triplet_probas.npy"))
 
-                avg_js = 0
-                for model_p, vice_p in zip(probas, probas_vice):
-                    avg_js += jensenshannon(torch.tensor(model_p), torch.tensor(vice_p))
-                avg_js /= len(probas)
+                avg_dist = torch.nn.CrossEntropyLoss()(
+                    torch.tensor(probas), torch.tensor(probas_vice)
+                )
 
-                if min_js is None or avg_js < min_js:
-                    min_js = avg_js
+                if min_js is None or avg_dist < min_js:
+                    min_js = avg_dist
                     model_dict[model_name][module_type_name]["temperature"][
                         distance
                     ] = temp
-                    print(f"  New best temp = {temp} (JS = {avg_js})")
+                    print(f"  New best temp = {temp} (dist. = {avg_dist})")
 
 
-def save_dict(dictionary: dict, out_path: str):
+def save_dict(dictionary: dict, out_path: str, overwrite: bool):
+    if not overwrite:
+        try:
+            old_dict = load_dict(out_path)
+            for model_key, model_val in dictionary.items():
+                if model_key in old_dict:
+                    # If model already in old_dict, update only the new modules
+                    for module_key in module_type_names:
+                        try:
+                            # If module already in old_dict, update only the new distance measure
+                            old_dict[model_key][module_key]["temperature"][
+                                distance
+                            ] = model_val[module_key]["temperature"][distance]
+                        except KeyError:
+                            # Else, update the whole module entry
+                            old_dict[model_key].update(
+                                {str(module_key): model_val[module_key]}
+                            )
+                else:
+                    # Else, update the whole model entry
+                    old_dict.update({str(model_key): model_val})
+            dictionary = old_dict
+        except FileNotFoundError:
+            print("Could not load dictionary. Creating new one.")
+
     with open(os.path.join(out_path, "model_dict.json"), "w+") as f:
         json.dump(dictionary, f, indent=4)
 
@@ -261,29 +299,5 @@ if __name__ == "__main__":
         distance,
     )
 
-    if not overwrite:
-        try:
-            old_dict = load_dict(out_path)
-            for model_key, model_val in model_dict.items():
-                if model_key in old_dict:
-                    # If model already in old_dict, update only the new modules
-                    for module_key in module_type_names:
-                        try:
-                            # If module already in old_dict, update only the new distance measure
-                            old_dict[model_key][module_key]["temperature"][
-                                distance
-                            ] = model_val[module_key]["temperature"][distance]
-                        except KeyError:
-                            # Else, update the whole module entry
-                            old_dict[model_key].update(
-                                {str(module_key): model_val[module_key]}
-                            )
-                else:
-                    # Else, update the whole model entry
-                    old_dict.update({str(model_key): model_val})
-            model_dict = old_dict
-        except FileNotFoundError:
-            print("Could not load dictionary. Creating new one.")
-
-    save_dict(model_dict, out_path)
+    save_dict(model_dict, out_path, overwrite)
     print("Done.")
