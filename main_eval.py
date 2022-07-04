@@ -80,6 +80,12 @@ def parseargs():
         action="store_true",
         help="whether to display print statements about model performance during training",
     )
+    aa(
+        "--ssl_models_path",
+        type=str,
+        default="/home/space/datasets/things/ssl-models",
+        help="Path to converted ssl models from vissl library."
+    )
     args = parser.parse_args()
     return args
 
@@ -229,7 +235,8 @@ def evaluate(args, backend: str = "pt") -> None:
     results = []
     for i, model_name in tqdm(enumerate(model_cfg.names)):
         model = CustomModel(
-            model_name, pretrained=True, model_path=None, device=device, backend=backend
+            model_name=model_name, pretrained=True, model_path=None, device=device, backend=backend,
+            ssl_models_path=args.ssl_models_path
         )
         dataset = load_dataset(
             name=args.dataset,
