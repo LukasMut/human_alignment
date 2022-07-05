@@ -140,7 +140,7 @@ def compute_distances(triplet: Tensor, pairs: List[Tuple[int]], dist: str) -> Te
 
 def get_predictions(
     features: Array, triplets: Array, temperature: float, dist: str = "cosine"
-) -> List[bool]:
+) -> Tuple[Tensor, Tensor]:
     features = torch.from_numpy(features)
     pairs = [(0, 1), (0, 2), (1, 2)]
     indices = {0, 1, 2}
@@ -153,14 +153,14 @@ def get_predictions(
         dots = compute_dots(triplet, pairs)
         most_sim_pair = pairs[torch.argmin(distances).item()]
         ooo_idx = indices.difference(most_sim_pair).pop()
-        choices[s] += ooo_idx == 2
+        choices[s] += ooo_idx
         probas[s] += F.softmax(dots * temperature, dim=0)
     return choices, probas
 
 
-def accuracy(choices: List[bool]) -> float:
+def accuracy(choices: List[bool], target: int = 2) -> float:
     """Computes the odd-one-out triplet accuracy."""
-    return round((choices.sum() / choices.shape[0]).item(), 4)
+    return round(torch.where(choices == target)[0].shape[0] / choices.shape[0], 4)
 
 
 def ventropy(probabilities: Tensor) -> Tensor:
@@ -184,15 +184,6 @@ def save_triplet_probas(
         os.makedirs(out_path)
     with open(os.path.join(out_path, "triplet_probas.npy"), "wb") as f:
         np.save(f, probas.cpu().numpy())
-
-
-def save_triplet_choices(
-    choices: Tensor, out_path: str, model_name: str, module_name: str
-) -> None:
-    """Saves triplet probabilities to disk."""
-    out_path = os.path.join(out_path, model_name, module_name)
-    with open(os.path.join(out_path, "triplet_choices.npy"), "wb") as f:
-        np.save(f, choices.cpu().numpy())
 
 
 def convert_choices(probas: Array) -> Array:
@@ -252,7 +243,7 @@ def evaluate(args, backend: str = "pt") -> None:
             data_loader=dl,
             module_name=model_cfg.modules[i],
             flatten_acts=True,
-            clip=True if re.compile(r"^clip").search(model_name.lower()) else False,
+            clip=True if model_name.lower().startswith("clip") else False,
             return_probabilities=False,
         )
         triplets = dataset.get_triplets()
@@ -275,7 +266,6 @@ def evaluate(args, backend: str = "pt") -> None:
         }
         results.append(summary)
         save_triplet_probas(probas, args.out_path, model_name, model_cfg.modules[i])
-        save_triplet_choices(choices, args.out_path, model_name, model_cfg.modules[i])
 
     # convert results into Pandas DataFrame
     results = pd.DataFrame(results)
