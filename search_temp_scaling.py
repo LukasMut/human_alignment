@@ -1,8 +1,7 @@
 from thingsvision.model_class import Model
-from pathlib import Path
+from models import CustomModel
 from main_eval import evaluate
 from typing import List
-from utils import jensenshannon
 
 import argparse
 import json
@@ -71,6 +70,12 @@ def parseargs():
         choices=["cosine", "euclidean", "jensenshannon"],
         help="distance function used for predicting the odd-one-out",
     )
+    aa(
+        "--ssl_models_path",
+        type=str,
+        default="/home/space/datasets/things/ssl-models",
+        help="Path to converted ssl models from vissl library."
+    )
     args = parser.parse_args()
     return args
 
@@ -116,7 +121,7 @@ def get_penult_module_name(model: Model):
     return module_name
 
 
-def get_model_dict(model_names: List[str], dist: str):
+def get_model_dict(model_names: List[str], dist: str, ssl_models_path: str):
     """Returns a dictionary with logit and penultimate layer module names for every model."""
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model_dict = {
@@ -135,8 +140,9 @@ def get_model_dict(model_names: List[str], dist: str):
         for model_name in model_names
     }
     for model_name in model_names:
-        model = Model(
-            model_name, pretrained=True, model_path=None, device=device, backend="pt"
+        model = CustomModel(
+            model_name=model_name, pretrained=True, model_path=None, device=device, backend="pt",
+            ssl_models_path=ssl_models_path
         )
         model_dict[model_name]["logits"]["module_name"] = get_logit_module_name(model)
         model_dict[model_name]["penultimate"]["module_name"] = get_penult_module_name(
@@ -275,6 +281,7 @@ if __name__ == "__main__":
     module_type_names = args.module_type_names
     args_model_names = args.model_names
     overwrite = args.overwrite
+    ssl_models_path = args.ssl_models_path
 
     model_names = [
         name for name in dir(torchvision.models) if _is_model_name_accepted(name)
@@ -287,7 +294,7 @@ if __name__ == "__main__":
         ]
     print("Models to process:", model_names)
 
-    model_dict = get_model_dict(model_names, dist=distance)
+    model_dict = get_model_dict(model_names, dist=distance, ssl_models_path=ssl_models_path)
 
     seach_temperatures(
         model_dict,

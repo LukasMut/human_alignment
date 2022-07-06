@@ -19,8 +19,8 @@ def load_vissl_r50(file, base_dir='vissl/models', grayscale=False, strict=True):
 class CustomModel(Model):
 
     def __init__(self, ssl_models_path, *args, **kwargs):
-        super().__init__(*args, **kwargs)
         self.ssl_models_path = ssl_models_path
+        super().__init__(*args, **kwargs)
 
     def load_model(self):
         """Load a pretrained *torchvision* or CLIP model into memory."""
