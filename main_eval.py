@@ -4,7 +4,7 @@
 from typing import Any, List, Tuple
 from tqdm import tqdm
 from ml_collections import config_dict
-from thingsvision.model_class import Model
+from models import CustomModel
 from torch.utils.data import DataLoader
 from functorch import vmap
 from data import load_dataset, DATASETS
@@ -79,6 +79,12 @@ def parseargs():
         "--verbose",
         action="store_true",
         help="whether to display print statements about model performance during training",
+    )
+    aa(
+        "--ssl_models_path",
+        type=str,
+        default="/home/space/datasets/things/ssl-models",
+        help="Path to converted ssl models from vissl library."
     )
     args = parser.parse_args()
     return args
@@ -228,8 +234,9 @@ def evaluate(args, backend: str = "pt") -> None:
     model_cfg, data_cfg = create_hyperparam_dicts(args)
     results = []
     for i, model_name in tqdm(enumerate(model_cfg.names)):
-        model = Model(
-            model_name, pretrained=True, model_path=None, device=device, backend=backend
+        model = CustomModel(
+            model_name=model_name, pretrained=True, model_path=None, device=device, backend=backend,
+            ssl_models_path=args.ssl_models_path
         )
         dataset = load_dataset(
             name=args.dataset,
