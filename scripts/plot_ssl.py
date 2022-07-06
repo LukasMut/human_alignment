@@ -3,6 +3,7 @@ import os
 import matplotlib.pyplot as plt
 import argparse
 import pickle
+import pathlib
 
 import pandas as pd
 
@@ -36,17 +37,10 @@ if __name__ == '__main__':
 
     colors = ['blue', 'orange', 'green', 'red', 'purple', 'black', 'brown', 'yellow']
 
-    base_path = f'resources/results/ssl/{dataset}'
-    data = []
+    with open(os.path.join(results_folder, 'results.pkl'), 'rb') as f:
+        df = pickle.load(f)
 
-    for file in os.listdir(base_path):
-        with open(os.path.join(base_path, file), 'rb') as f:
-            df = pickle.load(f)
-            data.append(df)
-
-    networks = pd.read_csv(f'resources/results/networks.csv')
-
-    df = pd.concat(data)
+    networks = pd.read_csv(os.path.join(pathlib.Path(__file__).parent.resolve(), 'networks.csv'))
     df = df.merge(networks, on='model')
 
     fig, ax = plt.subplots()
