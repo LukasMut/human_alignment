@@ -2,6 +2,7 @@ from thingsvision.model_class import Model
 from models import CustomModel
 from main_eval import evaluate
 from typing import List
+from matplotlib import pyplot as plt
 
 import argparse
 import json
@@ -39,15 +40,25 @@ def parseargs():
         nargs="+",
         default=[
             1.0,
+            0.75,
             0.5,
+            0.25,
             0.1,
+            0.075,
             0.05,
+            0.025,
             0.01,
+            0.0075,
             0.005,
+            0.0025,
             0.001,
+            0.00075,
             0.0005,
+            0.00025,
             0.0001,
+            0.000075,
             0.00005,
+            0.000025,
             0.00001,
         ],
     )
@@ -75,6 +86,12 @@ def parseargs():
         type=str,
         default="/home/space/datasets/things/ssl-models",
         help="Path to converted ssl models from vissl library."
+    )
+    aa(
+        "--one_hot",
+        type=bool,
+        help="If set to True, one-hot vectors are used as ground-truth, rather than VICE outputs.",
+        default=False,
     )
     args = parser.parse_args()
     return args
@@ -151,12 +168,47 @@ def get_model_dict(model_names: List[str], dist: str, ssl_models_path: str):
     return model_dict
 
 
-def _get_results_path(out_path: str, temp: float, dist: str):
-    path = os.path.join(out_path, dist + "_" + str(temp))
+def _get_results_path(out_path: str, temp: float, dist: str, one_hot: bool):
+    path = os.path.join(out_path, dist + "_" + str(temp) + ("_oh" if one_hot else ""))
     return path
 
 
-def seach_temperatures(
+def ECE(probas: torch.Tensor, equal_mass: bool = False, n_bins=10):
+    """Expected Calibration Error"""
+    assert len(probas.shape) == 2
+    assert probas.shape[1] == 3
+
+    n = len(probas)
+    max_vals, max_idcs = torch.max(probas, dim=1)
+
+    bin_borders = [bin_id / n_bins for bin_id in range(n_bins)]
+    if equal_mass:
+        bin_borders = torch.quantile(max_vals, torch.tensor(bin_borders))
+        bin_borders = sorted(list(set(bin_borders.numpy().tolist())))
+        if len(bin_borders) < n_bins:
+            n_bins = len(bin_borders)
+            print("Reduced number of bins to %d due to proba homogeneity." % n_bins)
+    bin_borders += [1.1]
+
+    ece = 0
+    sample_counter = 0
+    for bin_i, border in enumerate(bin_borders[:-1]):
+        vals = max_vals[border <= max_vals]
+        idcs = max_idcs[border <= max_vals]
+        idcs = idcs[vals < bin_borders[bin_i + 1]]
+        vals = vals[vals < bin_borders[bin_i + 1]]
+        if len(vals) > 0:
+            acc = torch.mean(torch.where(idcs == 0, 1.0, 0.0))
+            conf = torch.mean(vals)
+            m = len(vals)
+            sample_counter += m
+            ece += m / n * torch.abs(acc - conf)
+
+    assert sample_counter == n
+    return ece
+
+
+def search_temperatures(
     model_dict: dict,
     things_root: str,
     out_path: str,
@@ -164,6 +216,7 @@ def seach_temperatures(
     run_models: bool,
     module_type_names: List[str],
     distance: str,
+    one_hot: bool,
 ):
     """Find the temperature scaling with minimal average distance over the VICE-correct triplets and populate the
     dictionary with it."""
@@ -175,7 +228,9 @@ def seach_temperatures(
         for module_type_name in module_type_names:
             for temp in temperatures:
                 module_name = model_dict[model_name][module_type_name]["module_name"]
-                results_root = _get_results_path(out_path, temp, distance)
+                results_root = _get_results_path(
+                    out_path, temp, distance, one_hot=False
+                )
                 results_exists = os.path.exists(
                     os.path.join(results_root, model_name, module_name)
                 )
@@ -184,7 +239,7 @@ def seach_temperatures(
                     model_dict[model_name][module_type_name]["temperature"][
                         distance
                     ] = temp
-                    save_dict(model_dict, out_path, overwrite)
+                    save_dict(model_dict, out_path, overwrite, one_hot)
 
                     config = DotDict(
                         {
@@ -204,41 +259,84 @@ def seach_temperatures(
                 else:
                     print("Will load probas for:", model_name, module_name, temp)
 
-    # Load vice probas
-    print("Loading VICE probas")
-    probas_vice = np.load(
-        os.path.join(things_root, "probas", "probabilities_correct_triplets.npy")
-    )
+    probas_vice = None
+    if not one_hot:
+        # Load vice probas
+        print("Loading VICE probas")
+        probas_vice = torch.tensor(
+            np.load(
+                os.path.join(
+                    things_root, "probas", "probabilities_correct_triplets.npy"
+                )
+            )
+        )
 
     # Load probas for each configuration and select best temperature
     for model_name in model_names:
         for module_type_name in module_type_names:
-            min_js = None
+            min_value = None
+            dists = []
+            ece = []
+            ece_eq_mass = []
             for temp in temperatures:
                 module_name = model_dict[model_name][module_type_name]["module_name"]
-                results_root = _get_results_path(out_path, temp, distance)
+                results_root = _get_results_path(
+                    out_path, temp, distance, one_hot=False
+                )
                 results_path = os.path.join(results_root, model_name, module_name)
 
                 print("Processing...", model_name, module_name, temp, flush=True)
 
-                probas = np.load(os.path.join(results_path, "triplet_probas.npy"))
-
-                avg_dist = torch.nn.CrossEntropyLoss()(
-                    torch.tensor(probas), torch.tensor(probas_vice)
+                probas = torch.tensor(
+                    np.load(os.path.join(results_path, "triplet_probas.npy"))
                 )
 
-                if min_js is None or avg_dist < min_js:
-                    min_js = avg_dist
+                if probas_vice is None:
+                    probas_vice = torch.zeros_like(probas)
+                    probas_vice[:, 2] = 1
+
+                avg_dist = torch.nn.KLDivLoss()(probas, probas_vice)
+                dists.append(avg_dist)
+
+                ece_val = ECE(probas)
+                ece_em_val = ECE(probas, equal_mass=True)
+                ece.append(ece_val)
+                ece_eq_mass.append(ece_em_val)
+
+                if min_value is None or ece_val < min_value:
+                    min_value = ece_val
                     model_dict[model_name][module_type_name]["temperature"][
                         distance
                     ] = temp
-                    print(f"  New best temp = {temp} (dist. = {avg_dist})")
+                    print(f"  New best temp = {temp} (dist. = {ece_val})")
+
+                # Saving the results for all temperatures, for plotting
+                np.save(
+                    os.path.join(
+                        out_path,
+                        "_".join(
+                            [
+                                model_name,
+                                module_type_name,
+                                distance,
+                                str(one_hot),
+                                "all_temps",
+                            ]
+                        ),
+                    ),
+                    {
+                        "temperatures": temperatures,
+                        "dists": dists,
+                        "ece": ece,
+                        "ece_eq_mass": ece_eq_mass,
+                    },
+                )
 
 
-def save_dict(dictionary: dict, out_path: str, overwrite: bool):
+def save_dict(dictionary: dict, out_path: str, overwrite: bool, one_hot: bool):
     if not overwrite:
         try:
-            old_dict = load_dict(out_path)
+            old_dict = load_dict(out_path, one_hot)
             for model_key, model_val in dictionary.items():
                 if model_key in old_dict:
                     # If model already in old_dict, update only the new modules
@@ -260,14 +358,78 @@ def save_dict(dictionary: dict, out_path: str, overwrite: bool):
         except FileNotFoundError:
             print("Could not load dictionary. Creating new one.")
 
-    with open(os.path.join(out_path, "model_dict.json"), "w+") as f:
+    with open(os.path.join(out_path, get_model_dict_name(one_hot)), "w+") as f:
         json.dump(dictionary, f, indent=4)
 
 
-def load_dict(out_path: str):
-    with open(os.path.join(out_path, "model_dict.json"), "r") as f:
+def load_dict(out_path: str, one_hot: bool):
+    with open(os.path.join(out_path, get_model_dict_name(one_hot)), "r") as f:
         dictionary = json.load(f)
     return dictionary
+
+
+def get_model_dict_name(one_hot: bool):
+    name = "model_dict.json"
+    if one_hot:
+        name = name.replace(".json", "_onehot.json")
+    return name
+
+
+def plot_dist_temp(
+    out_path: str,
+    model_names: List[str],
+    module_type_name: str,
+    distance: str,
+    one_hot: bool,
+):
+    distances = {}
+    for model_name in model_names:
+        distances[model_name] = np.load(
+            os.path.join(
+                out_path,
+                "_".join(
+                    [
+                        model_name,
+                        module_type_name,
+                        distance,
+                        str(one_hot),
+                        "all_temps.npy",
+                    ]
+                ),
+            ),
+            allow_pickle=True,
+        )[()]
+    n_cols = min(len(model_names), 5)
+    n_rows = int(np.ceil(len(model_names) / n_cols))
+
+    fig, axs = plt.subplots(
+        nrows=n_rows, ncols=n_cols, figsize=(4 * n_cols, 4 * n_rows)
+    )
+
+    try:
+        if len(axs.shape) < 2:
+            axs = [axs]
+    except AttributeError:
+        axs = [[axs]]
+
+    for i_r in range(n_rows):
+        for i_c in range(n_cols):
+            model_id = n_cols * i_r + i_c
+            if model_id >= len(model_names):
+                break
+            data_for_model = distances[model_names[model_id]]
+            ax = axs[i_r][i_c]
+
+            ax.plot(data_for_model["temperatures"], data_for_model["dists"])
+            ax.plot(data_for_model["temperatures"], data_for_model["ece"])
+            ax.plot(data_for_model["temperatures"], data_for_model["ece_eq_mass"])
+            ax.set_xscale("log")
+            ax.set_xlabel("Temperature")
+            ax.set_ylabel("Selection Criterion")
+            ax.set_title(model_names[model_id] + " (%s)" % module_type_name)
+            ax.legend(["KL", "ECE", "ECE_EM"])
+    plt.tight_layout()
+    plt.show()
 
 
 if __name__ == "__main__":
@@ -282,6 +444,7 @@ if __name__ == "__main__":
     args_model_names = args.model_names
     overwrite = args.overwrite
     ssl_models_path = args.ssl_models_path
+    one_hot = args.one_hot
 
     model_names = [
         name for name in dir(torchvision.models) if _is_model_name_accepted(name)
@@ -296,7 +459,7 @@ if __name__ == "__main__":
 
     model_dict = get_model_dict(model_names, dist=distance, ssl_models_path=ssl_models_path)
 
-    seach_temperatures(
+    search_temperatures(
         model_dict,
         data_root,
         out_path,
@@ -304,7 +467,8 @@ if __name__ == "__main__":
         run_models,
         module_type_names,
         distance,
+        one_hot,
     )
 
-    save_dict(model_dict, out_path, overwrite)
+    save_dict(model_dict, out_path, overwrite, one_hot)
     print("Done.")
