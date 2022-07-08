@@ -311,9 +311,12 @@ def search_temperatures(
                     print(f"  New best temp = {temp} (dist. = {ece_val})")
 
                 # Saving the results for all temperatures, for plotting
+                scaling_results_folder = os.path.join(out_path, "scaling_results")
+                if not os.path.exists(scaling_results_folder):
+                    os.makedirs(scaling_results_folder)
                 np.save(
                     os.path.join(
-                        out_path,
+                        scaling_results_folder,
                         "_".join(
                             [
                                 model_name,
@@ -382,11 +385,12 @@ def plot_dist_temp(
     distance: str,
     one_hot: bool,
 ):
+    scaling_results_folder = os.path.join(out_path, "scaling_results")
     distances = {}
     for model_name in model_names:
         distances[model_name] = np.load(
             os.path.join(
-                out_path,
+                scaling_results_folder,
                 "_".join(
                     [
                         model_name,
