@@ -75,7 +75,7 @@ class Families:
 
     @property
     def vit(self):
-        # TODO: do we want to include CLIP-ViT in the set of ViTs?
+        # NOTE: do we want to include CLIP-ViT in the set of ViTs or not?
         return r"^vit"  # 'vit'
 
     @property
