@@ -85,7 +85,7 @@ def parseargs():
         "--ssl_models_path",
         type=str,
         default="/home/space/datasets/things/ssl-models",
-        help="Path to converted ssl models from vissl library."
+        help="Path to converted ssl models from vissl library.",
     )
     aa(
         "--one_hot",
@@ -98,7 +98,7 @@ def parseargs():
 
 
 def _is_model_name_accepted(name: str):
-    name_starts = ["alexnet", "vgg", "res", "vit", "efficient", "clip"]
+    name_starts = ["alexnet", "vgg", "res", "vit", "efficient", "clip", "r50"]
     is_ok = any([name.startswith(start) for start in name_starts])
     is_ok &= not name.endswith("_bn")
     is_ok &= not "vit_l" in name
@@ -120,6 +120,9 @@ def get_penult_module_name(model: Model):
     is_clip = "clip" in model.model_name
     if is_clip:
         module_name = "visual"
+    elif model.model_name == "r50-vicreg":
+        # This is the only SSL architecure w/o fc layer. For the sake of unity, this assures that penult is avgpool.
+        module_name = "avgpool"
     else:
         logit_module_name = get_logit_module_name(model)
         module_name = None
@@ -158,8 +161,12 @@ def get_model_dict(model_names: List[str], dist: str, ssl_models_path: str):
     }
     for model_name in model_names:
         model = CustomModel(
-            model_name=model_name, pretrained=True, model_path=None, device=device, backend="pt",
-            ssl_models_path=ssl_models_path
+            model_name=model_name,
+            pretrained=True,
+            model_path=None,
+            device=device,
+            backend="pt",
+            ssl_models_path=ssl_models_path,
         )
         model_dict[model_name]["logits"]["module_name"] = get_logit_module_name(model)
         model_dict[model_name]["penultimate"]["module_name"] = get_penult_module_name(
@@ -217,6 +224,7 @@ def search_temperatures(
     module_type_names: List[str],
     distance: str,
     one_hot: bool,
+    ssl_models_path: str,
 ):
     """Find the temperature scaling with minimal average distance over the VICE-correct triplets and populate the
     dictionary with it."""
@@ -252,6 +260,7 @@ def search_temperatures(
                             "device": device,
                             "batch_size": 8,
                             "num_threads": 4,
+                            "ssl_models_path": ssl_models_path,
                         }
                     )
                     print("Evaluating:", model_name, module_name, temp)
@@ -452,7 +461,18 @@ if __name__ == "__main__":
 
     model_names = [
         name for name in dir(torchvision.models) if _is_model_name_accepted(name)
-    ] + ["clip-ViT", "clip-RN"]
+    ] + [
+        "clip-ViT",
+        "clip-RN",
+        "r50-simclr",
+        "r50-mocov2",
+        "r50-jigsaw",
+        "r50-colorization",
+        "r50-rotnet",
+        "r50-swav",
+        "r50-vicreg",
+        "r50-barlowtwins",
+    ]
     if args_model_names:
         model_names = [
             name
@@ -461,7 +481,9 @@ if __name__ == "__main__":
         ]
     print("Models to process:", model_names)
 
-    model_dict = get_model_dict(model_names, dist=distance, ssl_models_path=ssl_models_path)
+    model_dict = get_model_dict(
+        model_names, dist=distance, ssl_models_path=ssl_models_path
+    )
 
     search_temperatures(
         model_dict,
@@ -472,6 +494,7 @@ if __name__ == "__main__":
         module_type_names,
         distance,
         one_hot,
+        ssl_models_path,
     )
 
     save_dict(model_dict, out_path, overwrite, one_hot)
