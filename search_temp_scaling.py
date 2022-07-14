@@ -176,7 +176,9 @@ def get_model_dict(model_names: List[str], dist: str, ssl_models_path: str):
 
 
 def _get_results_path(out_path: str, temp: float, dist: str, one_hot: bool):
-    path = os.path.join(out_path, dist + "_" + str(temp) + ("_oh" if one_hot else ""))
+    path = os.path.join(
+        out_path, "temperatures", dist + "_" + str(temp) + ("_oh" if one_hot else "")
+    )
     return path
 
 
