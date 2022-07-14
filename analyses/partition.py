@@ -3,7 +3,9 @@
 
 from typing import List, Tuple
 from dataclasses import dataclass
-from . import Families
+from functools import partial
+from .families import Families
+from . import utils
 
 import numpy as np
 import pandas as pd
@@ -18,13 +20,23 @@ class Partition:
     """Class to parition results into different subsets."""
 
     results: pd.DataFrame
+    triplet_dataset: object
+    concept_importance: str
+    concept_embedding: Array
     family_i: str
     family_j: str
     target: int = 2
 
     def __post_init__(self):
+        assert self.concept_importance in ["max", "topk"]
+        importance_fun = getattr(utils, f"get_{self.concept_importance}_dims")
+        self.importance_fun = partial(importance_fun, self.concept_embedding)
         self.models = self.results.model.unique()
         self.families = Families(self.models)
+        self.triplets = self.triplet_dataset.triplets
+        self.triplet_dimensions = self.importance_fun(self.triplets)
+        self.familywise_failure_differences = self.get_failure_differences()
+        self.familywise_hit_failure_intersection = self.get_hit_failure_intersection()
 
     def get_model_subset(self, family: str) -> List[str]:
         return getattr(self.families, family)
@@ -131,8 +143,7 @@ class Partition:
 
         return np.apply_along_axis(check_choice_difference, axis=1, arr=model_failures)
 
-    @property
-    def failure_differences(self) -> pd.DataFrame:
+    def get_failure_differences(self) -> pd.DataFrame:
         model_failures = self.get_family_failures("models")
         failure_differences = self.get_differences(model_failures)
         family_types = [
@@ -151,8 +162,7 @@ class Partition:
         )
         return failure_differences
 
-    @property
-    def hit_failure_intersection(self) -> pd.DataFrame:
+    def get_hit_failure_intersection(self) -> pd.DataFrame:
         """
         Find the intersection of triplets for which the children of family i were aligned with humans,
         but not the children of family j.
@@ -173,3 +183,14 @@ class Partition:
             intersection, self.target, dtype=int
         )
         return hit_failure_intersection
+        
+
+    def dimwise_hit_failure_intersection(self, dimension: int) -> pd.DataFrame:
+        return self.familywise_hit_failure_intersection.filter(
+            items=np.where(self.triplet_dimensions == dimension)[0], axis=0
+        )
+
+    def dimwise_failure_differences(self, dimension: int) -> pd.DataFrame:
+        return self.familywise_failure_differences.filter(
+            items=np.where(self.triplet_dimensions == dimension)[0], axis=0
+        )
