@@ -104,11 +104,11 @@ class Families:
 
     @property
     def ssl_contrastive(self):
-        return f"({self.simclr})|({self.movcov}))"
+        return f"({self.simclr})|({self.movcov})"
 
     @property
     def ssl_non_contrastive(self):
-        return f"({self.swav})|({self.vicreg})|({self.barlowtins}))"
+        return f"({self.swav})|({self.vicreg})|({self.barlowtins})"
 
     @property
     def ssl_non_siamese(self):
