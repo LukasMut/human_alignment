@@ -27,6 +27,7 @@ class Families:
             "alexnet_children": "AlexNet",
             "resnet_children": "ResNets",
             "vgg_children": "VGGs",
+            "ssl_children": "SSLs",
             "resnext_children": "ResNexts",
             "cnn_children": "CNNs",
             "efficientnet_children": "EfficientNets",
@@ -44,6 +45,10 @@ class Families:
     @property
     def cnn_children(self):
         return self.search("cnn")
+
+    @property
+    def ssl_children(self):
+        return self.search("ssl")
 
     @property
     def alexnet_children(self):
@@ -77,6 +82,10 @@ class Families:
     def vit(self):
         # NOTE: do we want to include CLIP-ViT in the set of ViTs or not?
         return r"^vit"  # 'vit'
+
+    @property
+    def ssl(self):
+        return r"^r50"
 
     @property
     def cnn(self):
