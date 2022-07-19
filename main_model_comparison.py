@@ -39,7 +39,7 @@ def get_vice_entropies(data_root: str) -> Array:
 
 
 def append_vice(results: pd.DataFrame, vice_entropies: Array, vice_probas: Array) -> pd.DataFrame:
-    vice_choices = np.full_like(a=results[results.model==np.unique(results.model)[0]].choices[0], fill_value=2)
+    vice_choices = np.full_like(a=results[results.model==np.unique(results.model)[0]].choices[0], fill_value=2, dtype=int)
     vice = [{'model': 'vice', 'accuracy': float(1), 'entropies': vice_entropies, 'choices': vice_choices, 'probas': vice_probas}]
     return pd.concat([results, pd.DataFrame(vice)])
 
