@@ -28,6 +28,9 @@ class Families:
             "resnet_children": "ResNets",
             "vgg_children": "VGGs",
             "ssl_children": "SSLs",
+            "ssl_contrastive_children": "SSL contrastive",
+            "ssl_non_contrastive_children": "SSL non-contrastive",
+            "ssl_non_siamese_children": "SSL non-siamese",
             "resnext_children": "ResNexts",
             "cnn_children": "CNNs",
             "efficientnet_children": "EfficientNets",
@@ -49,6 +52,18 @@ class Families:
     @property
     def ssl_children(self):
         return self.search("ssl")
+
+    @property
+    def ssl_contrastive_children(self):
+        return self.search("ssl_contrastive")
+
+    @property
+    def ssl_non_contrastive_children(self):
+        return self.search("ssl_non_contrastive")
+
+    @property
+    def ssl_non_siamese_children(self):
+        return self.search("ssl_non_siamese")
 
     @property
     def alexnet_children(self):
@@ -86,6 +101,47 @@ class Families:
     @property
     def ssl(self):
         return r"^r50"
+
+    @property
+    def ssl_contrastive(self):
+        return f"({self.simclr})|({self.movcov}))"
+
+    @property
+    def ssl_non_contrastive(self):
+        return f"({self.swav})|({self.vicreg})|({self.barlowtins}))"
+
+    @property
+    def ssl_non_siamese(self):
+        return f"({self.rotnet})|({self.jigsaw})"
+
+    @property
+    def vicreg(self):
+        return f"(?=^{self.ssl})(?=.*vicreg$)"
+
+    @property
+    def swav(self):
+        return f"(?=^{self.ssl})(?=.*swav$)"
+
+    @property
+    def barlowtins(self):
+        return f"(?=^{self.ssl})(?=.*barlowtins$)"
+
+    @property
+    def simclr(self):
+        return f"(?=^{self.ssl})(?=.*simclr$)"
+
+    @property
+    def movcov(self):
+        return f"(?=^{self.ssl})(?=.*mocov[0-9]+$)"
+
+    @property
+    def jigsaw(self):
+        return f"(?=^{self.ssl})(?=.*jigsaw$)"
+
+    @property
+    def rotnet(self):
+        return f"(?=^{self.ssl})(?=.*rotnet$)"
+
 
     @property
     def cnn(self):

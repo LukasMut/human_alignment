@@ -8,3 +8,4 @@ resources
 *.pkl
 *.DS_Store
 *.ipynb_checkpoints/
+*.html
