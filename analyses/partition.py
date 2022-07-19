@@ -57,6 +57,7 @@ class Partition:
 
     def get_model_choices(self) -> Array:
         """Get the odd-one-out choices for every triplet for every model."""
+        """
         model_choices = np.stack(
             [
                 self.results[self.results.model == model]
@@ -66,6 +67,17 @@ class Partition:
             ],
             axis=1,
         )
+        """
+        model_choices = np.stack(
+            [
+                self.results[self.results.model == model]
+                .choices
+                .values[0]
+                for model in self.models
+            ],
+            axis=1,
+        )
+
         return model_choices
 
     def get_children_choices(self, model_subset):

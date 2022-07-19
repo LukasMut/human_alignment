@@ -55,8 +55,7 @@ class Failures:
 
     def get_failures(self, model_choices: Array) -> Array:
         """Partition triplets into failure and correctly predicted triplets."""
-        # TODO: change line below to "model_failures = np.where(model_choices != 2)[0]"
-        model_failures = np.where(model_choices == 0)[0]
+        model_failures = np.where(model_choices != 2)[0]
         if self.iv == "dimension":
             model_failures = self.triplets[model_failures]
         return model_failures
