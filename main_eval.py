@@ -34,69 +34,33 @@ def parseargs():
 
     aa("--data_root", type=str, help="path/to/things")
     aa("--dataset", type=str, help="Which dataset to use", choices=DATASETS)
-    aa(
-        "--model_names",
-        type=str,
-        nargs="+",
-        help="models for which we want to extract featues",
-    )
-    aa("--module", type=str, help="module for which to extract features")
-    aa(
-        "--model_dict_path",
-        type=str,
-        default='/home/space/datasets/things/model_dict.json',
-        help="Path to the model_dict.json",
-    )
-    aa(
-        "--distance",
-        type=str,
-        default="cosine",
-        choices=["cosine", "euclidean", "jensenshannon"],
-        help="distance function used for predicting the odd-one-out",
-    )
+    aa("--model_names", type=str, nargs="+", 
+        help="models for which we want to extract featues")
+    aa("--module", type=str, 
+        choices=["logits", "penultimate"],
+        help="module for which to extract features")
+    aa("--model_dict_path", type=str, 
+        default="/home/space/datasets/things/model_dict.json", 
+        help="Path to the model_dict.json")
+    aa("--distance", type=str, default="cosine", 
+        choices=["cosine", "euclidean", "jensenshannon"], 
+        help="distance function used for predicting the odd-one-out")
     aa("--input_dim", type=int, default=224, help="input image dimensionality")
-    aa(
-        "--batch_size",
-        metavar="B",
-        type=int,
-        default=128,
-        help="number of triplets sampled during each step (i.e., mini-batch size)",
-    )
+    aa("--batch_size", metavar="B", type=int, default=128,
+        help="number of triplets sampled during each step (i.e., mini-batch size)")
     aa("--out_path", type=str, help="path/to/results")
-    aa(
-        "--device",
-        type=str,
-        default="cuda",
-        help="whether evaluation should be performed on CPU or GPU (i.e., CUDA).",
-    )
-    aa(
-        "--num_threads",
-        type=int,
-        default=4,
-        help="number of threads used for intraop parallelism on CPU; use only if device is CPU",
-    )
-    aa(
-        "--rnd_seed",
-        type=int,
-        default=42,
-        help="random seed for reproducibility of results",
-    )
-    aa(
-        "--verbose",
-        action="store_true",
-        help="whether to display print statements about model performance during training",
-    )
-    aa(
-        "--not_pretrained",
-        action="store_true",
-        help="load random model instead of pretrained",
-    )
-    aa(
-        "--ssl_models_path",
-        type=str,
-        default="/home/space/datasets/things/ssl-models",
-        help="Path to converted ssl models from vissl library."
-    )
+    aa("--device", type=str, default="cuda",
+        help="whether evaluation should be performed on CPU or GPU (i.e., CUDA).")
+    aa("--num_threads", type=int, default=4,
+        help="number of threads used for intraop parallelism on CPU; use only if device is CPU")
+    aa("--rnd_seed", type=int, default=42,
+        help="random seed for reproducibility of results")
+    aa("--verbose", action="store_true",
+        help="whether to show print statements about model performance during training")
+    aa("--not_pretrained", action="store_true",
+        help="load random model instead of pretrained")
+    aa("--ssl_models_path", type=str, default="/home/space/datasets/things/ssl-models",
+        help="Path to converted ssl models from vissl library.")
     args = parser.parse_args()
     return args
 
@@ -175,27 +139,6 @@ def get_predictions(
     return choices, probas
 
 
-def get_2afc_predictions(
-        features: Array, triplets: Array, temperature: float, dist: str = "cosine"
-) -> List[bool]:
-    features = torch.from_numpy(features)
-    # 0 is the reference, 2 is the odd_one_out
-    pairs = [(0, 1), (0, 2)]
-    choices = torch.zeros(triplets.shape[0])
-    probas = torch.zeros(triplets.shape[0], 2)
-    print(f"\nShape of embeddings {features.shape}\n")
-    for s, (i, j, k) in enumerate(triplets):
-        triplet = torch.stack([features[i], features[j], features[k]])
-        distances = compute_distances(triplet, pairs, dist)
-        dots = compute_dots(triplet, pairs)
-        most_sim_pair = pairs[torch.argmin(distances).item()]
-        sim_index = most_sim_pair[1]  # 1 or 2
-        assert sim_index in [1, 2]
-        choices[s] += sim_index != 2
-        probas[s] += F.softmax(dots * temperature, dim=0)
-    return choices, probas
-
-
 def accuracy(choices: List[bool], target: int = 2) -> float:
     """Computes the odd-one-out triplet accuracy."""
     return round(torch.where(choices == target)[0].shape[0] / choices.shape[0], 4)
@@ -224,21 +167,22 @@ def save_triplet_probas(
         np.save(f, probas.cpu().numpy())
 
 
-def convert_choices(probas: Array) -> Array:
-    """Labels for cross-entropy and clasification error are rotations of each other."""
-    pair_choices = probas.argmax(axis=1)
-    firt_conversion = np.where(pair_choices != 1, pair_choices - 2, pair_choices)
-    ooo_choices = np.where(firt_conversion < 0, 2, firt_conversion)
-    return ooo_choices
+def save_features(
+    features: Tensor, out_path: str, model_name: str, module_name: str
+) -> None:
+    """Saves triplet probabilities to disk."""
+    out_path = os.path.join(out_path, model_name, module_name)
+    if not os.path.exists(out_path):
+        print("\nCreating output directory...\n")
+        os.makedirs(out_path)
+    with open(os.path.join(out_path, "features.npy"), "wb") as f:
+        np.save(f, features.cpu().numpy())
 
 
 def get_model_choices(results: pd.DataFrame):
     models = results.model.unique()
     model_choices = np.stack(
-        [
-            results[results.model == model].probas.apply(convert_choices).values[0]
-            for model in models
-        ],
+        [results[results.model == model].choices.values[0] for model in models],
         axis=1,
     )
     return model_choices
@@ -267,8 +211,13 @@ def evaluate(args, backend: str = "pt") -> None:
     results = []
     for i, model_name in tqdm(enumerate(model_cfg.names)):
         model = CustomModel(
-            model_name=model_name, pretrained=not args.not_pretrained, model_path=None, device=device, backend=backend,
-            ssl_models_path=args.ssl_models_path)
+            model_name=model_name,
+            pretrained=not args.not_pretrained,
+            model_path=None,
+            device=device,
+            backend=backend,
+            ssl_models_path=args.ssl_models_path,
+        )
         dataset = load_dataset(
             name=args.dataset,
             data_dir=data_cfg.root,
@@ -285,14 +234,9 @@ def evaluate(args, backend: str = "pt") -> None:
             return_probabilities=False,
         )
         triplets = dataset.get_triplets()
-        if args.dataset == 'bapps':
-            choices, probas = get_2afc_predictions(
-                features, triplets, model_cfg.temperatures[i], args.distance
-            )
-        else:
-            choices, probas = get_predictions(
-                features, triplets, model_cfg.temperatures[i], args.distance
-            )
+        choices, probas = get_predictions(
+            features, triplets, model_cfg.temperatures[i], args.distance
+        )
         acc = accuracy(choices)
         entropies = ventropy(probas)
         mean_entropy = entropies.mean().item()
@@ -309,6 +253,7 @@ def evaluate(args, backend: str = "pt") -> None:
         }
         results.append(summary)
         save_triplet_probas(probas, args.out_path, model_name, model_cfg.modules[i])
+        save_features(features, args.out_path, model_name, model_cfg.modules[i])
 
     # convert results into Pandas DataFrame
     results = pd.DataFrame(results)
