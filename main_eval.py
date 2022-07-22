@@ -160,7 +160,6 @@ def save_features(features: Dict[str, Array], out_path: str) -> None:
     """Pickle dictionary of model features and save it to disk."""
     with open(os.path.join(out_path, 'features.pkl'), 'wb') as f:
         pickle.dump(features, f)
-        
 
 def get_model_choices(results: pd.DataFrame):
     models = results.model.unique()
