@@ -21,7 +21,9 @@ class CKA:
         return H
     
     def centering(self, K: Array) -> Array:
-        """Center the gram matrix K."""
+        """Centering of the gram matrix K."""
+        if not np.allclose(K, K.T):
+            raise ValueError('\nInput array must be a symmetric matrix.\n')
         K_c = self.H @ K @ self.H
         return K_c
     
@@ -37,12 +39,12 @@ class CKA:
         return X @ X.T
     
     def rbf_kernel(self, X: Array, sigma=None) -> Array:
-        GX = np.dot(X, X.T)
+        GX = X @ X.T
         KX = np.diag(GX) - GX + (np.diag(GX) - GX).T
         if sigma is None:
             mdist = np.median(KX[KX != 0])
             sigma = math.sqrt(mdist)
-        KX *= - 0.5 / (sigma * sigma)
+        KX *= - 0.5 / sigma ** 2
         KX = np.exp(KX)
         return KX
     
