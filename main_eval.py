@@ -191,7 +191,7 @@ def evaluate(args, backend: str = "pt") -> None:
     device = torch.device(args.device)
     model_cfg, data_cfg = create_hyperparam_dicts(args)
     results = []
-    features = {}
+    model_features = dict()
     for i, model_name in tqdm(enumerate(model_cfg.names)):
         model = CustomModel(
             model_name=model_name,
@@ -235,7 +235,7 @@ def evaluate(args, backend: str = "pt") -> None:
             "probas": probas.cpu().numpy(),
         }
         results.append(summary)
-        features[model_name] = features
+        model_features[model_name] = features
 
     # convert results into Pandas DataFrame
     results = pd.DataFrame(results)
@@ -249,7 +249,7 @@ def evaluate(args, backend: str = "pt") -> None:
     # load back with pd.read_pickle(/path/to/file/pkl)
     results.to_pickle(os.path.join(args.out_path, "results.pkl"))
     failures.to_pickle(os.path.join(args.out_path, "failures.pkl"))
-    save_features(features=features, out_path=args.out_path)
+    save_features(features=model_features, out_path=args.out_path)
 
 
 if __name__ == "__main__":
