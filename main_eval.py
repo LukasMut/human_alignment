@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from typing import Any, List, Tuple
+from typing import Any,  Dict, List, Tuple
 from tqdm import tqdm
 from ml_collections import config_dict
 from models import CustomModel
@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 from functorch import vmap
 from data import load_dataset, DATASETS
 
+import pickle
 import os
 import random
 import re
@@ -155,29 +156,11 @@ def ventropy(probabilities: Tensor) -> Tensor:
     return vmap(entropy)(probabilities)
 
 
-def save_triplet_probas(
-    probas: Tensor, out_path: str, model_name: str, module_name: str
-) -> None:
-    """Saves triplet probabilities to disk."""
-    out_path = os.path.join(out_path, model_name, module_name)
-    if not os.path.exists(out_path):
-        print("\nCreating output directory...\n")
-        os.makedirs(out_path)
-    with open(os.path.join(out_path, "triplet_probas.npy"), "wb") as f:
-        np.save(f, probas.cpu().numpy())
-
-
-def save_features(
-    features: Tensor, out_path: str, model_name: str, module_name: str
-) -> None:
-    """Saves triplet probabilities to disk."""
-    out_path = os.path.join(out_path, model_name, module_name)
-    if not os.path.exists(out_path):
-        print("\nCreating output directory...\n")
-        os.makedirs(out_path)
-    with open(os.path.join(out_path, "features.npy"), "wb") as f:
-        np.save(f, features)
-
+def save_features(features: Dict[str, Array], out_path: str) -> None:
+    """Pickle dictionary of model features and save it to disk."""
+    with open(os.path.join(out_path, 'features.pkl'), 'wb') as f:
+        pickle.dump(features, f)
+        
 
 def get_model_choices(results: pd.DataFrame):
     models = results.model.unique()
@@ -209,6 +192,7 @@ def evaluate(args, backend: str = "pt") -> None:
     device = torch.device(args.device)
     model_cfg, data_cfg = create_hyperparam_dicts(args)
     results = []
+    features = {}
     for i, model_name in tqdm(enumerate(model_cfg.names)):
         model = CustomModel(
             model_name=model_name,
@@ -252,8 +236,7 @@ def evaluate(args, backend: str = "pt") -> None:
             "probas": probas.cpu().numpy(),
         }
         results.append(summary)
-        save_triplet_probas(probas, args.out_path, model_name, model_cfg.modules[i])
-        save_features(features, args.out_path, model_name, model_cfg.modules[i])
+        features[model_name] = features
 
     # convert results into Pandas DataFrame
     results = pd.DataFrame(results)
@@ -267,6 +250,7 @@ def evaluate(args, backend: str = "pt") -> None:
     # load back with pd.read_pickle(/path/to/file/pkl)
     results.to_pickle(os.path.join(args.out_path, "results.pkl"))
     failures.to_pickle(os.path.join(args.out_path, "failures.pkl"))
+    save_features(features=features, out_path=args.out_path)
 
 
 if __name__ == "__main__":
