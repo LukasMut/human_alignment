@@ -176,7 +176,7 @@ def save_features(
         print("\nCreating output directory...\n")
         os.makedirs(out_path)
     with open(os.path.join(out_path, "features.npy"), "wb") as f:
-        np.save(f, features.cpu().numpy())
+        np.save(f, features)
 
 
 def get_model_choices(results: pd.DataFrame):
