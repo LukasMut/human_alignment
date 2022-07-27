@@ -92,7 +92,7 @@ def compare_model_choices(results: pd.DataFrame) -> pd.DataFrame:
     for i, model_i in enumerate(models):
         for j, model_j in enumerate(models):
             if i != j:
-                if np.isnan(alignments.iloc[i, j]):
+                if np.isnan(agreements.iloc[i, j]):
                     choices_i = results[results.model == model_i].choices.values[0]
                     choices_j = results[results.model == model_j].choices.values[0]
                     agreement = get_agreement(choices_i, choices_j)
