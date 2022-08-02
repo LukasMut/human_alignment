@@ -2,6 +2,7 @@ from thingsvision.model_class import Model
 from models import CustomModel
 from main_eval import evaluate
 from typing import List
+from utils import jensenshannon
 from matplotlib import pyplot as plt
 
 import argparse
@@ -92,6 +93,12 @@ def parseargs():
         type=bool,
         help="If set to True, one-hot vectors are used as ground-truth, rather than VICE outputs.",
         default=False,
+    )
+    aa(
+        "--dataset",
+        type=str,
+        choices=["things", "things-aligned"],
+        default="things-aligned",
     )
     args = parser.parse_args()
     return args
@@ -201,6 +208,8 @@ def ECE(probas: torch.Tensor, equal_mass: bool = False, n_bins=10):
 
     ece = 0
     sample_counter = 0
+    print(n)
+    print(bin_borders)
     for bin_i, border in enumerate(bin_borders[:-1]):
         vals = max_vals[border <= max_vals]
         idcs = max_idcs[border <= max_vals]
@@ -211,7 +220,13 @@ def ECE(probas: torch.Tensor, equal_mass: bool = False, n_bins=10):
             conf = torch.mean(vals)
             m = len(vals)
             sample_counter += m
-            ece += m / n * torch.abs(acc - conf)
+            ce = torch.abs(acc - conf)
+            ece += m / n * ce
+            print(m, "acc:%.3f  conf:%.3f  ce:%f.3f" % (acc, conf, ce))
+
+    print("Acc. all:", torch.mean(torch.where(max_idcs == 0, 1.0, 0.0)))
+    print("Wrong 1:", torch.mean(torch.where(max_idcs == 1, 1.0, 0.0)))
+    print("Wrong 2:", torch.mean(torch.where(max_idcs == 2, 1.0, 0.0)))
 
     assert sample_counter == n
     return ece
@@ -227,6 +242,7 @@ def search_temperatures(
     distance: str,
     one_hot: bool,
     ssl_models_path: str,
+    dataset: str
 ):
     """Find the temperature scaling with minimal average distance over the VICE-correct triplets and populate the
     dictionary with it."""
@@ -254,7 +270,7 @@ def search_temperatures(
                     config = DotDict(
                         {
                             "data_root": things_root,
-                            "dataset": "things-aligned",
+                            "dataset": dataset,
                             "model_names": [model_name],
                             "module": module_type_name,
                             "distance": distance,
@@ -263,6 +279,7 @@ def search_temperatures(
                             "batch_size": 8,
                             "num_threads": 4,
                             "ssl_models_path": ssl_models_path,
+                            "model_dict_path": os.path.join(things_root, "model_dict.json")
                         }
                     )
                     print("Evaluating:", model_name, module_name, temp)
@@ -286,7 +303,8 @@ def search_temperatures(
     for model_name in model_names:
         for module_type_name in module_type_names:
             min_value = None
-            dists = []
+            kls = []
+            jss = []
             ece = []
             ece_eq_mass = []
             for temp in temperatures:
@@ -306,8 +324,11 @@ def search_temperatures(
                     probas_vice = torch.zeros_like(probas)
                     probas_vice[:, 2] = 1
 
-                avg_dist = torch.nn.KLDivLoss()(probas, probas_vice)
-                dists.append(avg_dist)
+                avg_kl = torch.nn.KLDivLoss()(probas, probas_vice)
+                kls.append(avg_kl)
+
+                avg_js = np.mean([jensenshannon(p, pv) for (p, pv) in zip(probas, probas_vice)])
+                jss.append(avg_js)
 
                 ece_val = ECE(probas)
                 ece_em_val = ECE(probas, equal_mass=True)
@@ -340,7 +361,8 @@ def search_temperatures(
                     ),
                     {
                         "temperatures": temperatures,
-                        "dists": dists,
+                        "kls": kls,
+                        "jss": kls,
                         "ece": ece,
                         "ece_eq_mass": ece_eq_mass,
                     },
@@ -435,14 +457,25 @@ def plot_dist_temp(
             data_for_model = distances[model_names[model_id]]
             ax = axs[i_r][i_c]
 
-            ax.plot(data_for_model["temperatures"], data_for_model["dists"])
+            legend = ["KL"]
+            try:
+                ax.plot(data_for_model["temperatures"], data_for_model["kl"])
+                ax.plot(data_for_model["temperatures"], data_for_model["js"])
+                legend.append("JS")
+            except KeyError:
+                # Backward compatibility
+                ax.plot(data_for_model["temperatures"], data_for_model["dists"])
+
             ax.plot(data_for_model["temperatures"], data_for_model["ece"])
+            legend.append("ECE")
             ax.plot(data_for_model["temperatures"], data_for_model["ece_eq_mass"])
+            legend.append("ECE_EM")
+
             ax.set_xscale("log")
             ax.set_xlabel("Temperature")
             ax.set_ylabel("Selection Criterion")
             ax.set_title(model_names[model_id] + " (%s)" % module_type_name)
-            ax.legend(["KL", "ECE", "ECE_EM"])
+            ax.legend(legend)
     plt.tight_layout()
     plt.show()
 
@@ -460,6 +493,7 @@ if __name__ == "__main__":
     overwrite = args.overwrite
     ssl_models_path = args.ssl_models_path
     one_hot = args.one_hot
+    dataset = args.dataset
 
     model_names = [
         name for name in dir(torchvision.models) if _is_model_name_accepted(name)
@@ -497,6 +531,7 @@ if __name__ == "__main__":
         distance,
         one_hot,
         ssl_models_path,
+        dataset
     )
 
     save_dict(model_dict, out_path, overwrite, one_hot)
