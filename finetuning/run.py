@@ -82,15 +82,20 @@ def get_batches(triplets: Tensor, batch_size: int, train: bool):
     return dl
 
 def get_callbacks(optim_cfg: FrozenDict, ckptdir: str):
-    checkpoint_callback = ModelCheckpoint(dirpath=ckptdir)
+    checkpoint_callback = ModelCheckpoint(
+        monitor='val_loss',
+        dirpath=ckptdir,
+        filename='ooo-finetuning-epoch{epoch:02d}-val_loss{val/loss:.2f}',
+        auto_insert_metric_name=False
+    )
     early_stopping = EarlyStopping(
             monitor='val_loss',
             min_delta=1e-4,
             mode='min',
             patience=optim_cfg.patience,
             verbose=True,
-            check_finite=True,
-        )
+            check_finite=True
+    )
     callbacks = [checkpoint_callback, early_stopping]
     return callbacks
 
