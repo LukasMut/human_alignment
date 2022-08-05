@@ -1,12 +1,13 @@
 import torch
 import torch.nn.functional as F
 import pytorch_lightning as pl
+import numpy as np
 from typing import Tuple
 
 Tensor = torch.Tensor
 
 class LinearProbe(pl.LightningModule):
-    def __init__(self, features: Tensor, latent_dim: int, lr: float):
+    def __init__(self, features: Tensor, transform_dim: int, optim: str, lr: float):
         super().__init__()
         self.features = torch.nn.Parameter(
             torch.from_numpy(features),
@@ -15,11 +16,12 @@ class LinearProbe(pl.LightningModule):
         self.feature_dim = self.features.shape[1]
         self.transform = torch.nn.Parameter(
             data=torch.normal(
-                mean=torch.zeros(self.feature_dim, latent_dim),
-                std=torch.ones(self.feature_dim, latent_dim) * 0.01,
+                mean=torch.zeros(self.feature_dim, transform_dim),
+                std=torch.ones(self.feature_dim, transform_dim) * 0.01,
             ),
             requires_grad=True,
         )
+        self.optim = optim
         self.lr = lr
 
     def forward(self, one_hots: Tensor) -> Tensor:
@@ -66,7 +68,7 @@ class LinearProbe(pl.LightningModule):
 
     def accuracy_(self, probas: Tensor, batching: bool = True) -> Tensor:
         choices = self.break_ties(probas)
-        argmax = torch.where(choices == 0, 1, 0)
+        argmax = np.where(choices == 0, 1, 0)
         acc = argmax.mean() if batching else argmax.tolist()
         return acc
 
@@ -81,7 +83,7 @@ class LinearProbe(pl.LightningModule):
             torch.reshape(embeddings, (-1, 3, embeddings.shape[-1])), dim=1
         )
 
-    def training_step(self, one_hots: torch.Tensor, batch_idx):
+    def training_step(self, one_hots: Tensor, batch_idx: int):
         # training_step defines the train loop. It is independent of forward
         embedding = self.features @ self.transform
         embeddings = one_hots @ embedding
@@ -93,7 +95,7 @@ class LinearProbe(pl.LightningModule):
         self.log("train_acc", acc, on_epoch=True)
         return c_entropy
 
-    def validation_step(self, one_hots: torch.Tensor, batch_idx):
+    def validation_step(self, one_hots: Tensor, batch_idx: int):
         embedding = self.features @ self.transform
         embeddings = one_hots @ embedding
         anchor, positive, negative = self.unbind(embeddings)
@@ -102,10 +104,29 @@ class LinearProbe(pl.LightningModule):
         val_acc = self.choice_accuracy(similarities)
         self.log("val_loss", val_loss)
         self.log("val_acc", val_acc)
+        return val_loss, val_acc
+
+    def test_step(self, one_hots: Tensor, batch_idx: int):
+        embedding = self.features @ self.transform
+        embeddings = one_hots @ embedding
+        anchor, positive, negative = self.unbind(embeddings)
+        similarities = self.compute_similarities(anchor, positive, negative)
+        test_loss = self.cross_entropy_loss(similarities)
+        test_acc = self.choice_accuracy(similarities)
+        self.log("test_loss", test_loss)
+        self.log("test_acc", test_acc)
+        return test_loss, test_acc
 
     def backward(self, loss, optimizer, optimizer_idx):
         loss.backward()
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+        if self.optim.lower() == 'adam':
+            optimizer = getattr(torch.optim, self.optim.capitalize())
+        elif self.optim.lower() == 'sgd':
+            optimizer = getattr(torch.optim, self.optim.upper())
+        else:
+            raise ValueError(
+                "\nUse Adam or SGD for learning a transformation of a network's feature space.\n")
+        optimizer = optimizer(self.parameters(), lr=self.lr)
         return optimizer
