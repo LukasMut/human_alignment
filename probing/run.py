@@ -14,12 +14,12 @@ from ml_collections import config_dict
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 
-from pytorch_lightning.callbacks import 
->>> 
+from sklearn.model_selection import KFold
 from typing import Any, Dict, List, Tuple
 
 from .data.dataset import TripletData
-from .transform import LinearProbe
+from .transform import Linear
+from .utils import load_triplets, partition_triplets
 
 Array = np.ndarray
 Tensor = torch.Tensor
@@ -100,22 +100,6 @@ def get_callbacks(optim_cfg: FrozenDict, ckptdir: str, steps: int=10):
     callbacks = [checkpoint_callback, early_stopping]
     return callbacks
 
-
-def load_triplet_splits(
-    data_root: str, n_objects: int, split: str = "disjoint"
-) -> List[Tuple[Tensor, Tensor]]:
-    train_val_splits = []
-    for fold in FOLDS:
-        train_triplets = TripletData(
-            root=data_root, n_objects=n_objects, split=split, fold=fold, train=True
-        )
-        val_triplets = TripletData(
-            root=data_root, n_objects=n_objects, split=split, fold=fold, train=False
-        )
-        train_val_splits.append((train_triplets, val_triplets))
-    return train_val_splits
-
-
 def run(
     features: Array,
     data_root: str,
@@ -124,16 +108,22 @@ def run(
     optim_cfg: FrozenDict,
     ckptdir: str,
 ) -> None:
-    train_val_splits = load_triplet_splits(
-        data_root=data_root,
-        n_objects=n_objects,
-    )
     callbacks = get_callbacks(
         optim_cfg=optim_cfg,
         ckptdir=ckptdir,
     )
+    triplets = load_triplets(data_root)
+    objects = np.arange(n_objects)
+    kf = KFold(n_splits=k, random_state=rnd_seed, shuffle=True)
     cv_results = {}
-    for k, (train_triplets, val_triplets) in tqdm(train_val_splits, desc="Fold"):
+    for k, (train_idx, _) in tqdm(enumerate(kf.split(objects)), desc='Fold'):
+        train_objects = objects[train_idx]
+        triplet_partitioning = partition_triplets(
+            triplets=triplets, train_objects=train_objects)
+        train_triplets = TripletData(
+            triplets=triplet_partitioning['train'], n_objects=n_objects)
+        val_triplets = TripletData(
+            triplets=triplet_partitioning['val'], n_objects=n_objects)
         train_batches = get_batches(
             triplets=train_triplets,
             batch_size=optim_cfg.batch_size,
