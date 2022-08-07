@@ -6,7 +6,7 @@ from typing import Tuple
 
 Tensor = torch.Tensor
 
-class LinearProbe(pl.LightningModule):
+class Linear(pl.LightningModule):
     def __init__(self, features: Tensor, transform_dim: int, optim: str, lr: float):
         super().__init__()
         self.features = torch.nn.Parameter(
