@@ -33,8 +33,10 @@ def parseargs():
     def aa(*args, **kwargs):
         parser.add_argument(*args, **kwargs)
     aa("--data_root", type=str, help="path/to/things")
-    aa("--dataset", type=str, help="Which dataset to use", default="things")
-    aa("--n_objects", type=int, help="Number of object categories in the data", default=1854)
+    aa("--dataset", type=str,
+        help="Which dataset to use", default="things")
+    aa("--n_objects", type=int, 
+        help="Number of object categories in the data", default=1854)
     aa("--batch_size", type=int, default=256)
     aa("--epochs", type=int, 
         help="Maximum number of epochs to perform finetuning", default=100)
@@ -107,6 +109,7 @@ def run(
     device: str,
     optim_cfg: FrozenDict,
     ckptdir: str,
+    rnd_seed: int,
 ) -> None:
     callbacks = get_callbacks(
         optim_cfg=optim_cfg,
@@ -116,7 +119,7 @@ def run(
     objects = np.arange(n_objects)
     kf = KFold(n_splits=k, random_state=rnd_seed, shuffle=True)
     cv_results = {}
-    for k, (train_idx, _) in tqdm(enumerate(kf.split(objects)), desc='Fold'):
+    for k, (train_idx, _) in tqdm(enumerate(kf.split(objects), start=1), desc='Fold'):
         train_objects = objects[train_idx]
         triplet_partitioning = partition_triplets(
             triplets=triplets, train_objects=train_objects)
@@ -132,7 +135,7 @@ def run(
             triplets=val_triplets,
             batch_size=optim_cfg.batch_size,
         )
-        transformation = LinearProbe(
+        linear_probe = Linear(
             features=features,
             transform_dim=optim_cfg.transform_dim,
             optim=optim_cfg.optim,
@@ -144,9 +147,9 @@ def run(
             max_epochs=optim_cfg.max_epochs,
             min_epochs=optim_cfg.min_epochs,
         )
-        trainer.fit(transformation, train_batches, val_batches)
+        trainer.fit(linear_probe, train_batches, val_batches)
         val_performance = trainer.validate(
-            transformation,
+            linear_probe,
             dataloaders=val_batches,
         )
         cv_results[f"fold_{k:02d}"] = val_performance
@@ -165,4 +168,5 @@ if __name__ == "__main__":
         n_objects=args.n_objects,
         device=args.device,
         optim_cfg=optim_cfg,
+        rnd_seed=args.rnd_seed,
     )
