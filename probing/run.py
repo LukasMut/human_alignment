@@ -1,24 +1,20 @@
 import argparse
-from collections import defaultdict
-from email.policy import default
-from gc import callbacks
-import numpy as np
-
 import os
 import pickle
-import torch
+from gc import callbacks
+from typing import Any, Dict, Tuple
 
-from torch.utils.data import DataLoader
-from tqdm import tqdm
+import numpy as np
+import torch
 from ml_collections import config_dict
 from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
-
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from sklearn.model_selection import KFold
-from typing import Any, Dict, List, Tuple
+from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 from .data.dataset import TripletData
-from .transform import Linear
+from .transforms import Linear
 from .utils import load_triplets, partition_triplets
 
 Array = np.ndarray
@@ -117,7 +113,7 @@ def run(
     )
     triplets = load_triplets(data_root)
     objects = np.arange(n_objects)
-    kf = KFold(n_splits=k, random_state=rnd_seed, shuffle=True)
+    kf = KFold(n_splits=3, random_state=rnd_seed, shuffle=True)
     cv_results = {}
     for k, (train_idx, _) in tqdm(enumerate(kf.split(objects), start=1), desc='Fold'):
         train_objects = objects[train_idx]
