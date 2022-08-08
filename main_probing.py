@@ -1,7 +1,7 @@
 import argparse
 import os
 import pickle
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, Iterator, List, Tuple
 
 import numpy as np
 import torch
@@ -75,7 +75,7 @@ def load_features(results_path: str) -> Dict[str, Array]:
     return features
 
 
-def get_batches(triplets: Tensor, batch_size: int, train: bool):
+def get_batches(triplets: Tensor, batch_size: int, train: bool) -> Iterator:
     dl = DataLoader(
         dataset=triplets,
         batch_size=batch_size,
@@ -116,7 +116,7 @@ def run(
     optim_cfg: FrozenDict,
     rnd_seed: int,
     k:int=3,
-) -> None:
+) -> Tuple[Dict[str, List[float]], Array]:
     """Run optimization process."""
     callbacks = get_callbacks(optim_cfg)
     triplets = probing.load_triplets(data_root)
