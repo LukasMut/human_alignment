@@ -114,6 +114,7 @@ def get_callbacks(optim_cfg: FrozenDict, steps:int=20) -> List[Callable]:
 
 
 def standardize(features: Array) -> Array:
+    """Center and normalize features so that they have zero-mean and unit variance."""
     return (features - features.mean(axis=0)) / features.std(axis=0)
 
 
