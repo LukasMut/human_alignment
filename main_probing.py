@@ -12,9 +12,7 @@ from sklearn.model_selection import KFold
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from .data.dataset import TripletData
-from .transforms import Linear
-from .utils import load_triplets, partition_triplets
+from probing import TripletData, Linear, load_triplets, partition_triplets
 
 Array = np.ndarray
 Tensor = torch.Tensor
@@ -58,7 +56,7 @@ def create_optimization_config(args) -> Tuple[FrozenDict, FrozenDict]:
     optim_cfg.max_epochs = args.epochs
     optim_cfg.min_epochs = args.burnin
     optim_cfg.patience = args.patience
-    optim_cfg.ckptdir = os.path.join(args.logdir, args.model, 'probing')
+    optim_cfg.ckptdir = os.path.join(args.logdir, 'probing', args.model)
     optim_cfg = config_dict.FrozenConfigDict(optim_cfg)
     return optim_cfg
 
