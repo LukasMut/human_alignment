@@ -1,10 +1,12 @@
-import torch
-import torch.nn.functional as F
-import pytorch_lightning as pl
-import numpy as np
 from typing import Tuple
 
+import numpy as np
+import pytorch_lightning as pl
+import torch
+import torch.nn.functional as F
+
 Tensor = torch.Tensor
+
 
 class Linear(pl.LightningModule):
     def __init__(self, features: Tensor, transform_dim: int, optim: str, lr: float):
@@ -121,12 +123,13 @@ class Linear(pl.LightningModule):
         loss.backward()
 
     def configure_optimizers(self):
-        if self.optim.lower() == 'adam':
+        if self.optim.lower() == "adam":
             optimizer = getattr(torch.optim, self.optim.capitalize())
-        elif self.optim.lower() == 'sgd':
+        elif self.optim.lower() == "sgd":
             optimizer = getattr(torch.optim, self.optim.upper())
         else:
             raise ValueError(
-                "\nUse Adam or SGD for learning a transformation of a network's feature space.\n")
+                "\nUse Adam or SGD for learning a transformation of a network's feature space.\n"
+            )
         optimizer = optimizer(self.parameters(), lr=self.lr)
         return optimizer

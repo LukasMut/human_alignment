@@ -1,9 +1,11 @@
-import torch
-import numpy as np
 from typing import List
+
+import numpy as np
+import torch
 
 Tensor = torch.Tensor
 Array = np.ndarray
+
 
 class TripletData(torch.utils.data.Dataset):
     def __init__(self, triplets: List[List[int]], n_objects: int):

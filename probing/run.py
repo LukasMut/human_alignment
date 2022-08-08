@@ -1,8 +1,7 @@
 import argparse
 import os
 import pickle
-from gc import callbacks
-from typing import Any, Dict, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 import numpy as np
 import torch
@@ -20,7 +19,6 @@ from .utils import load_triplets, partition_triplets
 Array = np.ndarray
 Tensor = torch.Tensor
 FrozenDict = Any
-FOLDS = ["fold_01", "fold_02", "fold_03"]
 
 
 def parseargs():
@@ -31,6 +29,7 @@ def parseargs():
     aa("--data_root", type=str, help="path/to/things")
     aa("--dataset", type=str,
         help="Which dataset to use", default="things")
+    aa("--model", type=str)
     aa("--n_objects", type=int, 
         help="Number of object categories in the data", default=1854)
     aa("--batch_size", type=int, default=256)
@@ -44,6 +43,7 @@ def parseargs():
     aa("--device", type=str, default="cpu",
         choices=["cpu", "gpu"])
     aa("--results_path", type=str, help="path/to/results")
+    aa("--log_dir", type=str, help='directory to checkpoint transformations')
     aa("--rnd_seed", type=int, help="random seed for reproducibility")
     args = parser.parse_args()
     return args
@@ -58,6 +58,7 @@ def create_optimization_config(args) -> Tuple[FrozenDict, FrozenDict]:
     optim_cfg.max_epochs = args.epochs
     optim_cfg.min_epochs = args.burnin
     optim_cfg.patience = args.patience
+    optim_cfg.ckptdir = os.path.join(args.logdir, args.model, 'probing')
     optim_cfg = config_dict.FrozenConfigDict(optim_cfg)
     return optim_cfg
 
@@ -79,10 +80,13 @@ def get_batches(triplets: Tensor, batch_size: int, train: bool):
     )
     return dl
 
-def get_callbacks(optim_cfg: FrozenDict, ckptdir: str, steps: int=10):
+def get_callbacks(optim_cfg: FrozenDict, steps:int=20) -> List[Callable]:
+    if not os.path.exists(optim_cfg.ckptdir):
+        os.makedirs(optim_cfg.ckptdir)
+        print('\nCreating directory for checkpointing...\n')
     checkpoint_callback = ModelCheckpoint(
         monitor='val_loss',
-        dirpath=ckptdir,
+        dirpath=optim_cfg.ckptdir,
         filename='ooo-finetuning-epoch{epoch:02d}-val_loss{val/loss:.2f}',
         auto_insert_metric_name=False,
         every_n_epochs=steps,
@@ -104,16 +108,14 @@ def run(
     n_objects: int,
     device: str,
     optim_cfg: FrozenDict,
-    ckptdir: str,
     rnd_seed: int,
+    k:int=3,
 ) -> None:
-    callbacks = get_callbacks(
-        optim_cfg=optim_cfg,
-        ckptdir=ckptdir,
-    )
+    callbacks = get_callbacks(optim_cfg)
     triplets = load_triplets(data_root)
     objects = np.arange(n_objects)
-    kf = KFold(n_splits=3, random_state=rnd_seed, shuffle=True)
+    # 3-fold cross-validation
+    kf = KFold(n_splits=k, random_state=rnd_seed, shuffle=True)
     cv_results = {}
     for k, (train_idx, _) in tqdm(enumerate(kf.split(objects), start=1), desc='Fold'):
         train_objects = objects[train_idx]
@@ -149,7 +151,7 @@ def run(
             dataloaders=val_batches,
         )
         cv_results[f"fold_{k:02d}"] = val_performance
-    return cv_results
+    return cv_results, linear_probe
 
 
 if __name__ == "__main__":
@@ -157,8 +159,9 @@ if __name__ == "__main__":
     args = parseargs()
     seed_everything(args.rnd_seed, workers=True)
     features = load_features(args.results_path)
+    model_features = features[args.model]
     optim_cfg = create_optimization_config(args)
-    cv_results = run(
+    cv_results, linear_probe = run(
         features=features,
         data_root=args.data_root,
         n_objects=args.n_objects,
@@ -166,3 +169,14 @@ if __name__ == "__main__":
         optim_cfg=optim_cfg,
         rnd_seed=args.rnd_seed,
     )
+    out_path = os.path.join(args.results_path, 'probing', args.model)
+    if not os.path.exists(out_path):
+        os.makedirs(out_path)
+    
+    transform = linear_probe.transform.data.detach().cpu().numpy()
+
+    with open(os.path.join(out_path, 'transform.npy'), 'wb') as f:
+        np.save(file=f, arr=transform)
+
+    with open(os.path.join(out_path, 'cv_results.pkl'), 'wb') as f:
+        pickle.dump(obj=cv_results, file=f)
