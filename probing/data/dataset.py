@@ -13,7 +13,7 @@ class TripletData(torch.utils.data.Dataset):
         self.identity = torch.eye(n_objects)
 
     def encode_as_onehot(self, triplet: Tensor) -> Tensor:
-        """encode triplet of objects as three one-hot-vectors"""
+        """Encode a triplet of indices as a matrix of three one-hot-vectors."""
         return self.identity[triplet, :]
 
     def __getitem__(self, index: int) -> Tensor:
