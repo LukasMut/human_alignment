@@ -33,7 +33,9 @@ def parseargs():
     aa("--optim", type=str, default='Adam',
         choices=['Adam', 'AdamW', 'SGD'])
     aa("--learning_rate", type=float, default=1e-3)
-    aa("--batch_size", type=int, default=256)
+    aa("--batch_size", type=int, default=256,
+        help="Use power of 2 for running optimization on GPU",
+        choices=[64, 128, 256, 512, 1024])
     aa("--transform_dim", type=int, default=100,
         help='Output dimensionality of the linear transformation',
         choices=[100, 200, 300, 400, 500])
