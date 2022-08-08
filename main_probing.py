@@ -12,7 +12,7 @@ from sklearn.model_selection import KFold
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from probing import *
+import probing
 
 Array = np.ndarray
 Tensor = torch.Tensor
@@ -116,18 +116,18 @@ def run(
     k:int=3,
 ) -> None:
     callbacks = get_callbacks(optim_cfg)
-    triplets = load_triplets(data_root)
+    triplets = probing.load_triplets(data_root)
     objects = np.arange(n_objects)
     # 3-fold cross-validation
     kf = KFold(n_splits=k, random_state=rnd_seed, shuffle=True)
     cv_results = {}
     for k, (train_idx, _) in tqdm(enumerate(kf.split(objects), start=1), desc='Fold'):
         train_objects = objects[train_idx]
-        triplet_partitioning = partition_triplets(
+        triplet_partitioning = probing.partition_triplets(
             triplets=triplets, train_objects=train_objects)
-        train_triplets = TripletData(
+        train_triplets = probing.TripletData(
             triplets=triplet_partitioning['train'], n_objects=n_objects)
-        val_triplets = TripletData(
+        val_triplets = probing.TripletData(
             triplets=triplet_partitioning['val'], n_objects=n_objects)
         train_batches = get_batches(
             triplets=train_triplets,
@@ -139,7 +139,7 @@ def run(
             batch_size=optim_cfg.batch_size,
             train=False,
         )
-        linear_probe = Linear(
+        linear_probe = probing.Linear(
             features=features,
             transform_dim=optim_cfg.transform_dim,
             optim=optim_cfg.optim,
@@ -157,7 +157,8 @@ def run(
             dataloaders=val_batches,
         )
         cv_results[f"fold_{k:02d}"] = val_performance
-    return cv_results, linear_probe
+    transformation = linear_probe.transform.data.detach().cpu().numpy()
+    return cv_results, transformation
 
 
 if __name__ == "__main__":
@@ -167,8 +168,8 @@ if __name__ == "__main__":
     features = load_features(args.results_path)
     model_features = features[args.model]
     optim_cfg = create_optimization_config(args)
-    cv_results, linear_probe = run(
-        features=features,
+    cv_results, transformation = run(
+        features=model_features,
         data_root=args.data_root,
         n_objects=args.n_objects,
         device=args.device,
@@ -179,10 +180,8 @@ if __name__ == "__main__":
     if not os.path.exists(out_path):
         os.makedirs(out_path)
     
-    transform = linear_probe.transform.data.detach().cpu().numpy()
-
     with open(os.path.join(out_path, 'transform.npy'), 'wb') as f:
-        np.save(file=f, arr=transform)
+        np.save(file=f, arr=transformation)
 
     with open(os.path.join(out_path, 'cv_results.pkl'), 'wb') as f:
         pickle.dump(obj=cv_results, file=f)
