@@ -54,6 +54,7 @@ def parseargs():
 
 
 def create_optimization_config(args) -> Tuple[FrozenDict, FrozenDict]:
+    """Create frozen config dict for optimization hyperparameters."""
     optim_cfg = config_dict.ConfigDict()
     optim_cfg.optim = args.optim
     optim_cfg.lr = args.learning_rate
@@ -68,6 +69,7 @@ def create_optimization_config(args) -> Tuple[FrozenDict, FrozenDict]:
 
 
 def load_features(results_path: str) -> Dict[str, Array]:
+    """Load features for THINGS objects from disk."""
     with open(os.path.join(results_path, "features.pkl"), "rb") as f:
         features = pickle.load(f)
     return features
@@ -115,14 +117,17 @@ def run(
     rnd_seed: int,
     k:int=3,
 ) -> None:
+    """Run optimization process."""
     callbacks = get_callbacks(optim_cfg)
     triplets = probing.load_triplets(data_root)
     objects = np.arange(n_objects)
-    # 3-fold cross-validation
+    # Perform k-fold cross-validation with k = 3 
+    # NOTE: we can try k = 5, but k = 10 doesn't work
     kf = KFold(n_splits=k, random_state=rnd_seed, shuffle=True)
     cv_results = {}
     for k, (train_idx, _) in tqdm(enumerate(kf.split(objects), start=1), desc='Fold'):
         train_objects = objects[train_idx]
+        # partition triplets into disjoint object sets
         triplet_partitioning = probing.partition_triplets(
             triplets=triplets, train_objects=train_objects)
         train_triplets = probing.TripletData(
@@ -164,6 +169,7 @@ def run(
 if __name__ == "__main__":
     # parse arguments
     args = parseargs()
+    # seed everything for reproducibility
     seed_everything(args.rnd_seed, workers=True)
     features = load_features(args.results_path)
     model_features = features[args.model]
@@ -180,7 +186,7 @@ if __name__ == "__main__":
     if not os.path.exists(out_path):
         os.makedirs(out_path)
     
-    with open(os.path.join(out_path, 'transform.npy'), 'wb') as f:
+    with open(os.path.join(out_path, 'transforma.npy'), 'wb') as f:
         np.save(file=f, arr=transformation)
 
     with open(os.path.join(out_path, 'cv_results.pkl'), 'wb') as f:
