@@ -112,8 +112,14 @@ def get_callbacks(optim_cfg: FrozenDict, steps:int=20) -> List[Callable]:
     callbacks = [checkpoint_callback, early_stopping]
     return callbacks
 
+
+def standardize(features: Array) -> Array:
+    return (features - features.mean(axis=0)) / features.std(axis=0)
+
+
 def run(
     features: Array,
+    model: str,
     data_root: str,
     n_objects: int,
     device: str,
@@ -125,6 +131,7 @@ def run(
     """Run optimization process."""
     callbacks = get_callbacks(optim_cfg)
     triplets = probing.load_triplets(data_root)
+    features = standardize(features)
     objects = np.arange(n_objects)
     # Perform k-fold cross-validation with k = 3 
     # NOTE: we can try k = 5, but k = 10 doesn't work
@@ -134,11 +141,14 @@ def run(
         train_objects = objects[train_idx]
         # partition triplets into disjoint object sets
         triplet_partitioning = probing.partition_triplets(
-            triplets=triplets, train_objects=train_objects)
+            triplets=triplets, train_objects=train_objects,
+        )
         train_triplets = probing.TripletData(
-            triplets=triplet_partitioning['train'], n_objects=n_objects)
+            triplets=triplet_partitioning['train'], n_objects=n_objects,
+        )
         val_triplets = probing.TripletData(
-            triplets=triplet_partitioning['val'], n_objects=n_objects)
+            triplets=triplet_partitioning['val'], n_objects=n_objects,
+        )
         train_batches = get_batches(
             triplets=train_triplets,
             batch_size=optim_cfg.batch_size,
@@ -155,6 +165,7 @@ def run(
             optim=optim_cfg.optim,
             lr=optim_cfg.lr,
             num_samples=len(train_triplets),
+            model=model,
         )
         trainer = Trainer(
             accelerator=device,
@@ -185,6 +196,7 @@ if __name__ == "__main__":
     optim_cfg = create_optimization_config(args)
     cv_results, transformation = run(
         features=model_features,
+        model=args.model,
         data_root=args.data_root,
         n_objects=args.n_objects,
         device=args.device,

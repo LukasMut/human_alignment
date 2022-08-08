@@ -9,17 +9,23 @@ Tensor = torch.Tensor
 
 
 class Linear(pl.LightningModule):
-    def __init__(self, features: Tensor, transform_dim: int, optim: str, lr: float, num_samples: int):
+    def __init__(self, features: Tensor, transform_dim: int, optim: str, lr: float, num_samples: int, model: str):
         super().__init__()
         self.features = torch.nn.Parameter(
             torch.from_numpy(features),
             requires_grad=False,
         )
         self.feature_dim = self.features.shape[1]
+        
+        if model.lower().startswith('vgg'):
+            std = 1e-3
+        else:
+            std = 1e-2
+        
         self.transform = torch.nn.Parameter(
             data=torch.normal(
                 mean=torch.zeros(self.feature_dim, transform_dim),
-                std=torch.ones(self.feature_dim, transform_dim) * 0.01,
+                std=torch.ones(self.feature_dim, transform_dim) * std,
             ),
             requires_grad=True,
         )
@@ -93,8 +99,8 @@ class Linear(pl.LightningModule):
         anchor, positive, negative = self.unbind(embeddings)
         similarities = self.compute_similarities(anchor, positive, negative)
         c_entropy = self.cross_entropy_loss(similarities)
-        # add l2 regularization during training to prevent overfitting to train object set
-        complexity_loss = torch.linalg.norm(self.transform, ord='fro') / self.num_samples
+        # add l2 regularization during training to prevent overfitting to train objects
+        complexity_loss = torch.linalg.norm(self.transform, ord='fro') * 1e-3 #/ self.num_samples
         acc = self.choice_accuracy(similarities)
         self.log("train_loss", c_entropy, on_epoch=True)
         self.log("train_acc", acc, on_epoch=True)
