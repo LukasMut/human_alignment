@@ -186,7 +186,7 @@ if __name__ == "__main__":
     if not os.path.exists(out_path):
         os.makedirs(out_path)
     
-    with open(os.path.join(out_path, 'transforma.npy'), 'wb') as f:
+    with open(os.path.join(out_path, 'transform.npy'), 'wb') as f:
         np.save(file=f, arr=transformation)
 
     with open(os.path.join(out_path, 'cv_results.pkl'), 'wb') as f:
