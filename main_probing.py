@@ -43,9 +43,11 @@ def parseargs():
         help="Minimum number of epochs to perform finetuning", default=10)
     aa("--patience", type=int,
         help="number of checks with no improvement after which training will be stopped",
-        default=20)
+        default=10)
     aa("--device", type=str, default="cpu",
         choices=["cpu", "gpu"])
+    aa("--num_processes", type=int, default=4,
+        help="Number of devices to use for performing distributed training on CPU")
     aa("--results_path", type=str, help="path/to/results")
     aa("--log_dir", type=str, help='directory to checkpoint transformations')
     aa("--rnd_seed", type=int, help="random seed for reproducibility")
@@ -115,6 +117,7 @@ def run(
     device: str,
     optim_cfg: FrozenDict,
     rnd_seed: int,
+    num_processes: int,
     k:int=3,
 ) -> Tuple[Dict[str, List[float]], Array]:
     """Run optimization process."""
@@ -153,8 +156,11 @@ def run(
         trainer = Trainer(
             accelerator=device,
             callbacks=callbacks,
+            strategy="ddp_spawn" if device == "cpu" else None,
             max_epochs=optim_cfg.max_epochs,
             min_epochs=optim_cfg.min_epochs,
+            devices=num_processes if device == "cpu" else "auto",
+            enable_progress_bar=True,
         )
         trainer.fit(linear_probe, train_batches, val_batches)
         val_performance = trainer.validate(
@@ -181,6 +187,7 @@ if __name__ == "__main__":
         device=args.device,
         optim_cfg=optim_cfg,
         rnd_seed=args.rnd_seed,
+        num_processes=args.num_processes,
     )
     out_path = os.path.join(args.results_path, 'probing', args.model)
     if not os.path.exists(out_path):
