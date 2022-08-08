@@ -93,7 +93,7 @@ class Linear(pl.LightningModule):
         anchor, positive, negative = self.unbind(embeddings)
         similarities = self.compute_similarities(anchor, positive, negative)
         c_entropy = self.cross_entropy_loss(similarities)
-        complexity_loss = (1 / self.num_samples) * torch.linalg.norm(self.transform, ord=2)
+        complexity_loss = torch.linalg.norm(self.transform, ord=2) / self.num_samples
         acc = self.choice_accuracy(similarities)
         self.log("train_loss", c_entropy, on_epoch=True)
         self.log("train_acc", acc, on_epoch=True)
