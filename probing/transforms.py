@@ -100,11 +100,12 @@ class Linear(pl.LightningModule):
         similarities = self.compute_similarities(anchor, positive, negative)
         c_entropy = self.cross_entropy_loss(similarities)
         # add l2 regularization during training to prevent overfitting to train objects
-        complexity_loss = torch.linalg.norm(self.transform, ord='fro') * 1e-3 #/ self.num_samples
+        complexity_loss = torch.linalg.norm(self.transform, ord='fro') * 1e-3 # / self.num_samples
+        loss = c_entropy + complexity_loss
         acc = self.choice_accuracy(similarities)
         self.log("train_loss", c_entropy, on_epoch=True)
         self.log("train_acc", acc, on_epoch=True)
-        return c_entropy + complexity_loss
+        return loss
 
     def validation_step(self, one_hots: Tensor, batch_idx: int):
         embedding = self.features @ self.transform
