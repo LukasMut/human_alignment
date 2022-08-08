@@ -25,3 +25,8 @@ def partition_triplets(triplets: Array, train_objects: Array) -> Dict[str, List[
         if len(set(splits)) == 1:
             triplet_partitioning[splits.pop()].append(triplet.tolist())
     return triplet_partitioning
+
+
+def standardize(features: Array) -> Array:
+    """Center and normalize features so that they have zero-mean and unit variance."""
+    return (features - features.mean(axis=0)) / features.std(axis=0)

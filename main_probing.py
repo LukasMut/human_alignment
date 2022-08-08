@@ -113,11 +113,6 @@ def get_callbacks(optim_cfg: FrozenDict, steps:int=20) -> List[Callable]:
     return callbacks
 
 
-def standardize(features: Array) -> Array:
-    """Center and normalize features so that they have zero-mean and unit variance."""
-    return (features - features.mean(axis=0)) / features.std(axis=0)
-
-
 def run(
     features: Array,
     model: str,
@@ -132,7 +127,7 @@ def run(
     """Run optimization process."""
     callbacks = get_callbacks(optim_cfg)
     triplets = probing.load_triplets(data_root)
-    features = standardize(features)
+    features = probing.standardize(features)
     objects = np.arange(n_objects)
     # Perform k-fold cross-validation with k = 3 
     # NOTE: we can try k = 5, but k = 10 doesn't work
