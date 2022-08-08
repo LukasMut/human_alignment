@@ -12,7 +12,7 @@ from sklearn.model_selection import KFold
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from probing import TripletData, Linear, load_triplets, partition_triplets
+from probing import *
 
 Array = np.ndarray
 Tensor = torch.Tensor
@@ -30,7 +30,13 @@ def parseargs():
     aa("--model", type=str)
     aa("--n_objects", type=int, 
         help="Number of object categories in the data", default=1854)
+    aa("--optim", type=str, default='Adam',
+        choices=['Adam', 'AdamW', 'SGD'])
+    aa("--learning_rate", type=float, default=1e-3)
     aa("--batch_size", type=int, default=256)
+    aa("--transform_dim", type=int, default=100,
+        help='Output dimensionality of the linear transformation',
+        choices=[100, 200, 300, 400, 500])
     aa("--epochs", type=int, 
         help="Maximum number of epochs to perform finetuning", default=100)
     aa("--burnin", type=int, 
@@ -50,13 +56,13 @@ def parseargs():
 def create_optimization_config(args) -> Tuple[FrozenDict, FrozenDict]:
     optim_cfg = config_dict.ConfigDict()
     optim_cfg.optim = args.optim
-    optim_cfg.lr = args.lr
+    optim_cfg.lr = args.learning_rate
     optim_cfg.transform_dim = args.transform_dim
     optim_cfg.batch_size = args.batch_size
     optim_cfg.max_epochs = args.epochs
     optim_cfg.min_epochs = args.burnin
     optim_cfg.patience = args.patience
-    optim_cfg.ckptdir = os.path.join(args.logdir, 'probing', args.model)
+    optim_cfg.ckptdir = os.path.join(args.log_dir, 'probing', args.model)
     optim_cfg = config_dict.FrozenConfigDict(optim_cfg)
     return optim_cfg
 
@@ -126,10 +132,12 @@ def run(
         train_batches = get_batches(
             triplets=train_triplets,
             batch_size=optim_cfg.batch_size,
+            train=True,
         )
         val_batches = get_batches(
             triplets=val_triplets,
             batch_size=optim_cfg.batch_size,
+            train=False,
         )
         linear_probe = Linear(
             features=features,
