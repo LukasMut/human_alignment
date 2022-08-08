@@ -9,7 +9,7 @@ Tensor = torch.Tensor
 
 
 class Linear(pl.LightningModule):
-    def __init__(self, features: Tensor, transform_dim: int, optim: str, lr: float):
+    def __init__(self, features: Tensor, transform_dim: int, optim: str, lr: float, num_samples: int):
         super().__init__()
         self.features = torch.nn.Parameter(
             torch.from_numpy(features),
@@ -25,6 +25,7 @@ class Linear(pl.LightningModule):
         )
         self.optim = optim
         self.lr = lr
+        self.num_samples = num_samples
 
     def forward(self, one_hots: Tensor) -> Tensor:
         embedding = self.features @ self.transform
@@ -92,10 +93,11 @@ class Linear(pl.LightningModule):
         anchor, positive, negative = self.unbind(embeddings)
         similarities = self.compute_similarities(anchor, positive, negative)
         c_entropy = self.cross_entropy_loss(similarities)
+        complexity_loss = (1 / self.num_samples) * torch.linalg.norm(self.transform, ord=2)
         acc = self.choice_accuracy(similarities)
         self.log("train_loss", c_entropy, on_epoch=True)
         self.log("train_acc", acc, on_epoch=True)
-        return c_entropy
+        return c_entropy + complexity_loss
 
     def validation_step(self, one_hots: Tensor, batch_idx: int):
         embedding = self.features @ self.transform

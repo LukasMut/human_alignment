@@ -154,6 +154,7 @@ def run(
             transform_dim=optim_cfg.transform_dim,
             optim=optim_cfg.optim,
             lr=optim_cfg.lr,
+            num_samples=len(train_triplets),
         )
         trainer = Trainer(
             accelerator=device,

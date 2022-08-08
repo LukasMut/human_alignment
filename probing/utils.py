@@ -23,5 +23,5 @@ def partition_triplets(triplets: Array, train_objects: Array) -> Dict[str, List[
             map(lambda obj: "train" if obj in train_objects else "val", triplet)
         )
         if len(set(splits)) == 1:
-            triplet_partitioning[set(splits).pop()].append(triplet.tolist())
+            triplet_partitioning[splits.pop()].append(triplet.tolist())
     return triplet_partitioning
