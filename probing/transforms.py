@@ -41,7 +41,6 @@ class Linear(pl.LightningModule):
         self.lr = lr
         self.num_samples = num_samples
         self.lmbda = 1e-3  # (1 / self.num_samples)
-        self.alpha = 0.5
 
     def forward(self, one_hots: Tensor) -> Tensor:
         embedding = self.features @ self.transform
@@ -102,10 +101,11 @@ class Linear(pl.LightningModule):
             torch.reshape(embeddings, (-1, 3, embeddings.shape[-1])), dim=1
         )
 
-    def regularization(self) -> Tensor:
+    def regularization(self, alpha: float = 0.5) -> Tensor:
+        """Apply combination of l2 and l1 regularization during training."""
         # NOTE: Frobenius norm is equivalent to torch.linalg.vector_norm(self.transform, ord=2, dim=(0, 1)))
-        l2_reg = self.alpha * torch.linalg.norm(self.transform, ord="fro")
-        l1_reg = (1 - self.alpha) * torch.linalg.vector_norm(
+        l2_reg = alpha * torch.linalg.norm(self.transform, ord="fro")
+        l1_reg = (1 - alpha) * torch.linalg.vector_norm(
             self.transform, ord=1, dim=(0, 1)
         )
         complexity_loss = self.lmbda * (l2_reg + l1_reg)
