@@ -119,7 +119,7 @@ class Linear(pl.LightningModule):
         c_entropy = self.cross_entropy_loss(similarities)
         # apply l1 and l2 regularization during training to prevent overfitting to train objects
         complexity_loss = self.regularization()
-        print(f'\nComplexity loss: {complexity_loss:.3f}\n')
+        # print(f'\nComplexity loss: {complexity_loss:.3f}\n')
         loss = c_entropy + complexity_loss
         acc = self.choice_accuracy(similarities)
         self.log("train_loss", c_entropy, on_epoch=True)
