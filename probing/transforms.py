@@ -9,19 +9,27 @@ Tensor = torch.Tensor
 
 
 class Linear(pl.LightningModule):
-    def __init__(self, features: Tensor, transform_dim: int, optim: str, lr: float, num_samples: int, model: str):
+    def __init__(
+        self,
+        features: Tensor,
+        transform_dim: int,
+        optim: str,
+        lr: float,
+        num_samples: int,
+        model: str,
+    ):
         super().__init__()
         self.features = torch.nn.Parameter(
             torch.from_numpy(features),
             requires_grad=False,
         )
         self.feature_dim = self.features.shape[1]
-        
-        if model.lower().startswith('vgg'):
+
+        if model.lower().startswith("vgg"):
             std = 1e-3
         else:
             std = 1e-2
-        
+
         self.transform = torch.nn.Parameter(
             data=torch.normal(
                 mean=torch.zeros(self.feature_dim, transform_dim),
@@ -32,6 +40,8 @@ class Linear(pl.LightningModule):
         self.optim = optim
         self.lr = lr
         self.num_samples = num_samples
+        self.lmbda = 1e-3  # (1 / self.num_samples)
+        self.alpha = 0.5
 
     def forward(self, one_hots: Tensor) -> Tensor:
         embedding = self.features @ self.transform
@@ -92,6 +102,15 @@ class Linear(pl.LightningModule):
             torch.reshape(embeddings, (-1, 3, embeddings.shape[-1])), dim=1
         )
 
+    def regularization(self) -> Tensor:
+        # NOTE: Frobenius norm is equivalent to torch.linalg.vector_norm(self.transform, ord=2, dim=(0, 1)))
+        l2_reg = self.alpha * torch.linalg.norm(self.transform, ord="fro")
+        l1_reg = (1 - self.alpha) * torch.linalg.vector_norm(
+            self.transform, ord=1, dim=(0, 1)
+        )
+        complexity_loss = self.lmbda * (l2_reg + l1_reg)
+        return complexity_loss
+
     def training_step(self, one_hots: Tensor, batch_idx: int):
         # training_step defines the train loop. It is independent of forward
         embedding = self.features @ self.transform
@@ -99,8 +118,8 @@ class Linear(pl.LightningModule):
         anchor, positive, negative = self.unbind(embeddings)
         similarities = self.compute_similarities(anchor, positive, negative)
         c_entropy = self.cross_entropy_loss(similarities)
-        # add l2 regularization during training to prevent overfitting to train objects
-        complexity_loss = torch.linalg.norm(self.transform, ord='fro') * 1e-3 # / self.num_samples
+        # apply l1 and l2 regularization during training to prevent overfitting to train objects
+        complexity_loss = self.regularization()
         loss = c_entropy + complexity_loss
         acc = self.choice_accuracy(similarities)
         self.log("train_loss", c_entropy, on_epoch=True)
