@@ -185,7 +185,8 @@ def run(
             devices=num_processes if device == "cpu" else "auto",
             enable_progress_bar=True,
         )
-        trainer.fit(linear_probe, train_batches, val_batches)
+        trainer.fit(
+            linear_probe, train_batches, val_batches)
         val_performance = trainer.validate(
             linear_probe,
             dataloaders=val_batches,
