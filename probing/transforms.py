@@ -15,7 +15,7 @@ class Linear(pl.LightningModule):
         transform_dim: int,
         optim: str,
         lr: float,
-        num_samples: int,
+        lmbda: float,
         model: str,
     ):
         super().__init__()
@@ -39,8 +39,7 @@ class Linear(pl.LightningModule):
         )
         self.optim = optim
         self.lr = lr
-        self.num_samples = num_samples
-        self.lmbda = (1 / self.num_samples) # 1e-3
+        self.lmbda = lmbda
 
     def forward(self, one_hots: Tensor) -> Tensor:
         embedding = self.features @ self.transform
@@ -120,6 +119,7 @@ class Linear(pl.LightningModule):
         c_entropy = self.cross_entropy_loss(similarities)
         # apply l1 and l2 regularization during training to prevent overfitting to train objects
         complexity_loss = self.regularization()
+        print(f'\nComplexity loss: {complexity_loss:.3f}\n')
         loss = c_entropy + complexity_loss
         acc = self.choice_accuracy(similarities)
         self.log("train_loss", c_entropy, on_epoch=True)

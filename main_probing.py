@@ -1,4 +1,5 @@
 import argparse
+from email.policy import default
 import os
 import pickle
 from typing import Any, Callable, Dict, Iterator, List, Tuple
@@ -33,6 +34,9 @@ def parseargs():
     aa("--optim", type=str, default='Adam',
         choices=['Adam', 'AdamW', 'SGD'])
     aa("--learning_rate", type=float, default=1e-3)
+    aa("--lmbda", type=float, default=1e-3,
+        help="Relative contribution of the regularization term",
+        choices=[1e-2, 1e-3, 1e-4, 1e-5])
     aa("--batch_size", type=int, default=256,
         help="Use power of 2 for running optimization on GPU",
         choices=[64, 128, 256, 512, 1024])
@@ -62,6 +66,7 @@ def create_optimization_config(args) -> Tuple[FrozenDict, FrozenDict]:
     optim_cfg = config_dict.ConfigDict()
     optim_cfg.optim = args.optim
     optim_cfg.lr = args.learning_rate
+    optim_cfg.lmbda = args.lmbda
     optim_cfg.transform_dim = args.transform_dim
     optim_cfg.batch_size = args.batch_size
     optim_cfg.max_epochs = args.epochs
@@ -160,7 +165,7 @@ def run(
             transform_dim=optim_cfg.transform_dim,
             optim=optim_cfg.optim,
             lr=optim_cfg.lr,
-            num_samples=len(train_triplets),
+            lmbda=optim_cfg.lmbda,
             model=model,
         )
         trainer = Trainer(
