@@ -29,6 +29,9 @@ def parseargs():
     aa("--dataset", type=str,
         help="Which dataset to use", default="things")
     aa("--model", type=str)
+    aa("--module", type=str, default='penultimate',
+        help='neural network module for which to learn a linear transform',
+        choices=['penultimate', 'logits'])
     aa("--n_objects", type=int, 
         help="Number of object categories in the data", default=1854)
     aa("--optim", type=str, default='Adam',
@@ -73,7 +76,6 @@ def create_optimization_config(args) -> Tuple[FrozenDict, FrozenDict]:
     optim_cfg.min_epochs = args.burnin
     optim_cfg.patience = args.patience
     optim_cfg.ckptdir = os.path.join(args.log_dir, 'probing', args.model)
-    optim_cfg = config_dict.FrozenConfigDict(optim_cfg)
     return optim_cfg
 
 
@@ -121,6 +123,7 @@ def get_callbacks(optim_cfg: FrozenDict, steps:int=20) -> List[Callable]:
 def run(
     features: Array,
     model: str,
+    module: str,
     data_root: str,
     n_objects: int,
     device: str,
@@ -133,8 +136,17 @@ def run(
     callbacks = get_callbacks(optim_cfg)
     triplets = probing.load_triplets(data_root)
     features = probing.standardize(features)
+    model_config = probing.load_model_config(data_root)
+    temperature = probing.get_temperature(
+        model_config=model_config,
+        model=model,
+        module=module,
+    )
+    optim_cfg.temperature = temperature
+    # freeze config dict
+    optim_cfg = config_dict.FrozenConfigDict(optim_cfg)
     objects = np.arange(n_objects)
-    # Perform k-fold cross-validation with k = 3 
+    # Perform k-fold cross-validation with k = 3
     # NOTE: we can try k = 5, but k = 10 doesn't work
     kf = KFold(n_splits=k, random_state=rnd_seed, shuffle=True)
     cv_results = {}
@@ -162,11 +174,7 @@ def run(
         )
         linear_probe = probing.Linear(
             features=features,
-            transform_dim=optim_cfg.transform_dim,
-            optim=optim_cfg.optim,
-            lr=optim_cfg.lr,
-            lmbda=optim_cfg.lmbda,
-            model=model,
+            optim_cfg=optim_cfg,
         )
         trainer = Trainer(
             accelerator=device,
@@ -198,6 +206,7 @@ if __name__ == "__main__":
     cv_results, transformation = run(
         features=model_features,
         model=args.model,
+        module=args.module,
         data_root=args.data_root,
         n_objects=args.n_objects,
         device=args.device,

@@ -1,22 +1,19 @@
-from typing import Tuple
+from typing import Any, Tuple
 
 import numpy as np
 import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
 
-Tensor = torch.Tensor
 
+FrozenDict = Any
+Tensor = torch.Tensor
 
 class Linear(pl.LightningModule):
     def __init__(
         self,
         features: Tensor,
-        transform_dim: int,
-        optim: str,
-        lr: float,
-        lmbda: float,
-        model: str,
+        optim_cfg: FrozenDict,
     ):
         super().__init__()
         self.features = torch.nn.Parameter(
@@ -24,22 +21,17 @@ class Linear(pl.LightningModule):
             requires_grad=False,
         )
         self.feature_dim = self.features.shape[1]
-
-        if model.lower().startswith("vgg"):
-            std = 1e-3
-        else:
-            std = 1e-2
-
+        # initialize transformation matrix with \tau I (temperature-scaled identity matrix)            
         self.transform = torch.nn.Parameter(
-            data=torch.normal(
-                mean=torch.zeros(self.feature_dim, transform_dim),
-                std=torch.ones(self.feature_dim, transform_dim) * std,
-            ),
-            requires_grad=True,
+            data=torch.eye(
+                self.feature_dim, 
+                optim_cfg.transform_dim
+            ) * optim_cfg.temperature,
+            requires_grad=True
         )
-        self.optim = optim
-        self.lr = lr
-        self.lmbda = lmbda
+        self.optim = optim_cfg.optim
+        self.lr = optim_cfg.lr
+        self.lmbda = optim_cfg.lmbda
 
     def forward(self, one_hots: Tensor) -> Tensor:
         embedding = self.features @ self.transform
@@ -100,7 +92,7 @@ class Linear(pl.LightningModule):
             torch.reshape(embeddings, (-1, 3, embeddings.shape[-1])), dim=1
         )
 
-    def regularization(self, alpha: float = 0.8) -> Tensor:
+    def regularization(self, alpha: float = 1.) -> Tensor:
         """Apply combination of l2 and l1 regularization during training."""
         # NOTE: Frobenius norm is equivalent to torch.linalg.vector_norm(self.transform, ord=2, dim=(0, 1)))
         l2_reg = alpha * torch.linalg.norm(self.transform, ord="fro")
