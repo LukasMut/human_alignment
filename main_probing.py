@@ -143,7 +143,7 @@ def run(
         module=module,
     )
     optim_cfg.temperature = temperature
-    # freeze config dict
+    # freeze optimization config dict
     optim_cfg = config_dict.FrozenConfigDict(optim_cfg)
     objects = np.arange(n_objects)
     # Perform k-fold cross-validation with k = 3
