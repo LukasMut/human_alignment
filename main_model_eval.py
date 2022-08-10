@@ -39,7 +39,7 @@ def parseargs():
         default="/home/space/datasets/things/model_dict.json", 
         help="Path to the model_dict.json")
     aa("--distance", type=str, default="cosine", 
-        choices=["cosine", "euclidean", "jensenshannon"], 
+        choices=["cosine", "euclidean"], 
         help="distance function used for predicting the odd-one-out")
     aa("--input_dim", type=int, default=224, help="input image dimensionality")
     aa("--batch_size", metavar="B", type=int, default=128,
