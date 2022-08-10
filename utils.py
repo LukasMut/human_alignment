@@ -60,14 +60,14 @@ def compute_distances(triplet: Tensor, pairs: List[Tuple[int]], dist: str) -> Te
         dist_fun = lambda u, v: torch.linalg.norm(u - v, ord=2)
     else:
         raise Exception(
-            "Distance function other than Jensen-Shannon, Cosine or Euclidean distance is not yet implemented"
+            "\nDistance function other than Cosine or Euclidean distance is not yet implemented\n"
         )
     distances = torch.tensor([dist_fun(triplet[i], triplet[j]) for i, j in pairs])
     return distances
 
 
 def get_predictions(
-    features: Array, triplets: Array, temperature: float, dist: str = "cosine"
+    features: Array, triplets: Array, temperature: float = 1.0, dist: str = "cosine"
 ) -> Tuple[Tensor, Tensor]:
     features = torch.from_numpy(features)
     pairs = [(0, 1), (0, 2), (1, 2)]
@@ -110,6 +110,7 @@ def get_model_choices(results: pd.DataFrame):
     )
     return model_choices
 
+
 def filter_failures(model_choices: Array, target: int = 2):
     """Filter for triplets where every model predicted differently from humans."""
     failures, choices = zip(
@@ -125,3 +126,9 @@ def get_failures(results: pd.DataFrame) -> pd.DataFrame:
         data=choices, index=failures, columns=results.model.unique()
     )
     return model_failures
+
+
+def save_features(features: Dict[str, Array], out_path: str) -> None:
+    """Pickle dictionary of model features and save it to disk."""
+    with open(os.path.join(out_path, "features.pkl"), "wb") as f:
+        pickle.dump(features, f)

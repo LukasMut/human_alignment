@@ -74,10 +74,6 @@ def load_model_config(path: str) -> dict:
     return model_dict
 
 
-def get_module_names(model_config, models: List[str], module: str) -> List[str]:
-    return [model_config[model][module]["module_name"] for model in models]
-
-
 def get_temperatures(
     model_config, models: List[str], module: str, objective: str = "cosine"
 ) -> List[str]:
@@ -88,22 +84,14 @@ def create_hyperparam_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
     model_config = load_model_config(args.model_dict_path)
     model_cfg = config_dict.ConfigDict()
     data_cfg = config_dict.ConfigDict()
-    model_cfg.names = args.model_names
-    model_cfg.modules = get_module_names(model_config, model_cfg.names, args.module)
-    model_cfg.temperatures = get_temperatures(
-        model_config, model_cfg.names, args.module
-    )
+    # model_cfg.temperatures = get_temperatures(
+    #    model_config, model_cfg.names, args.module
+    # )
     model_cfg.input_dim = args.input_dim
     model_cfg = config_dict.FrozenConfigDict(model_cfg)
     data_cfg.root = args.data_root
     data_cfg = config_dict.FrozenConfigDict(data_cfg)
     return model_cfg, data_cfg
-
-
-def save_features(features: Dict[str, Array], out_path: str) -> None:
-    """Pickle dictionary of model features and save it to disk."""
-    with open(os.path.join(out_path, 'features.pkl'), 'wb') as f:
-        pickle.dump(features, f)
 
 
 def evaluate(args) -> None:
@@ -150,7 +138,7 @@ def evaluate(args) -> None:
     # load back with pd.read_pickle(/path/to/file/pkl)
     results.to_pickle(os.path.join(args.out_path, "results.pkl"))
     failures.to_pickle(os.path.join(args.out_path, "failures.pkl"))
-    save_features(features=model_features, out_path=args.out_path)
+    utils.save_features(features=model_features, out_path=args.out_path)
 
 
 if __name__ == "__main__":

@@ -98,95 +98,6 @@ def create_hyperparam_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
     return model_cfg, data_cfg
 
 
-def compute_dots(triplet: Tensor, pairs: List[Tuple[int]]) -> Tensor:
-    dots = torch.tensor([triplet[i] @ triplet[j] for i, j in pairs])
-    return dots
-
-
-def compute_distances(triplet: Tensor, pairs: List[Tuple[int]], dist: str) -> Tensor:
-    if dist == "cosine":
-        dist_fun = lambda u, v: 1 - F.cosine_similarity(u, v, dim=0)
-    elif dist == "euclidean":
-        dist_fun = lambda u, v: torch.linalg.norm(u - v, ord=2)
-    elif dist == "jensenshannon":
-        dist_fun = lambda u, v: utils.jensenshannon(
-            F.softmax(u, dim=0), F.softmax(v, dim=0)
-        )
-    else:
-        raise Exception(
-            "Distance function other than Jensen-Shannon, Cosine or Euclidean distance is not yet implemented"
-        )
-    distances = torch.tensor([dist_fun(triplet[i], triplet[j]) for i, j in pairs])
-    return distances
-
-
-def get_predictions(
-    features: Array, triplets: Array, temperature: float, dist: str = "cosine"
-) -> Tuple[Tensor, Tensor]:
-    features = torch.from_numpy(features)
-    pairs = [(0, 1), (0, 2), (1, 2)]
-    indices = {0, 1, 2}
-    choices = torch.zeros(triplets.shape[0])
-    probas = torch.zeros(triplets.shape[0], len(indices))
-    print(f"\nShape of embeddings {features.shape}\n")
-    for s, (i, j, k) in enumerate(triplets):
-        triplet = torch.stack([features[i], features[j], features[k]])
-        distances = compute_distances(triplet, pairs, dist)
-        dots = compute_dots(triplet, pairs)
-        most_sim_pair = pairs[torch.argmin(distances).item()]
-        ooo_idx = indices.difference(most_sim_pair).pop()
-        choices[s] += ooo_idx
-        probas[s] += F.softmax(dots * temperature, dim=0)
-    return choices, probas
-
-
-def accuracy(choices: List[bool], target: int = 2) -> float:
-    """Computes the odd-one-out triplet accuracy."""
-    return round(torch.where(choices == target)[0].shape[0] / choices.shape[0], 4)
-
-
-def ventropy(probabilities: Tensor) -> Tensor:
-    """Computes the entropy for a batch of (discrete) probability distributions."""
-
-    def entropy(p: Tensor) -> Tensor:
-        return -(
-            torch.where(p > torch.tensor(0.0), p * torch.log(p), torch.tensor(0.0))
-        ).sum()
-
-    return vmap(entropy)(probabilities)
-
-
-def save_features(features: Dict[str, Array], out_path: str) -> None:
-    """Pickle dictionary of model features and save it to disk."""
-    with open(os.path.join(out_path, 'features.pkl'), 'wb') as f:
-        pickle.dump(features, f)
-
-def get_model_choices(results: pd.DataFrame):
-    models = results.model.unique()
-    model_choices = np.stack(
-        [results[results.model == model].choices.values[0] for model in models],
-        axis=1,
-    )
-    return model_choices
-
-
-def filter_failures(model_choices: Array, target: int = 2):
-    """Filter for triplets where every model predicted differently from humans."""
-    failures, choices = zip(
-        *list(filter(lambda kv: target not in kv[1], enumerate(model_choices)))
-    )
-    return failures, np.asarray(choices)
-
-
-def get_failures(results: pd.DataFrame) -> pd.DataFrame:
-    model_choices = get_model_choices(results)
-    failures, choices = filter_failures(model_choices)
-    model_failures = pd.DataFrame(
-        data=choices, index=failures, columns=results.model.unique()
-    )
-    return model_failures
-
-
 def evaluate(args, backend: str = "pt") -> None:
     device = torch.device(args.device)
     model_cfg, data_cfg = create_hyperparam_dicts(args)
@@ -217,11 +128,11 @@ def evaluate(args, backend: str = "pt") -> None:
             return_probabilities=False,
         )
         triplets = dataset.get_triplets()
-        choices, probas = get_predictions(
+        choices, probas = utils.get_predictions(
             features, triplets, model_cfg.temperatures[i], args.distance
         )
-        acc = accuracy(choices)
-        entropies = ventropy(probas)
+        acc = utils.accuracy(choices)
+        entropies = utils.ventropy(probas)
         mean_entropy = entropies.mean().item()
         if args.verbose:
             print(
@@ -239,7 +150,7 @@ def evaluate(args, backend: str = "pt") -> None:
 
     # convert results into Pandas DataFrame
     results = pd.DataFrame(results)
-    failures = get_failures(results)
+    failures = utils.get_failures(results)
 
     if not os.path.exists(args.out_path):
         print("\nCreating output directory...\n")
@@ -249,7 +160,7 @@ def evaluate(args, backend: str = "pt") -> None:
     # load back with pd.read_pickle(/path/to/file/pkl)
     results.to_pickle(os.path.join(args.out_path, "results.pkl"))
     failures.to_pickle(os.path.join(args.out_path, "failures.pkl"))
-    save_features(features=model_features, out_path=args.out_path)
+    utils.save_features(features=model_features, out_path=args.out_path)
 
 
 if __name__ == "__main__":
