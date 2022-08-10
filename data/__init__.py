@@ -30,8 +30,6 @@ def load_dataset(name, data_dir, transform):
         dataset = THINGSBehavior(
             root=data_dir, aligned=True,
             download=True, transform=transform)
-    elif name == 'bapps':
-        dataset = TwoAFCDataset(data_roots=[data_dir], transform=transform)
     else:
         raise ValueError('\nUnknown dataset\n')
 

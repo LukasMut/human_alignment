@@ -17,9 +17,11 @@ Tensor = torch.Tensor
 
 object_concepts_link = "https://raw.githubusercontent.com/ViCCo-Group/THINGSvision/master/thingsvision/data/things_concepts.tsv"
 
-class THINGSTriplet(torch.utils.data.Dataset):
 
-    def __init__(self, root, aligned=True, transform=None, target_transform=None, download=True):
+class THINGSTriplet(torch.utils.data.Dataset):
+    def __init__(
+        self, root, aligned=True, transform=None, target_transform=None, download=True
+    ):
         super(THINGSTriplet, self).__init__()
         self.root = root
         self.aligned = aligned
@@ -31,25 +33,25 @@ class THINGSTriplet(torch.utils.data.Dataset):
         if download:
             f = urllib.request.urlopen(object_concepts_link)
         else:
-            f = os.path.join(self.root, 'concepts', 'things_concepts.tsv')
+            f = os.path.join(self.root, "concepts", "things_concepts.tsv")
 
         if self.aligned:
             # load aligned triplets (i.e., triplets correctly predicted by VICE)
-            self.triplets = self.load_triplets(root, file_name='correct_triplets.npy')
+            self.triplets = self.load_triplets(root, file_name="correct_triplets.npy")
         else:
             # load train and test triplets (i.e., all triplets)
-            train_triplets = self.load_triplets(root, file_name='train_90.npy')
-            val_triplets = self.load_triplets(root, file_name='test_10.npy')
+            train_triplets = self.load_triplets(root, file_name="train_90.npy")
+            val_triplets = self.load_triplets(root, file_name="test_10.npy")
             self.triplets = np.vstack((train_triplets, val_triplets))
 
-        things_objects = pd.read_csv(f, sep='\t', encoding='utf-8')
-        object_names = things_objects['uniqueID'].values
+        things_objects = pd.read_csv(f, sep="\t", encoding="utf-8")
+        object_names = things_objects["uniqueID"].values
 
-        self.names = list(map(lambda n: n + '.jpg', object_names))
-    
+        self.names = list(map(lambda n: n + ".jpg", object_names))
+
     @staticmethod
     def load_triplets(root: str, file_name: str) -> Array:
-        with open(os.path.join(root, 'triplets', file_name), 'rb') as f:
+        with open(os.path.join(root, "triplets", file_name), "rb") as f:
             triplets = np.load(f).astype(int)
         return triplets
 
@@ -57,7 +59,7 @@ class THINGSTriplet(torch.utils.data.Dataset):
         triplet = self.triplets[index]
         images = []
         for idx in triplet:
-            img = os.path.join(self.root, 'images', self.names[idx])
+            img = os.path.join(self.root, "images", self.names[idx])
             img = Image.open(img)
             if self.transform is not None:
                 img = self.transform(img)
@@ -70,9 +72,11 @@ class THINGSTriplet(torch.utils.data.Dataset):
     def __len__(self) -> int:
         return self.triplets.shape[0]
 
-class THINGSBehavior(torch.utils.data.Dataset):
 
-    def __init__(self, root, aligned=True, transform=None, target_transform=None, download=True):
+class THINGSBehavior(torch.utils.data.Dataset):
+    def __init__(
+        self, root, aligned=True, transform=None, target_transform=None, download=True
+    ):
         super(THINGSBehavior, self).__init__()
         self.root = root
         self.aligned = aligned
@@ -83,30 +87,30 @@ class THINGSBehavior(torch.utils.data.Dataset):
         if download:
             concept_file = urllib.request.urlopen(object_concepts_link)
         else:
-            concept_file = os.path.join(self.root, 'concepts', 'things_concepts.tsv')
- 
+            concept_file = os.path.join(self.root, "concepts", "things_concepts.tsv")
+
         if self.aligned:
             # load aligned triplets (i.e., triplets correctly predicted by VICE)
-            self.triplets = self.load_triplets(root, file_name='correct_triplets.npy')
+            self.triplets = self.load_triplets(root, file_name="correct_triplets.npy")
         else:
             # load train and test triplets (i.e., all triplets)
-            train_triplets = self.load_triplets(root, file_name='train_90.npy')
-            val_triplets = self.load_triplets(root, file_name='test_10.npy')
+            train_triplets = self.load_triplets(root, file_name="train_90.npy")
+            val_triplets = self.load_triplets(root, file_name="test_10.npy")
             self.triplets = np.vstack((train_triplets, val_triplets))
-        
+
         # load object concept names according to which images have to be sorted
-        things_objects = pd.read_csv(concept_file, sep='\t', encoding='utf-8')
-        object_names = things_objects['uniqueID'].values
-        self.names = list(map(lambda n: n + '.jpg', object_names))
+        things_objects = pd.read_csv(concept_file, sep="\t", encoding="utf-8")
+        object_names = things_objects["uniqueID"].values
+        self.names = list(map(lambda n: n + ".jpg", object_names))
 
     @staticmethod
     def load_triplets(root: str, file_name: str) -> Array:
-        with open(os.path.join(root, 'triplets', file_name), 'rb') as f:
+        with open(os.path.join(root, "triplets", file_name), "rb") as f:
             triplets = np.load(f).astype(int)
         return triplets
 
     def __getitem__(self, idx: int) -> Tuple[Tensor, Tensor, Tensor, int]:
-        img = os.path.join(self.root, 'images', self.names[idx])
+        img = os.path.join(self.root, "images", self.names[idx])
         img = Image.open(img)
         if self.transform is not None:
             img = self.transform(img)
@@ -114,6 +118,6 @@ class THINGSBehavior(torch.utils.data.Dataset):
 
     def __len__(self) -> int:
         return len(self.names)
-    
+
     def get_triplets(self):
         return self.triplets
