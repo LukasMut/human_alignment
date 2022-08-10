@@ -5,9 +5,11 @@ import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
 
+from .triplet_loss import TripletLoss
 
 FrozenDict = Any
 Tensor = torch.Tensor
+
 
 class Linear(pl.LightningModule):
     def __init__(
@@ -21,17 +23,16 @@ class Linear(pl.LightningModule):
             requires_grad=False,
         )
         self.feature_dim = self.features.shape[1]
-        # initialize transformation matrix with \tau I (temperature-scaled identity matrix)            
+        # initialize transformation matrix with \tau I (temperature-scaled identity matrix)
         self.transform = torch.nn.Parameter(
-            data=torch.eye(
-                self.feature_dim, 
-                optim_cfg.transform_dim
-            ) * optim_cfg.temperature,
-            requires_grad=True
+            data=torch.eye(self.feature_dim, optim_cfg.transform_dim)
+            * optim_cfg.temperature,
+            requires_grad=True,
         )
         self.optim = optim_cfg.optim
         self.lr = optim_cfg.lr
         self.lmbda = optim_cfg.lmbda
+        self.loss_fun = TripletLoss()
 
     def forward(self, one_hots: Tensor) -> Tensor:
         embedding = self.features @ self.transform
@@ -49,22 +50,6 @@ class Linear(pl.LightningModule):
         sim_j = torch.sum(anchor * negative, dim=1)
         sim_k = torch.sum(positive * negative, dim=1)
         return (sim_i, sim_j, sim_k)
-
-    @staticmethod
-    def sumexp(sims: Tuple[Tensor]) -> Tensor:
-        return torch.sum(torch.exp(torch.stack(sims)), dim=0)
-
-    def softmax(self, sims: Tuple[Tensor]) -> Tensor:
-        return torch.exp(sims[0]) / self.sumexp(sims)
-
-    def logsumexp(self, sims: Tuple[Tensor]) -> Tensor:
-        return torch.log(self.sumexp(sims))
-
-    def log_softmax(self, sims: Tuple[Tensor]) -> Tensor:
-        return sims[0] - self.logsumexp(sims)
-
-    def cross_entropy_loss(self, sims: Tuple[Tensor]) -> Tensor:
-        return torch.mean(-self.log_softmax(sims))
 
     @staticmethod
     def break_ties(probas: Tensor) -> Tensor:
@@ -92,7 +77,7 @@ class Linear(pl.LightningModule):
             torch.reshape(embeddings, (-1, 3, embeddings.shape[-1])), dim=1
         )
 
-    def regularization(self, alpha: float = 1.) -> Tensor:
+    def regularization(self, alpha: float = 1.0) -> Tensor:
         """Apply combination of l2 and l1 regularization during training."""
         # NOTE: Frobenius norm in PyTorch is equivalent to torch.linalg.vector_norm(self.transform, ord=2, dim=(0, 1)))
         l2_reg = alpha * torch.linalg.norm(self.transform, ord="fro")
@@ -107,12 +92,12 @@ class Linear(pl.LightningModule):
         embedding = self.features @ self.transform
         embeddings = one_hots @ embedding
         anchor, positive, negative = self.unbind(embeddings)
-        similarities = self.compute_similarities(anchor, positive, negative)
-        c_entropy = self.cross_entropy_loss(similarities)
+        dots = self.compute_similarities(anchor, positive, negative)
+        c_entropy = self.loss_fun(dots)
         # apply l1 and l2 regularization during training to prevent overfitting to train objects
         complexity_loss = self.regularization()
         loss = c_entropy + complexity_loss
-        acc = self.choice_accuracy(similarities)
+        acc = self.choice_accuracy(dots)
         self.log("train_loss", c_entropy, on_epoch=True)
         self.log("train_acc", acc, on_epoch=True)
         return loss
