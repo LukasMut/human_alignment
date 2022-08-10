@@ -94,7 +94,7 @@ class Linear(pl.LightningModule):
 
     def regularization(self, alpha: float = 1.) -> Tensor:
         """Apply combination of l2 and l1 regularization during training."""
-        # NOTE: Frobenius norm is equivalent to torch.linalg.vector_norm(self.transform, ord=2, dim=(0, 1)))
+        # NOTE: Frobenius norm in PyTorch is equivalent to torch.linalg.vector_norm(self.transform, ord=2, dim=(0, 1)))
         l2_reg = alpha * torch.linalg.norm(self.transform, ord="fro")
         l1_reg = (1 - alpha) * torch.linalg.vector_norm(
             self.transform, ord=1, dim=(0, 1)
@@ -111,7 +111,6 @@ class Linear(pl.LightningModule):
         c_entropy = self.cross_entropy_loss(similarities)
         # apply l1 and l2 regularization during training to prevent overfitting to train objects
         complexity_loss = self.regularization()
-        # print(f'\nComplexity loss: {complexity_loss:.3f}\n')
         loss = c_entropy + complexity_loss
         acc = self.choice_accuracy(similarities)
         self.log("train_loss", c_entropy, on_epoch=True)
