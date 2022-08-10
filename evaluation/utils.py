@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import json
 import os
 import pickle
 from typing import Dict, List, Tuple
@@ -132,3 +133,10 @@ def save_features(features: Dict[str, Array], out_path: str) -> None:
     """Pickle dictionary of model features and save it to disk."""
     with open(os.path.join(out_path, "features.pkl"), "wb") as f:
         pickle.dump(features, f)
+
+
+def load_model_config(path: str) -> dict:
+    """Load model config file."""
+    with open(path, "r") as f:
+        model_dict = json.load(f)
+    return model_dict

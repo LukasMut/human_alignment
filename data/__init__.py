@@ -1,12 +1,11 @@
 from .things import THINGSBehavior
 from .cifar import CIFAR100Triplet, CIFAR100CoarseTriplet, CIFAR10Triplet
 from .things import THINGSTriplet, THINGSBehavior
-from .bapps import TwoAFCDataset
 
 DATASETS = ['cifar100-coarse', 'cifar100-fine', 'cifar10', 'things', 'things-aligned']
 
 
-def load_dataset(name, data_dir, transform):
+def load_dataset(name: str, data_dir: str, transform=None):
     if name == 'cifar100-coarse':
         dataset = CIFAR100CoarseTriplet(
             root=data_dir, train=True,

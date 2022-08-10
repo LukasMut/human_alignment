@@ -1,26 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from typing import Any,  Dict, List, Tuple
-from tqdm import tqdm
-from ml_collections import config_dict
-from models import CustomModel
-from torch.utils.data import DataLoader
-from functorch import vmap
-from data import load_dataset, DATASETS
-
-import pickle
+import argparse
 import os
 import random
-import re
-import torch
-import argparse
-import utils
-import json
+from typing import Any, List, Tuple
 
 import numpy as np
 import pandas as pd
-import torch.nn.functional as F
+import torch
+from ml_collections import config_dict
+from torch.evaluation.data import DataLoader
+from tqdm import tqdm
+
+import evaluation
+from data import DATASETS, load_dataset
+from models import CustomModel
 
 FrozenDict = Any
 Tensor = torch.Tensor
@@ -66,11 +61,6 @@ def parseargs():
     return args
 
 
-def load_model_config(path: str) -> dict:
-    with open(path, "r") as f:
-        model_dict = json.load(f)
-    return model_dict
-
 
 def get_module_names(model_config, models: List[str], module: str) -> List[str]:
     return [model_config[model][module]["module_name"] for model in models]
@@ -83,7 +73,7 @@ def get_temperatures(
 
 
 def create_hyperparam_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
-    model_config = load_model_config(args.model_dict_path)
+    model_config = evaluation.load_model_config(args.model_dict_path)
     model_cfg = config_dict.ConfigDict()
     data_cfg = config_dict.ConfigDict()
     model_cfg.names = args.model_names
@@ -128,11 +118,11 @@ def evaluate(args, backend: str = "pt") -> None:
             return_probabilities=False,
         )
         triplets = dataset.get_triplets()
-        choices, probas = utils.get_predictions(
+        choices, probas = evaluation.get_predictions(
             features, triplets, model_cfg.temperatures[i], args.distance
         )
-        acc = utils.accuracy(choices)
-        entropies = utils.ventropy(probas)
+        acc = evaluation.accuracy(choices)
+        entropies = evaluation.ventropy(probas)
         mean_entropy = entropies.mean().item()
         if args.verbose:
             print(
@@ -150,7 +140,7 @@ def evaluate(args, backend: str = "pt") -> None:
 
     # convert results into Pandas DataFrame
     results = pd.DataFrame(results)
-    failures = utils.get_failures(results)
+    failures = evaluation.get_failures(results)
 
     if not os.path.exists(args.out_path):
         print("\nCreating output directory...\n")
@@ -160,7 +150,7 @@ def evaluate(args, backend: str = "pt") -> None:
     # load back with pd.read_pickle(/path/to/file/pkl)
     results.to_pickle(os.path.join(args.out_path, "results.pkl"))
     failures.to_pickle(os.path.join(args.out_path, "failures.pkl"))
-    utils.save_features(features=model_features, out_path=args.out_path)
+    evaluation.save_features(features=model_features, out_path=args.out_path)
 
 
 if __name__ == "__main__":
@@ -170,7 +160,7 @@ if __name__ == "__main__":
     random.seed(args.rnd_seed)
     torch.manual_seed(args.rnd_seed)
     # set number of threads used by PyTorch if device is CPU
-    if re.compile(r"^cpu").search(args.device.lower()):
+    if args.device.lower().startswith("cpu"):
         torch.set_num_threads(args.num_threads)
     # run evaluation script
     evaluate(args)
