@@ -92,11 +92,14 @@ class Linear(pl.LightningModule):
         embedding = self.features @ self.transform
         embeddings = one_hots @ embedding
         anchor, positive, negative = self.unbind(embeddings)
+        # normalize embeddings to lie on the unit-sphere
+        anchor = F.normalize(anchor, dim=1)
+        positive = F.normalize(positive, dim=1)
+        negative = F.normalize(negative, dim=1)
         dots = self.compute_similarities(anchor, positive, negative)
         c_entropy = self.loss_fun(dots)
         # apply l1 and l2 regularization during training to prevent overfitting to train objects
         complexity_loss = self.regularization()
-        print(f'\nComplexity loss: {complexity_loss:.2f}\n')
         loss = c_entropy + complexity_loss
         acc = self.choice_accuracy(dots)
         self.log("train_loss", c_entropy, on_epoch=True)
@@ -131,11 +134,12 @@ class Linear(pl.LightningModule):
     def configure_optimizers(self):
         if self.optim.lower() == "adam":
             optimizer = getattr(torch.optim, self.optim.capitalize())
+            optimizer = optimizer(self.parameters(), lr=self.lr)
         elif self.optim.lower() == "sgd":
             optimizer = getattr(torch.optim, self.optim.upper())
+            optimizer = optimizer(self.parameters(), lr=self.lr, momentum=0.9)
         else:
             raise ValueError(
                 "\nUse Adam or SGD for learning a transformation of a network's feature space.\n"
             )
-        optimizer = optimizer(self.parameters(), lr=self.lr)
         return optimizer
