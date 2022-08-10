@@ -32,7 +32,7 @@ class Linear(pl.LightningModule):
         self.optim = optim_cfg.optim
         self.lr = optim_cfg.lr
         self.lmbda = optim_cfg.lmbda
-        self.loss_fun = TripletLoss()
+        self.loss_fun = TripletLoss(optim_cfg.temperature)
 
     def forward(self, one_hots: Tensor) -> Tensor:
         embedding = self.features @ self.transform

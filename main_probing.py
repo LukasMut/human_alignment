@@ -75,6 +75,7 @@ def create_optimization_config(args) -> Tuple[FrozenDict, FrozenDict]:
     optim_cfg.max_epochs = args.epochs
     optim_cfg.min_epochs = args.burnin
     optim_cfg.patience = args.patience
+    optim_cfg.temperature = float(1)
     optim_cfg.ckptdir = os.path.join(args.log_dir, 'probing', args.model)
     return optim_cfg
 
