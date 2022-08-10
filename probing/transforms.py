@@ -96,6 +96,7 @@ class Linear(pl.LightningModule):
         c_entropy = self.loss_fun(dots)
         # apply l1 and l2 regularization during training to prevent overfitting to train objects
         complexity_loss = self.regularization()
+        print(f'\nComplexity loss: {complexity_loss:.2f}\n')
         loss = c_entropy + complexity_loss
         acc = self.choice_accuracy(dots)
         self.log("train_loss", c_entropy, on_epoch=True)
@@ -107,7 +108,7 @@ class Linear(pl.LightningModule):
         embeddings = one_hots @ embedding
         anchor, positive, negative = self.unbind(embeddings)
         similarities = self.compute_similarities(anchor, positive, negative)
-        val_loss = self.loss(similarities)
+        val_loss = self.loss_fun(similarities)
         val_acc = self.choice_accuracy(similarities)
         self.log("val_loss", val_loss)
         self.log("val_acc", val_acc)
@@ -118,7 +119,7 @@ class Linear(pl.LightningModule):
         embeddings = one_hots @ embedding
         anchor, positive, negative = self.unbind(embeddings)
         similarities = self.compute_similarities(anchor, positive, negative)
-        test_loss = self.loss(similarities)
+        test_loss = self.loss_fun(similarities)
         test_acc = self.choice_accuracy(similarities)
         self.log("test_loss", test_loss)
         self.log("test_acc", test_acc)
