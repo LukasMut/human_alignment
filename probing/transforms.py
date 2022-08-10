@@ -1,4 +1,4 @@
-from typing import Any, Tuple
+from typing import Any, List, Tuple
 
 import numpy as np
 import pytorch_lightning as pl
@@ -77,6 +77,11 @@ class Linear(pl.LightningModule):
             torch.reshape(embeddings, (-1, 3, embeddings.shape[-1])), dim=1
         )
 
+    @staticmethod
+    def normalize(triplet: List[Tensor]) -> List[Tensor]:
+        """Normalize object embeddings to have unit norm."""
+        return list(map(lambda obj: F.normalize(obj, dim=1), triplet))
+
     def regularization(self, alpha: float = 1.0) -> Tensor:
         """Apply combination of l2 and l1 regularization during training."""
         # NOTE: Frobenius norm in PyTorch is equivalent to torch.linalg.vector_norm(self.transform, ord=2, dim=(0, 1)))
@@ -92,10 +97,8 @@ class Linear(pl.LightningModule):
         embedding = self.features @ self.transform
         embeddings = one_hots @ embedding
         anchor, positive, negative = self.unbind(embeddings)
-        # normalize embeddings to lie on the unit-sphere
-        anchor = F.normalize(anchor, dim=1)
-        positive = F.normalize(positive, dim=1)
-        negative = F.normalize(negative, dim=1)
+        # normalize object embeddings to lie on the unit-sphere
+        anchor, positive, negative = self.normalize([anchor, positive, negative])
         dots = self.compute_similarities(anchor, positive, negative)
         c_entropy = self.loss_fun(dots)
         # apply l1 and l2 regularization during training to prevent overfitting to train objects
@@ -110,6 +113,7 @@ class Linear(pl.LightningModule):
         embedding = self.features @ self.transform
         embeddings = one_hots @ embedding
         anchor, positive, negative = self.unbind(embeddings)
+        anchor, positive, negative = self.normalize([anchor, positive, negative])
         similarities = self.compute_similarities(anchor, positive, negative)
         val_loss = self.loss_fun(similarities)
         val_acc = self.choice_accuracy(similarities)
@@ -121,6 +125,7 @@ class Linear(pl.LightningModule):
         embedding = self.features @ self.transform
         embeddings = one_hots @ embedding
         anchor, positive, negative = self.unbind(embeddings)
+        anchor, positive, negative = self.normalize([anchor, positive, negative])
         similarities = self.compute_similarities(anchor, positive, negative)
         test_loss = self.loss_fun(similarities)
         test_acc = self.choice_accuracy(similarities)
