@@ -26,7 +26,7 @@ def parseargs():
     aa("--data_root", type=str, help="path/to/things")
     aa("--embeddings_root", type=str, help="path/to/embeddings")
     aa("--dataset", type=str, help="Which dataset to use", choices=DATASETS)
-    aa("--module", type=str, 
+    aa("--module", type=str, default='penultimate',
         choices=["logits", "penultimate"],
         help="module for which to extract features")
     aa("--model_dict_path", type=str, 
@@ -74,7 +74,10 @@ def evaluate(args) -> None:
     results = []
     object_names = evaluation.get_things_objects(args.data_root)
     embeddings = evaluation.load_embeddings(
-        args.embeddings_root, object_names)
+        embddings_root=args.embeddings_root, 
+        object_names=object_names,
+        module='embeddings' if args.module == 'penultimate' else 'logits',
+        )
     model_features = dict()
     for i, (model_name, features) in tqdm(enumerate(embeddings.items()), desc="Model"):
         triplets = dataset.get_triplets()
