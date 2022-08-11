@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-from email.policy import default
 import os
 import random
 from typing import Any, List, Tuple
