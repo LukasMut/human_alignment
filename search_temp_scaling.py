@@ -12,6 +12,7 @@ import torch
 import torchvision
 
 import numpy as np
+import pandas as pd
 
 
 class DotDict(dict):
@@ -208,8 +209,6 @@ def ECE(probas: torch.Tensor, equal_mass: bool = False, n_bins=10):
 
     ece = 0
     sample_counter = 0
-    print(n)
-    print(bin_borders)
     for bin_i, border in enumerate(bin_borders[:-1]):
         vals = max_vals[border <= max_vals]
         idcs = max_idcs[border <= max_vals]
@@ -223,10 +222,6 @@ def ECE(probas: torch.Tensor, equal_mass: bool = False, n_bins=10):
             ce = torch.abs(acc - conf)
             ece += m / n * ce
             print(m, "acc:%.3f  conf:%.3f  ce:%f.3f" % (acc, conf, ce))
-
-    print("Acc. all:", torch.mean(torch.where(max_idcs == 0, 1.0, 0.0)))
-    print("Wrong 1:", torch.mean(torch.where(max_idcs == 1, 1.0, 0.0)))
-    print("Wrong 2:", torch.mean(torch.where(max_idcs == 2, 1.0, 0.0)))
 
     assert sample_counter == n
     return ece
@@ -242,7 +237,7 @@ def search_temperatures(
     distance: str,
     one_hot: bool,
     ssl_models_path: str,
-    dataset: str
+    dataset: str,
 ):
     """Find the temperature scaling with minimal average distance over the VICE-correct triplets and populate the
     dictionary with it."""
@@ -257,9 +252,8 @@ def search_temperatures(
                 results_root = _get_results_path(
                     out_path, temp, distance, one_hot=False
                 )
-                results_exists = os.path.exists(
-                    os.path.join(results_root, model_name, module_name)
-                )
+                results_path = os.path.join(results_root, model_name, module_name)
+                results_exists = os.path.exists(results_path)
                 if run_models or not results_exists:
                     # Save a configuration to be loaded in the evaluate function
                     model_dict[model_name][module_type_name]["temperature"][
@@ -274,12 +268,12 @@ def search_temperatures(
                             "model_names": [model_name],
                             "module": module_type_name,
                             "distance": distance,
-                            "out_path": results_root,
+                            "out_path": results_path,
                             "device": device,
                             "batch_size": 8,
                             "num_threads": 4,
                             "ssl_models_path": ssl_models_path,
-                            "model_dict_path": os.path.join(things_root, "model_dict.json")
+                            "model_dict_path": get_dict_path(out_path, one_hot),
                         }
                     )
                     print("Evaluating:", model_name, module_name, temp)
@@ -291,10 +285,11 @@ def search_temperatures(
     if not one_hot:
         # Load vice probas
         print("Loading VICE probas")
+        file_modifier = "correct" if dataset == "things-aligned" else "all"
         probas_vice = torch.tensor(
             np.load(
                 os.path.join(
-                    things_root, "probas", "probabilities_correct_triplets.npy"
+                    things_root, "probas", "probabilities_%s_triplets.npy" % file_modifier
                 )
             )
         )
@@ -316,9 +311,9 @@ def search_temperatures(
 
                 print("Processing...", model_name, module_name, temp, flush=True)
 
-                probas = torch.tensor(
-                    np.load(os.path.join(results_path, "triplet_probas.npy"))
-                )
+                with open(os.path.join(results_path, "results.pkl"), "rb") as f:
+                    df = pd.read_pickle(f)
+                    probas = torch.tensor(df[df.model == model_name]["probas"][0])
 
                 if probas_vice is None:
                     probas_vice = torch.zeros_like(probas)
@@ -327,20 +322,26 @@ def search_temperatures(
                 avg_kl = torch.nn.KLDivLoss()(probas, probas_vice)
                 kls.append(avg_kl)
 
-                avg_js = np.mean([jensenshannon(p, pv) for (p, pv) in zip(probas, probas_vice)])
+                avg_js = np.mean(
+                    [jensenshannon(p, pv) for (p, pv) in zip(probas, probas_vice)]
+                )
                 jss.append(avg_js)
 
-                ece_val = ECE(probas)
+                ece_val = ECE(probas, equal_mass=False)
                 ece_em_val = ECE(probas, equal_mass=True)
                 ece.append(ece_val)
                 ece_eq_mass.append(ece_em_val)
 
+                print("    js %.4f" % avg_js)
+                print("    kl %.4f" % avg_kl)
+                print("    ece %.4f" % ece_val)
+                print("    eceem %.4f" % ece_em_val)
                 if min_value is None or ece_val < min_value:
                     min_value = ece_val
                     model_dict[model_name][module_type_name]["temperature"][
                         distance
                     ] = temp
-                    print(f"  New best temp = {temp} (dist. = {ece_val})")
+                    print(f"  New best temp = {temp} (ECE = {ece_val})")
 
                 # Saving the results for all temperatures, for plotting
                 scaling_results_folder = os.path.join(out_path, "scaling_results")
@@ -370,6 +371,8 @@ def search_temperatures(
 
 
 def save_dict(dictionary: dict, out_path: str, overwrite: bool, one_hot: bool):
+    os.makedirs(out_path, exist_ok=True)
+
     if not overwrite:
         try:
             old_dict = load_dict(out_path, one_hot)
@@ -398,8 +401,12 @@ def save_dict(dictionary: dict, out_path: str, overwrite: bool, one_hot: bool):
         json.dump(dictionary, f, indent=4)
 
 
+def get_dict_path(out_path: str, one_hot: bool):
+    return os.path.join(out_path, get_model_dict_name(one_hot))
+
+
 def load_dict(out_path: str, one_hot: bool):
-    with open(os.path.join(out_path, get_model_dict_name(one_hot)), "r") as f:
+    with open(get_dict_path(out_path, one_hot), "r") as f:
         dictionary = json.load(f)
     return dictionary
 
@@ -459,8 +466,8 @@ def plot_dist_temp(
 
             legend = ["KL"]
             try:
-                ax.plot(data_for_model["temperatures"], data_for_model["kl"])
-                ax.plot(data_for_model["temperatures"], data_for_model["js"])
+                ax.plot(data_for_model["temperatures"], data_for_model["kls"])
+                ax.plot(data_for_model["temperatures"], data_for_model["jss"])
                 legend.append("JS")
             except KeyError:
                 # Backward compatibility
@@ -508,6 +515,22 @@ if __name__ == "__main__":
         "r50-swav",
         "r50-vicreg",
         "r50-barlowtwins",
+        "vit_base_patch16_224",
+        "vit_base_patch32_224",
+        "vit_large_patch16_224",
+        "vit_small_patch16_224",
+        "vit_small_patch32_224",
+        "vit_tiny_patch16_224",
+        "resnet26",
+        'resnetv2_50',
+        'resnetv2_101',
+        "convnext_femto",
+        "convnext_pico",
+        "convnext_nano",
+        "convnext_tiny",
+        "convnext_small",
+        "convnext_base",
+        "convnext_large",
     ]
     if args_model_names:
         model_names = [
@@ -531,7 +554,7 @@ if __name__ == "__main__":
         distance,
         one_hot,
         ssl_models_path,
-        dataset
+        dataset,
     )
 
     save_dict(model_dict, out_path, overwrite, one_hot)
