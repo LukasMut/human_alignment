@@ -96,9 +96,9 @@ class Linear(pl.LightningModule):
         # training_step defines the train loop. It is independent of forward
         embedding = self.features @ self.transform
         # normalize object embeddings to lie on the unit-sphere
-        embeddings = F.normalize(embedding, dim=1)
-        embeddings = one_hots @ embedding
-        anchor, positive, negative = self.unbind(embeddings)
+        embedding = F.normalize(embedding, dim=1)
+        batch_embeddings = one_hots @ embedding
+        anchor, positive, negative = self.unbind(batch_embeddings)
         dots = self.compute_similarities(anchor, positive, negative)
         c_entropy = self.loss_fun(dots)
         # apply l1 and l2 regularization during training to prevent overfitting to train objects
@@ -112,9 +112,9 @@ class Linear(pl.LightningModule):
     def validation_step(self, one_hots: Tensor, batch_idx: int):
         embedding = self.features @ self.transform
         # normalize object embeddings to lie on the unit-sphere
-        embeddings = F.normalize(embedding, dim=1)
-        embeddings = one_hots @ embedding
-        anchor, positive, negative = self.unbind(embeddings)
+        embedding = F.normalize(embedding, dim=1)
+        batch_embeddings = one_hots @ embedding
+        anchor, positive, negative = self.unbind(batch_embeddings)
         similarities = self.compute_similarities(anchor, positive, negative)
         val_loss = self.loss_fun(similarities)
         val_acc = self.choice_accuracy(similarities)
@@ -125,9 +125,9 @@ class Linear(pl.LightningModule):
     def test_step(self, one_hots: Tensor, batch_idx: int):
         embedding = self.features @ self.transform
         # normalize object embeddings to lie on the unit-sphere
-        embeddings = F.normalize(embedding, dim=1)
-        embeddings = one_hots @ embedding
-        anchor, positive, negative = self.unbind(embeddings)
+        embedding = F.normalize(embedding, dim=1)
+        batch_embeddings = one_hots @ embedding
+        anchor, positive, negative = self.unbind(batch_embeddings)
         similarities = self.compute_similarities(anchor, positive, negative)
         test_loss = self.loss_fun(similarities)
         test_acc = self.choice_accuracy(similarities)
