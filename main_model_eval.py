@@ -32,15 +32,18 @@ def parseargs():
     aa("--dataset", type=str, help="Which dataset to use", choices=DATASETS)
     aa("--model_names", type=str, nargs="+", 
         help="models for which we want to extract featues")
-    aa("--module", type=str, 
+    aa("--module", type=str,
         choices=["logits", "penultimate"],
         help="module for which to extract features")
+    aa("--source", type=str, default="torchvsion",
+        choices=["timm", "torchvision"],
+        help="Host of (pretrained) models")
     aa("--model_dict_path", type=str, 
         default="/home/space/datasets/things/model_dict.json", 
         help="Path to the model_dict.json")
     aa("--distance", type=str, default="cosine", 
         choices=["cosine", "euclidean"], 
-        help="distance function used for predicting the odd-one-out")
+        help="distance function used to predict the odd-one-out")
     aa("--input_dim", type=int, default=224, help="input image dimensionality")
     aa("--batch_size", metavar="B", type=int, default=128,
         help="number of triplets sampled during each step (i.e., mini-batch size)")
@@ -72,7 +75,7 @@ def get_temperatures(
     return [model_config[model][module]["temperature"][objective] for model in models]
 
 
-def create_hyperparam_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
+def create_config_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
     model_config = evaluation.load_model_config(args.model_dict_path)
     model_cfg = config_dict.ConfigDict()
     data_cfg = config_dict.ConfigDict()
@@ -81,6 +84,7 @@ def create_hyperparam_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
     model_cfg.temperatures = get_temperatures(
         model_config, model_cfg.names, args.module
     )
+    model_cfg.source = args.source
     model_cfg.input_dim = args.input_dim
     model_cfg = config_dict.FrozenConfigDict(model_cfg)
     data_cfg.root = args.data_root
@@ -88,18 +92,18 @@ def create_hyperparam_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
     return model_cfg, data_cfg
 
 
-def evaluate(args, backend: str = "pt") -> None:
+def evaluate(args) -> None:
     device = torch.device(args.device)
-    model_cfg, data_cfg = create_hyperparam_dicts(args)
+    model_cfg, data_cfg = create_config_dicts(args)
     results = []
     model_features = dict()
-    for i, model_name in tqdm(enumerate(model_cfg.names)):
+    for i, model_name in tqdm(enumerate(model_cfg.names), desc="Model"):
         model = CustomModel(
             model_name=model_name,
             pretrained=not args.not_pretrained,
             model_path=None,
             device=device,
-            backend=backend,
+            source=model_cfg.source,
             ssl_models_path=args.ssl_models_path,
         )
         dataset = load_dataset(
@@ -142,6 +146,7 @@ def evaluate(args, backend: str = "pt") -> None:
     results = pd.DataFrame(results)
     failures = evaluation.get_failures(results)
 
+    out_path = os.path.join(args.out_path, args.source)
     if not os.path.exists(args.out_path):
         print("\nCreating output directory...\n")
         os.makedirs(args.out_path)

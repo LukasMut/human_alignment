@@ -15,7 +15,8 @@ dependencies:
  - Pillow=9.1.* 
  - pip
  - pip:
-   - functorch=0.1.*
+   - thingsvision==1.6.0 
+   - functorch==0.1.*
    - pytorch_lightning==1.7.*
    - ml_collections 
    - pyflakes
