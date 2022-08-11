@@ -152,9 +152,9 @@ def evaluate(args) -> None:
     failures = evaluation.get_failures(results)
 
     out_path = os.path.join(args.out_path, args.source, args.module)
-    if not os.path.exists(args.out_path):
+    if not os.path.exists(out_path):
         print("\nCreating output directory...\n")
-        os.makedirs(args.out_path)
+        os.makedirs(out_path)
 
     # save dataframe to pickle to preserve data types after loading
     # load back with pd.read_pickle(/path/to/file/pkl)

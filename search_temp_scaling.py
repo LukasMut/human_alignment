@@ -1,8 +1,9 @@
+import evaluation
 from thingsvision.model_class import Model
 from models import CustomModel
-from main_eval import evaluate
-from typing import List
-from utils import jensenshannon
+from main_model_eval import evaluate
+from main_embedding_eval import evaluate as evaluate_embeddings
+from typing import List, Optional
 from matplotlib import pyplot as plt
 
 import argparse
@@ -33,9 +34,17 @@ def parseargs():
         help="path/to/things",
         default="/home/space/datasets/things",
     )
+    aa("--embeddings_root", type=str, help="path/to/embeddings", default="")
     aa("--out_path", type=str, help="path/to/results", default="")
     aa("--model_names", type=str, nargs="+", default=[])
     aa("--module_type_names", type=str, nargs="+", default=["logits"])
+    aa(
+        "--source",
+        type=str,
+        default="torchvsion",
+        choices=["timm", "torchvision", "local"],
+        help="Host of (pretrained) models",
+    )
     aa(
         "--temperatures",
         type=float,
@@ -105,6 +114,39 @@ def parseargs():
     return args
 
 
+def rel_entropy(p: torch.Tensor, q: torch.Tensor) -> torch.Tensor:
+    """Computes the relative entropy between probability tensors p and q."""
+    return torch.where(
+        p == torch.tensor(0.0), torch.tensor(0.0), p * p.log() - p * q.log()
+    )
+
+
+def jensenshannon(p: torch.Tensor, q: torch.Tensor, base=None, *, dim=0) -> float:
+    """
+    Compute the Jensen-Shannon distance (metric) between
+    two probability tensors. This is the square root
+    of the Jensen-Shannon divergence.
+    The Jensen-Shannon distance between two probability
+    vectors `p` and `q` is defined as,
+    .. math::
+       \\sqrt{\\frac{D(p \\parallel m) + D(q \\parallel m)}{2}}
+    where :math:`m` is the pointwise mean of :math:`p` and :math:`q`
+    and :math:`D` is the Kullback-Leibler divergence.
+    This routine will normalize `p` and `q` if they don't sum to 1.0.
+    """
+    p /= torch.sum(p, dim=dim)
+    q /= torch.sum(q, dim=dim)
+    m = (p + q) / 2.0
+    left = rel_entropy(p, m)
+    right = rel_entropy(q, m)
+    left_sum = torch.sum(left, dim=dim)
+    right_sum = torch.sum(right, dim=dim)
+    js = left_sum + right_sum
+    if base is not None:
+        js /= base.log()
+    return torch.sqrt(js / 2.0)
+
+
 def _is_model_name_accepted(name: str):
     name_starts = ["alexnet", "vgg", "res", "vit", "efficient", "clip", "r50"]
     is_ok = any([name.startswith(start) for start in name_starts])
@@ -168,18 +210,25 @@ def get_model_dict(model_names: List[str], dist: str, ssl_models_path: str):
         for model_name in model_names
     }
     for model_name in model_names:
-        model = CustomModel(
-            model_name=model_name,
-            pretrained=True,
-            model_path=None,
-            device=device,
-            backend="pt",
-            ssl_models_path=ssl_models_path,
-        )
-        model_dict[model_name]["logits"]["module_name"] = get_logit_module_name(model)
-        model_dict[model_name]["penultimate"]["module_name"] = get_penult_module_name(
-            model
-        )
+        try:
+            model = CustomModel(
+                model_name=model_name,
+                pretrained=True,
+                model_path=None,
+                device=device,
+                ssl_models_path=ssl_models_path,
+            )
+            model_dict[model_name]["logits"]["module_name"] = get_logit_module_name(
+                model
+            )
+            model_dict[model_name]["penultimate"][
+                "module_name"
+            ] = get_penult_module_name(model)
+        except AttributeError:
+            # Embeddings do not have custom models
+            model_dict[model_name]["logits"]["module_name"] = "logits"
+            model_dict[model_name]["penultimate"]["module_name"] = "penultimate"
+
     return model_dict
 
 
@@ -238,6 +287,8 @@ def search_temperatures(
     one_hot: bool,
     ssl_models_path: str,
     dataset: str,
+    source: str,
+    embeddings_root: Optional[str],
 ):
     """Find the temperature scaling with minimal average distance over the VICE-correct triplets and populate the
     dictionary with it."""
@@ -252,7 +303,7 @@ def search_temperatures(
                 results_root = _get_results_path(
                     out_path, temp, distance, one_hot=False
                 )
-                results_path = os.path.join(results_root, model_name, module_name)
+                results_path = os.path.join(results_root, model_name)
                 results_exists = os.path.exists(results_path)
                 if run_models or not results_exists:
                     # Save a configuration to be loaded in the evaluate function
@@ -274,12 +325,26 @@ def search_temperatures(
                             "num_threads": 4,
                             "ssl_models_path": ssl_models_path,
                             "model_dict_path": get_dict_path(out_path, one_hot),
+                            "source": source,
                         }
                     )
                     print("Evaluating:", model_name, module_name, temp)
-                    evaluate(config)
+                    if source == "local":
+                        config.update({"embeddings_root": embeddings_root})
+                        try:
+                            evaluate_embeddings(config)
+                        except KeyError as error:
+                            if module_type_name == "logits":
+                                print("Skipping logits.")
+                            else:
+                                raise error
+                    else:
+                        evaluate(config)
                 else:
                     print("Will load probas for:", model_name, module_name, temp)
+        if source == "local":
+            # Local models will be evaluated all at once
+            break
 
     probas_vice = None
     if not one_hot:
@@ -289,7 +354,9 @@ def search_temperatures(
         probas_vice = torch.tensor(
             np.load(
                 os.path.join(
-                    things_root, "probas", "probabilities_%s_triplets.npy" % file_modifier
+                    things_root,
+                    "probas",
+                    "probabilities_%s_triplets.npy" % file_modifier,
                 )
             )
         )
@@ -307,7 +374,7 @@ def search_temperatures(
                 results_root = _get_results_path(
                     out_path, temp, distance, one_hot=False
                 )
-                results_path = os.path.join(results_root, model_name, module_name)
+                results_path = os.path.join(results_root, model_name)
 
                 print("Processing...", model_name, module_name, temp, flush=True)
 
@@ -489,7 +556,6 @@ def plot_dist_temp(
 
 if __name__ == "__main__":
     args = parseargs()
-
     distance = args.distance
     data_root = args.data_root
     out_path = args.out_path
@@ -501,43 +567,58 @@ if __name__ == "__main__":
     ssl_models_path = args.ssl_models_path
     one_hot = args.one_hot
     dataset = args.dataset
+    source = args.source
+    embeddings_root = args.embeddings_root
 
-    model_names = [
-        name for name in dir(torchvision.models) if _is_model_name_accepted(name)
-    ] + [
-        "clip-ViT",
-        "clip-RN",
-        "r50-simclr",
-        "r50-mocov2",
-        "r50-jigsaw",
-        "r50-colorization",
-        "r50-rotnet",
-        "r50-swav",
-        "r50-vicreg",
-        "r50-barlowtwins",
-        "vit_base_patch16_224",
-        "vit_base_patch32_224",
-        "vit_large_patch16_224",
-        "vit_small_patch16_224",
-        "vit_small_patch32_224",
-        "vit_tiny_patch16_224",
-        "resnet26",
-        'resnetv2_50',
-        'resnetv2_101',
-        "convnext_femto",
-        "convnext_pico",
-        "convnext_nano",
-        "convnext_tiny",
-        "convnext_small",
-        "convnext_base",
-        "convnext_large",
-    ]
-    if args_model_names:
+    out_path = os.path.join(out_path, source)
+    if not os.path.exists(out_path):
+        os.makedirs(out_path)
+
+    if source == "local":
+        object_names = evaluation.get_things_objects(args.data_root)
+        embeddings = evaluation.load_embeddings(
+            embeddings_root=args.embeddings_root,
+            object_names=object_names,
+            module="embeddings",
+        )
+        model_names = embeddings.keys()
+    else:
         model_names = [
-            name
-            for name in model_names
-            if any([name.startswith(args_name) for args_name in args_model_names])
+            name for name in dir(torchvision.models) if _is_model_name_accepted(name)
+        ] + [
+            "clip-ViT",
+            "clip-RN",
+            "r50-simclr",
+            "r50-mocov2",
+            "r50-jigsaw",
+            "r50-colorization",
+            "r50-rotnet",
+            "r50-swav",
+            "r50-vicreg",
+            "r50-barlowtwins",
+            "vit_base_patch16_224",
+            "vit_base_patch32_224",
+            "vit_large_patch16_224",
+            "vit_small_patch16_224",
+            "vit_small_patch32_224",
+            "vit_tiny_patch16_224",
+            "resnet26",
+            "resnetv2_50",
+            "resnetv2_101",
+            "convnext_femto",
+            "convnext_pico",
+            "convnext_nano",
+            "convnext_tiny",
+            "convnext_small",
+            "convnext_base",
+            "convnext_large",
         ]
+        if args_model_names:
+            model_names = [
+                name
+                for name in model_names
+                if any([name.startswith(args_name) for args_name in args_model_names])
+            ]
     print("Models to process:", model_names)
 
     model_dict = get_model_dict(
@@ -555,6 +636,8 @@ if __name__ == "__main__":
         one_hot,
         ssl_models_path,
         dataset,
+        source,
+        embeddings_root,
     )
 
     save_dict(model_dict, out_path, overwrite, one_hot)
