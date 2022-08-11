@@ -74,7 +74,7 @@ def evaluate(args) -> None:
     results = []
     object_names = evaluation.get_things_objects(args.data_root)
     embeddings = evaluation.load_embeddings(
-        embddings_root=args.embeddings_root, 
+        embeddings_root=args.embeddings_root, 
         object_names=object_names,
         module='embeddings' if args.module == 'penultimate' else 'logits',
         )
