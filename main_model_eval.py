@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+from email.policy import default
 import os
 import random
 from typing import Any, List, Tuple
@@ -47,7 +48,8 @@ def parseargs():
     aa("--input_dim", type=int, default=224, help="input image dimensionality")
     aa("--batch_size", metavar="B", type=int, default=128,
         help="number of triplets sampled during each step (i.e., mini-batch size)")
-    aa("--out_path", type=str, help="path/to/results")
+    aa("--out_path", type=str, defaullt="/home/space/datasets/things/results/",
+        help="path/to/results")
     aa("--device", type=str, default="cuda",
         help="whether evaluation should be performed on CPU or GPU (i.e., CUDA).")
     aa("--num_threads", type=int, default=4,
@@ -150,16 +152,16 @@ def evaluate(args) -> None:
     results = pd.DataFrame(results)
     failures = evaluation.get_failures(results)
 
-    out_path = os.path.join(args.out_path, args.source)
+    out_path = os.path.join(args.out_path, args.source, args.module)
     if not os.path.exists(args.out_path):
         print("\nCreating output directory...\n")
         os.makedirs(args.out_path)
 
     # save dataframe to pickle to preserve data types after loading
     # load back with pd.read_pickle(/path/to/file/pkl)
-    results.to_pickle(os.path.join(args.out_path, "results.pkl"))
-    failures.to_pickle(os.path.join(args.out_path, "failures.pkl"))
-    evaluation.save_features(features=model_features, out_path=args.out_path)
+    results.to_pickle(os.path.join(out_path, "results.pkl"))
+    failures.to_pickle(os.path.join(out_path, "failures.pkl"))
+    evaluation.save_features(features=model_features, out_path=out_path)
 
 
 if __name__ == "__main__":
