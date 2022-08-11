@@ -17,6 +17,7 @@ Tensor = torch.Tensor
 
 
 def get_things_objects(data_root: str) -> Array:
+    """Load name of THINGS object concepts to sort embeddings."""
     fname = "things_concepts.tsv"
     things_objects = pd.read_csv(
         os.path.join(data_root, "concepts", fname), sep="\t", encoding="utf-8"
@@ -26,12 +27,14 @@ def get_things_objects(data_root: str) -> Array:
 
 
 def convert_filenames(filenames: Array) -> Array:
+    """Convert binary encoded file names into strings."""
     return np.array(
         list(map(lambda f: f.decode("utf-8").split("/")[-1].split(".")[0], filenames))
     )
 
 
 def load_embeddings(embeddings_root: str, object_names: str) -> Dict[str, Array]:
+    """Load Google internal embeddings and sort them according to THINGS object sorting."""
     embeddings = {}
     for f in os.scandir(embeddings_root):
         fname = f.name
@@ -70,6 +73,7 @@ def compute_distances(triplet: Tensor, pairs: List[Tuple[int]], dist: str) -> Te
 def get_predictions(
     features: Array, triplets: Array, temperature: float = 1.0, dist: str = "cosine"
 ) -> Tuple[Tensor, Tensor]:
+    """Get the odd-one-out choices for a given model."""
     features = torch.from_numpy(features)
     pairs = [(0, 1), (0, 2), (1, 2)]
     indices = {0, 1, 2}
@@ -103,7 +107,7 @@ def ventropy(probabilities: Tensor) -> Tensor:
     return vmap(entropy)(probabilities)
 
 
-def get_model_choices(results: pd.DataFrame):
+def get_model_choices(results: pd.DataFrame) -> Array:
     models = results.model.unique()
     model_choices = np.stack(
         [results[results.model == model].choices.values[0] for model in models],
@@ -113,7 +117,7 @@ def get_model_choices(results: pd.DataFrame):
 
 
 def filter_failures(model_choices: Array, target: int = 2):
-    """Filter for triplets where every model predicted differently from humans."""
+    """Filter for triplets where every model predicted differently than humans."""
     failures, choices = zip(
         *list(filter(lambda kv: target not in kv[1], enumerate(model_choices)))
     )
