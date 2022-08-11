@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import torch
 from ml_collections import config_dict
-from torch.evaluation.data import DataLoader
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 import evaluation
