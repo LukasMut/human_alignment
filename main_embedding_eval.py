@@ -116,7 +116,7 @@ def evaluate(args) -> None:
     results = pd.DataFrame(results)
     failures = evaluation.get_failures(results)
 
-    out_path = os.path.join(args.out_path, args.embeddings_root.split('/')[-1])
+    out_path = os.path.join(args.out_path, args.embeddings_root.split('/')[-1], args.module)
     if not os.path.exists(out_path):
         print("\nCreating output directory...\n")
         os.makedirs(out_path)
