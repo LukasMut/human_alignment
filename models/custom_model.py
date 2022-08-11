@@ -1,7 +1,7 @@
 import torch
 from thingsvision.model_class import Model
 from torchvision import transforms
-import utils
+from .utils import load_vissl_r50
 
 class CustomModel(Model):
 
@@ -19,16 +19,16 @@ class CustomModel(Model):
             elif self.model_name == 'r50-swav':
                 self.model = torch.hub.load('facebookresearch/swav:main', 'resnet50')
             elif self.model_name == 'r50-simclr':
-                self.model = utils.load_vissl_r50(file='converted_vissl_simclr.torch', base_dir=self.ssl_models_path)
+                self.model = load_vissl_r50(file='converted_vissl_simclr.torch', base_dir=self.ssl_models_path)
             elif self.model_name == 'r50-mocov2':
-                self.model = utils.load_vissl_r50(file='converted_vissl_mocov2.torch', base_dir=self.ssl_models_path)
+                self.model = load_vissl_r50(file='converted_vissl_mocov2.torch', base_dir=self.ssl_models_path)
             elif self.model_name == 'r50-jigsaw':
-                self.model = utils.load_vissl_r50(file='converted_vissl_jigsaw.torch', base_dir=self.ssl_models_path)
+                self.model = load_vissl_r50(file='converted_vissl_jigsaw.torch', base_dir=self.ssl_models_path)
             elif self.model_name == 'r50-colorization':
-                self.model = utils.load_vissl_r50(file='converted_vissl_colorization.torch',
+                self.model = load_vissl_r50(file='converted_vissl_colorization.torch',
                                             grayscale=True, strict=False, base_dir=self.ssl_models_path)
             elif self.model_name == 'r50-rotnet':
-                self.model = utils.load_vissl_r50(file='converted_vissl_rotnet.torch', base_dir=self.ssl_models_path)
+                self.model = load_vissl_r50(file='converted_vissl_rotnet.torch', base_dir=self.ssl_models_path)
             else:
                 super(CustomModel, self).load_model()
             self.model = self.model.to(self.device)
