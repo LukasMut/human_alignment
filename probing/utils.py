@@ -34,6 +34,7 @@ def standardize(features: Array) -> Array:
 
 
 def load_model_config(data_root: str) -> dict:
+    """Load model config dictionary."""
     with open(os.path.join(data_root, 'temperatures', 'model_dict.json'), "r") as f:
         model_dict = json.load(f)
     return model_dict

@@ -72,7 +72,11 @@ def get_module_names(model_config, models: List[str], module: str) -> List[str]:
 def get_temperatures(
     model_config, models: List[str], module: str, objective: str = "cosine"
 ) -> List[str]:
-    return [model_config[model][module]["temperature"][objective] for model in models]
+    try:
+        temperatures = [model_config[model][module]["temperature"][objective] for model in models]
+    except KeyError:
+        raise FileNotFoundError(f'\nTemperature scaling was not performed for some models in {models}.\n')
+    return temperatures
 
 
 def create_config_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
