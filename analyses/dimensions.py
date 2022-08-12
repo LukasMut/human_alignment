@@ -1,6 +1,5 @@
 import numpy as np
 from sklearn.manifold import TSNE
-import matplotlib.pyplot as plt
 
 
 class DimensionReduction:
