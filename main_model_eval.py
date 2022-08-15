@@ -4,6 +4,7 @@
 import argparse
 import os
 import random
+import warnings
 from typing import Any, List, Tuple
 
 import numpy as np
@@ -66,21 +67,36 @@ def parseargs():
 
 
 
-def get_module_names(model_config, models: List[str], module: str) -> List[str]:
-    return [model_config[model][module]["module_name"] for model in models]
+def get_module_names(
+    model_config, models: List[str], module: str) -> List[str]:
+    """Get original module names for logits or penultimate layer."""
+    module_names = []
+    for model in models:
+        try:
+            module_name = model_config[model][module]["module_name"]
+            module_names.append(module_name)
+        except KeyError:
+            raise Exception(f"\nMissing module name for {model}. Check config file and add module name.\nAborting evaluation...\n")
+    return module_names
 
 
 def get_temperatures(
     model_config, models: List[str], module: str, objective: str = "cosine"
 ) -> List[str]:
-    try:
-        temperatures = [model_config[model][module]["temperature"][objective] for model in models]
-    except KeyError:
-        raise FileNotFoundError(f'\nTemperature scaling was not performed for some models in {models}.\n')
+    """Get optimal temperature values for all models."""
+    temperatures = []
+    for model in models:
+        try:
+            t = model_config[model][module]["temperature"][objective]
+        except KeyError:
+            t = 1.
+            warnings.warn(f"\nMissing temperature value for {model} and {module} layer.\nSetting temperature value to 1.\n")
+        temperatures.append(t)
     return temperatures
 
 
 def create_config_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
+    """Create data and model config dictionaries."""
     model_config = evaluation.load_model_config(args.model_dict_path)
     model_cfg = config_dict.ConfigDict()
     data_cfg = config_dict.ConfigDict()
@@ -98,6 +114,7 @@ def create_config_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
 
 
 def evaluate(args) -> None:
+    """Perform evaluation with optimal temperature values."""
     device = torch.device(args.device)
     model_cfg, data_cfg = create_config_dicts(args)
     results = []

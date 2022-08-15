@@ -1,6 +1,7 @@
 import argparse
 import os
 import random
+import warnings
 from typing import Any, List, Tuple
 
 import numpy as np
@@ -71,7 +72,18 @@ def parseargs():
 def get_temperatures(
     model_config, models: List[str], module: str, objective: str = "cosine"
 ) -> List[str]:
-    return [model_config[model][module]["temperature"][objective] for model in models]
+    """Get optimal temperature values for all embeddings."""
+    temperatures = []
+    for model in models:
+        try:
+            t = model_config[model][module]["temperature"][objective]
+        except KeyError:
+            t = 1.0
+            warnings.warn(
+                f"\nMissing temperature value for {model} and {module} layer.\nSetting temperature value to 1.\n"
+            )
+        temperatures.append(t)
+    return temperatures
 
 
 def create_hyperparam_dicts(args, model_names) -> Tuple[FrozenDict, FrozenDict]:
@@ -84,8 +96,10 @@ def create_hyperparam_dicts(args, model_names) -> Tuple[FrozenDict, FrozenDict]:
             model_config, model_names, args.module
         )
     except FileNotFoundError:
-        model_cfg.temperatures = [1.0] * len(model_names)
-        raise Warning("Could not load temperature. Setting to 1.0.")
+        model_cfg.temperatures = np.ones(len(model_names), dtype=np.float64)
+        warnings.warn(
+            f"\nCould not find model config dict in {args.model_dict_path}.\nSetting temperature values to 1.0.\n"
+        )
 
     model_cfg = config_dict.FrozenConfigDict(model_cfg)
     data_cfg.root = args.data_root
@@ -94,6 +108,7 @@ def create_hyperparam_dicts(args, model_names) -> Tuple[FrozenDict, FrozenDict]:
 
 
 def evaluate(args) -> None:
+    """Perform evaluation of embeddings with optimal temperature values."""
     object_names = evaluation.get_things_objects(args.data_root)
     embeddings = evaluation.load_embeddings(
         embeddings_root=args.embeddings_root,
@@ -153,7 +168,7 @@ def evaluate(args) -> None:
 
 
 if __name__ == "__main__":
-    # parse arguments and set random seeds
+    # parse arguments and set all random seeds
     args = parseargs()
     np.random.seed(args.rnd_seed)
     random.seed(args.rnd_seed)
