@@ -12,6 +12,7 @@ class CustomModel(Model):
     def load_model(self):
         """Load pretrained SSL models into memory."""
         if self.source in ['torchvision', 'timm']:
+            self.backend = 'pt'
             if self.model_name == 'r50-barlowtwins':
                 self.model = torch.hub.load('facebookresearch/barlowtwins:main', 'resnet50')
             elif self.model_name == 'r50-vicreg':
