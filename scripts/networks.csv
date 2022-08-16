@@ -34,3 +34,11 @@ r50-rotnet,54.928,25.56,107,
 r50-jigsaw,48.57,25.56,107,
 resnext50_32x4d,81.108,25.03,,ResNext
 resnext101_32x8d,79.316,88.79,,ResNext
+vit_tiny_patch16_224,75.464,5.72,,timm-VIT
+vit_small_patch16_224,81.396,22.05,,timm-VIT
+vit_small_patch32_224,75.990,22.88,,timm-VIT
+vit_base_patch16_224,84.530,86.57,,timm-VIT
+vit_base_patch32_224,80.724,88.22,,timm-VIT
+vit_large_patch16_224,85.844,304.33,,timm-VIT
+clip-ViT,76.1,,,clip-ViT
+clip-RN,73.3,25.56,,clip-RN

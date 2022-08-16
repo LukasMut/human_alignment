@@ -36,7 +36,7 @@ def parseargs():
     aa("--module", type=str,
         choices=["logits", "penultimate"],
         help="module for which to extract features")
-    aa("--source", type=str, default="torchvsion",
+    aa("--source", type=str, default="torchvision",
         choices=["timm", "torchvision"],
         help="Host of (pretrained) models")
     aa("--model_dict_path", type=str, 
@@ -48,7 +48,7 @@ def parseargs():
     aa("--input_dim", type=int, default=224, help="input image dimensionality")
     aa("--batch_size", metavar="B", type=int, default=128,
         help="number of triplets sampled during each step (i.e., mini-batch size)")
-    aa("--out_path", type=str, defaullt="/home/space/datasets/things/results/",
+    aa("--out_path", type=str, default="/home/space/datasets/things/results/",
         help="path/to/results")
     aa("--device", type=str, default="cuda",
         help="whether evaluation should be performed on CPU or GPU (i.e., CUDA).")
@@ -125,7 +125,7 @@ def evaluate(args) -> None:
             pretrained=not args.not_pretrained,
             model_path=None,
             device=device,
-            source=model_cfg.source,
+            source='custom' if model_name.lower().startswith("clip") else model_cfg.source,
             ssl_models_path=args.ssl_models_path,
         )
         dataset = load_dataset(
