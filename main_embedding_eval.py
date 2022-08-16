@@ -154,7 +154,7 @@ def evaluate(args) -> None:
     failures = evaluation.get_failures(results)
 
     out_path = os.path.join(
-        args.out_path, args.embeddings_root.split("/")[-1], args.module
+        args.out_path, args.dataset, args.embeddings_root.split("/")[-1], args.module
     )
     if not os.path.exists(out_path):
         print("\nCreating output directory...\n")

@@ -31,7 +31,7 @@ def parseargs():
 
     aa("--data_root", type=str, help="path/to/things")
     aa("--dataset", type=str, help="Which dataset to use", choices=DATASETS)
-    aa("--model_names", type=str, nargs="+", 
+    aa("--model_names", type=str, nargs="+",
         help="models for which we want to extract featues")
     aa("--module", type=str,
         choices=["logits", "penultimate"],
@@ -168,7 +168,7 @@ def evaluate(args) -> None:
     results = pd.DataFrame(results)
     failures = evaluation.get_failures(results)
 
-    out_path = os.path.join(args.out_path, args.source, args.module)
+    out_path = os.path.join(args.out_path, args.dataset, args.source, args.module)
     if not os.path.exists(out_path):
         print("\nCreating output directory...\n")
         os.makedirs(out_path)
