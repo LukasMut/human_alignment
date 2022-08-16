@@ -1,6 +1,8 @@
 import numpy as np
 from torchvision.datasets import CIFAR100, CIFAR10
-import random
+import os
+
+Array = np.ndarray
 
 
 class CIFAR100Coarse(CIFAR100):
@@ -43,48 +45,37 @@ class CIFAR100Coarse(CIFAR100):
                         ['lawn_mower', 'rocket', 'streetcar', 'tank', 'tractor']]
 
 
-class RandomMatchingMixin:
-    """Randomly creates triplets by matching samples from the same class with one sample from a different class """
+def load_triplets(triplet_path: str) -> Array:
+    with open(os.path.join(triplet_path), "rb") as f:
+        triplets = np.load(f).astype(int)
+    return triplets
 
-    def setup(self, seed: int, samples: int):
-        random.seed(seed)
-        labels = np.unique(self.targets)
-        class_indices = []
-        for label in labels:
-            class_indices.append(np.argwhere(label == self.targets).flatten().tolist())
-            random.shuffle(class_indices)
-        self.triplets = []
-        for sample in range(samples):
-            equal_cls = random.choice(labels)
-            other_cls = random.choice(list(filter(lambda x: x != equal_cls, labels)))
-            triplet = []
-            for _ in range(2):
-                idx = random.choice(class_indices[equal_cls])
-                class_indices[equal_cls].remove(idx)
-                triplet.append(idx)
-            idx = random.choice(class_indices[other_cls])
-            class_indices[other_cls].remove(idx)
-            triplet.append(idx)
-            self.triplets.append(triplet)
-        self.triplets = np.array(self.triplets)
+
+class CIFAR100CoarseTriplet(CIFAR100Coarse):
+    def __init__(self, root, triplet_path: str, *args, **kwargs):
+        super().__init__(root, *args, **kwargs)
+        self.triplets = load_triplets(triplet_path)
+
+    def get_triplets(self):
+        return self.triplets
+
+    def __len__(self):
+        return 8
+
+
+class CIFAR100Triplet(CIFAR100):
+    def __init__(self, root, triplet_path: str, *args, **kwargs):
+        super().__init__(root, *args, **kwargs)
+        self.triplets = load_triplets(triplet_path)
 
     def get_triplets(self):
         return self.triplets
 
 
-class CIFAR100CoarseTriplet(CIFAR100Coarse, RandomMatchingMixin):
-    def __init__(self, root, seed=0, samples=10000, *args, **kwargs):
+class CIFAR10Triplet(CIFAR10):
+    def __init__(self, root, triplet_path: str, *args, **kwargs):
         super().__init__(root, *args, **kwargs)
-        self.setup(seed=seed, samples=samples)
+        self.triplets = load_triplets(triplet_path)
 
-
-class CIFAR100Triplet(CIFAR100, RandomMatchingMixin):
-    def __init__(self, root, seed=0, samples=10000, *args, **kwargs):
-        super().__init__(root, *args, **kwargs)
-        self.setup(seed=seed, samples=samples)
-
-
-class CIFAR10Triplet(CIFAR10, RandomMatchingMixin):
-    def __init__(self, root, seed=0, samples=10000, *args, **kwargs):
-        super().__init__(root, *args, **kwargs)
-        self.setup(seed=seed, samples=samples)
+    def get_triplets(self):
+        return self.triplets
