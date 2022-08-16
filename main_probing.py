@@ -42,7 +42,7 @@ def parseargs():
     aa("--batch_size", type=int, default=256,
         help="Use power of 2 for running optimization on GPU",
         choices=[64, 128, 256, 512, 1024])
-    aa("--transform_dim", type=int, default=100,
+    aa("--transform_dim", type=int, default=200,
         help='Output dimensionality of the linear transformation',
         choices=[100, 200, 300, 400, 500])
     aa("--epochs", type=int, 
@@ -56,7 +56,7 @@ def parseargs():
         choices=["cpu", "gpu"])
     aa("--num_processes", type=int, default=4,
         help="Number of devices to use for performing distributed training on CPU")
-    aa("--results_path", type=str, help="path/to/results")
+    aa("--probing_root", type=str, help="path/to/probing")
     aa("--log_dir", type=str, help='directory to checkpoint transformations')
     aa("--rnd_seed", type=int, help="random seed for reproducibility")
     args = parser.parse_args()
@@ -74,13 +74,13 @@ def create_optimization_config(args) -> Tuple[FrozenDict, FrozenDict]:
     optim_cfg.max_epochs = args.epochs
     optim_cfg.min_epochs = args.burnin
     optim_cfg.patience = args.patience
-    optim_cfg.ckptdir = os.path.join(args.log_dir, 'probing', args.model)
+    optim_cfg.ckptdir = os.path.join(args.log_dir, args.model, args.module)
     return optim_cfg
 
 
-def load_features(results_path: str) -> Dict[str, Array]:
+def load_features(probing_root: str, subfolder: str = 'embeddings') -> Dict[str, Array]:
     """Load features for THINGS objects from disk."""
-    with open(os.path.join(results_path, "features.pkl"), "rb") as f:
+    with open(os.path.join(probing_root, subfolder, "features.pkl"), "rb") as f:
         features = pickle.load(f)
     return features
 
@@ -200,8 +200,8 @@ if __name__ == "__main__":
     args = parseargs()
     # seed everything for reproducibility
     seed_everything(args.rnd_seed, workers=True)
-    features = load_features(args.results_path)
-    model_features = features[args.model]
+    features = load_features(args.probing_root)
+    model_features = features[args.model][args.module]
     optim_cfg = create_optimization_config(args)
     cv_results, transformation = run(
         features=model_features,
@@ -214,7 +214,7 @@ if __name__ == "__main__":
         rnd_seed=args.rnd_seed,
         num_processes=args.num_processes,
     )
-    out_path = os.path.join(args.results_path, 'probing', args.model)
+    out_path = os.path.join(args.probing_root, args.model)
     if not os.path.exists(out_path):
         os.makedirs(out_path)
     

@@ -1,5 +1,6 @@
 import json
 import os
+import warnings
 from collections import defaultdict
 from typing import Dict, List
 
@@ -35,10 +36,20 @@ def standardize(features: Array) -> Array:
 
 def load_model_config(data_root: str) -> dict:
     """Load model config dictionary."""
-    with open(os.path.join(data_root, 'temperatures', 'model_dict.json'), "r") as f:
+    with open(os.path.join(data_root, "temperatures", "model_dict.json"), "r") as f:
         model_dict = json.load(f)
     return model_dict
 
 
-def get_temperature(model_config, model: str, module: str, objective: str = "cosine") -> List[str]:
-    return model_config[model][module]["temperature"][objective]
+def get_temperature(
+    model_config, model: str, module: str, objective: str = "cosine"
+) -> List[str]:
+    """Get optimal temperature values for all embeddings."""
+    try:
+        temperature = model_config[model][module]["temperature"][objective]
+    except KeyError:
+        temperature = 1.0
+        warnings.warn(
+            f"\nMissing temperature value for {model} and {module} layer.\nSetting temperature value to 1.\nThis may cause optimization problems during linear probing.\n"
+        )
+    return temperature
