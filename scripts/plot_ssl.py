@@ -10,8 +10,9 @@ import pandas as pd
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', default='things')
-    parser.add_argument('--base-dir', default='results')
+    parser.add_argument('--path', default='resources/results/things/penultimate/results.pkl')
     parser.add_argument('--x-metric', default='imagenet_accuracy', choices=['imagenet_accuracy', 'param_count'])
+    parser.add_argument('--output')
     args = parser.parse_args()
 
     name_mapping = {
@@ -26,7 +27,6 @@ if __name__ == '__main__':
     }
 
     dataset = args.dataset
-    results_folder = args.base_dir
 
     dataset_names = {
         'cifar100-coarse': 'CIFAR100 Coarse',
@@ -37,11 +37,12 @@ if __name__ == '__main__':
 
     colors = ['blue', 'orange', 'green', 'red', 'purple', 'black', 'brown', 'yellow']
 
-    with open(os.path.join(results_folder, 'results.pkl'), 'rb') as f:
+    with open(args.path, 'rb') as f:
         df = pickle.load(f)
 
     networks = pd.read_csv(os.path.join(pathlib.Path(__file__).parent.resolve(), 'networks.csv'))
     df = df.merge(networks, on='model')
+    df = df[df.model.isin(list(name_mapping.keys()))]
 
     fig, ax = plt.subplots()
 
@@ -51,7 +52,6 @@ if __name__ == '__main__':
                                    marker='x', kind='scatter', c=colors[i])
 
     plt.xlabel('#Parameters' if args.x_metric == 'param_count' else 'Imagenet Accuracy')
-    plt.ylabel(f'{dataset_names[dataset]} Accuracy')
+    plt.ylabel('Accuracy')
     plt.grid()
-    plt.savefig('result.png')
-    plt.show()
+    plt.savefig(args.output)

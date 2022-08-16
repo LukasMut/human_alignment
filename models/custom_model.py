@@ -15,21 +15,29 @@ class CustomModel(Model):
             self.backend = 'pt'
             if self.model_name == 'r50-barlowtwins':
                 self.model = torch.hub.load('facebookresearch/barlowtwins:main', 'resnet50')
+                self.backend = 'pt'
             elif self.model_name == 'r50-vicreg':
                 self.model = torch.hub.load('facebookresearch/vicreg:main', 'resnet50')
+                self.backend = 'pt'
             elif self.model_name == 'r50-swav':
                 self.model = torch.hub.load('facebookresearch/swav:main', 'resnet50')
+                self.backend = 'pt'
             elif self.model_name == 'r50-simclr':
                 self.model = load_vissl_r50(file='converted_vissl_simclr.torch', base_dir=self.ssl_models_path)
+                self.backend = 'pt'
             elif self.model_name == 'r50-mocov2':
                 self.model = load_vissl_r50(file='converted_vissl_mocov2.torch', base_dir=self.ssl_models_path)
+                self.backend = 'pt'
             elif self.model_name == 'r50-jigsaw':
                 self.model = load_vissl_r50(file='converted_vissl_jigsaw.torch', base_dir=self.ssl_models_path)
+                self.backend = 'pt'
             elif self.model_name == 'r50-colorization':
                 self.model = load_vissl_r50(file='converted_vissl_colorization.torch',
                                             grayscale=True, strict=False, base_dir=self.ssl_models_path)
+                self.backend = 'pt'
             elif self.model_name == 'r50-rotnet':
                 self.model = load_vissl_r50(file='converted_vissl_rotnet.torch', base_dir=self.ssl_models_path)
+                self.backend = 'pt'
             else:
                 super(CustomModel, self).load_model()
             self.model = self.model.to(self.device)
