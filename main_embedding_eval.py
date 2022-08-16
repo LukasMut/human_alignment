@@ -47,7 +47,7 @@ def parseargs():
         choices=["cosine", "euclidean"],
         help="distance function used for predicting the odd-one-out",
     )
-    aa("--out_path", type=str, help="path/to/results")
+    aa("--out_path", type=str, help="path/to/results", default='/home/space/datasets/things/results')
     aa(
         "--num_threads",
         type=int,
