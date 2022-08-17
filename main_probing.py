@@ -5,7 +5,6 @@ from typing import Any, Callable, Dict, Iterator, List, Tuple
 
 import numpy as np
 import torch
-from ml_collections import config_dict
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from sklearn.model_selection import KFold
@@ -65,16 +64,16 @@ def parseargs():
 
 def create_optimization_config(args) -> Tuple[FrozenDict, FrozenDict]:
     """Create frozen config dict for optimization hyperparameters."""
-    optim_cfg = config_dict.ConfigDict()
-    optim_cfg.optim = args.optim
-    optim_cfg.lr = args.learning_rate
-    optim_cfg.lmbda = args.lmbda
-    optim_cfg.transform_dim = args.transform_dim
-    optim_cfg.batch_size = args.batch_size
-    optim_cfg.max_epochs = args.epochs
-    optim_cfg.min_epochs = args.burnin
-    optim_cfg.patience = args.patience
-    optim_cfg.ckptdir = os.path.join(args.log_dir, args.model, args.module)
+    optim_cfg = dict()
+    optim_cfg["optim"] = args.optim
+    optim_cfg["lr"] = args.learning_rate
+    optim_cfg["lmbda"] = args.lmbda
+    optim_cfg["transform_dim"] = args.transform_dim
+    optim_cfg["batch_size"] = args.batch_size
+    optim_cfg["max_epochs"] = args.epochs
+    optim_cfg["min_epochs"] = args.burnin
+    optim_cfg["patience"] = args.patience
+    optim_cfg["ckptdir"] = os.path.join(args.log_dir, args.model, args.module)
     return optim_cfg
 
 
@@ -97,12 +96,12 @@ def get_batches(triplets: Tensor, batch_size: int, train: bool) -> Iterator:
     return dl
 
 def get_callbacks(optim_cfg: FrozenDict, steps:int=20) -> List[Callable]:
-    if not os.path.exists(optim_cfg.ckptdir):
-        os.makedirs(optim_cfg.ckptdir)
+    if not os.path.exists(optim_cfg["ckptdir"]):
+        os.makedirs(optim_cfg["ckptdir"])
         print('\nCreating directory for checkpointing...\n')
     checkpoint_callback = ModelCheckpoint(
         monitor='val_loss',
-        dirpath=optim_cfg.ckptdir,
+        dirpath=optim_cfg["ckptdir"],
         filename='ooo-finetuning-epoch{epoch:02d}-val_loss{val/loss:.2f}',
         auto_insert_metric_name=False,
         every_n_epochs=steps,
@@ -111,7 +110,7 @@ def get_callbacks(optim_cfg: FrozenDict, steps:int=20) -> List[Callable]:
             monitor='val_loss',
             min_delta=1e-4,
             mode='min',
-            patience=optim_cfg.patience,
+            patience=optim_cfg["patience"],
             verbose=True,
             check_finite=True
     )
@@ -141,9 +140,7 @@ def run(
         model=model,
         module=module,
     )
-    optim_cfg.temperature = temperature
-    # freeze optimization config dict
-    optim_cfg = config_dict.FrozenConfigDict(optim_cfg)
+    optim_cfg["temperature"] = temperature
     objects = np.arange(n_objects)
     # Perform k-fold cross-validation with k = 3
     # NOTE: we can try k = 5, but k = 10 doesn't work
@@ -163,12 +160,12 @@ def run(
         )
         train_batches = get_batches(
             triplets=train_triplets,
-            batch_size=optim_cfg.batch_size,
+            batch_size=optim_cfg["batch_size"],
             train=True,
         )
         val_batches = get_batches(
             triplets=val_triplets,
-            batch_size=optim_cfg.batch_size,
+            batch_size=optim_cfg["batch_size"],
             train=False,
         )
         linear_probe = probing.Linear(
@@ -179,8 +176,8 @@ def run(
             accelerator=device,
             callbacks=callbacks,
             strategy="ddp_spawn" if device == "cpu" else None,
-            max_epochs=optim_cfg.max_epochs,
-            min_epochs=optim_cfg.min_epochs,
+            max_epochs=optim_cfg["max_epochs"],
+            min_epochs=optim_cfg["min_epochs"],
             devices=num_processes if device == "cpu" else "auto",
             enable_progress_bar=True,
         )

@@ -24,18 +24,6 @@ class Linear(pl.LightningModule):
         )
         self.feature_dim = self.features.shape[1]
         # initialize transformation matrix with \tau I (temperature-scaled identity matrix)
-
-        """
-        TODO: uncomment this
-        self.transform = torch.nn.Parameter(
-            data=torch.eye(self.feature_dim, optim_cfg.transform_dim)
-            * optim_cfg.temperature,
-            requires_grad=True,
-        )
-        self.optim = optim_cfg.optim
-        self.lr = optim_cfg.lr
-        self.lmbda = optim_cfg.lmbda
-        """
         self.transform = torch.nn.Parameter(
             data=torch.eye(self.feature_dim, optim_cfg["transform_dim"])
             * optim_cfg["temperature"],
