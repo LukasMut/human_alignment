@@ -214,7 +214,7 @@ if __name__ == "__main__":
         rnd_seed=args.rnd_seed,
         num_processes=args.num_processes,
     )
-    out_path = os.path.join(args.probing_root, args.model)
+    out_path = os.path.join(args.probing_root, 'results', args.model, args.module)
     if not os.path.exists(out_path):
         os.makedirs(out_path)
     
