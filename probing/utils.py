@@ -37,12 +37,12 @@ def standardize(features: Array) -> Array:
 def load_model_config(data_root: str, source: str) -> dict:
     """Load model config dictionary."""
     try:
-        with open(os.path.join(data_root, 'ts', 'things', source, "model_dict.json"), "r") as f:
+        with open(
+            os.path.join(data_root, "ts", "things", source, "model_dict.json"), "r"
+        ) as f:
             model_dict = json.load(f)
     except FileNotFoundError:
-        warnings.warn(
-            f'\nMissing model config dict for models from {source}.\n'
-        )
+        warnings.warn(f"\nMissing model config dict for models from {source}.\n")
         return None
     return model_dict
 

@@ -31,7 +31,7 @@ def parseargs():
         help='neural network module for which to learn a linear transform',
         choices=['penultimate', 'logits'])
     aa("--source", type=str, default='torchvision',
-        chocies=["google", "loss", "imagenet", "torchvision"])
+        choices=["google", "loss", "imagenet", "torchvision"])
     aa("--n_objects", type=int, 
         help="Number of object categories in the data", default=1854)
     aa("--optim", type=str, default='Adam',
