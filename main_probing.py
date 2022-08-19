@@ -30,6 +30,8 @@ def parseargs():
     aa("--module", type=str, default='penultimate',
         help='neural network module for which to learn a linear transform',
         choices=['penultimate', 'logits'])
+    aa("--source", type=str, default='torchvision',
+        chocies=["google", "loss", "imagenet", "torchvision"])
     aa("--n_objects", type=int, 
         help="Number of object categories in the data", default=1854)
     aa("--optim", type=str, default='Adam',
@@ -122,6 +124,7 @@ def run(
     features: Array,
     model: str,
     module: str,
+    source: str,
     data_root: str,
     n_objects: int,
     device: str,
@@ -134,7 +137,7 @@ def run(
     callbacks = get_callbacks(optim_cfg)
     triplets = probing.load_triplets(data_root)
     features = probing.standardize(features)
-    model_config = probing.load_model_config(data_root)
+    model_config = probing.load_model_config(data_root, source)
     temperature = probing.get_temperature(
         model_config=model_config,
         model=model,
@@ -204,6 +207,7 @@ if __name__ == "__main__":
         features=model_features,
         model=args.model,
         module=args.module,
+        source=args.source,
         data_root=args.data_root,
         n_objects=args.n_objects,
         device=args.device,

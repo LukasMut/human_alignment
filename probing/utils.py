@@ -34,10 +34,16 @@ def standardize(features: Array) -> Array:
     return (features - features.mean(axis=0)) / features.std(axis=0)
 
 
-def load_model_config(data_root: str) -> dict:
+def load_model_config(data_root: str, source: str) -> dict:
     """Load model config dictionary."""
-    with open(os.path.join(data_root, "temperatures", "model_dict.json"), "r") as f:
-        model_dict = json.load(f)
+    try:
+        with open(os.path.join(data_root, 'ts', 'things', source, "model_dict.json"), "r") as f:
+            model_dict = json.load(f)
+    except FileNotFoundError:
+        warnings.warn(
+            f'\nMissing model config dict for models from {source}.\n'
+        )
+        return None
     return model_dict
 
 
@@ -47,7 +53,7 @@ def get_temperature(
     """Get optimal temperature values for all embeddings."""
     try:
         temperature = model_config[model][module]["temperature"][objective]
-    except KeyError:
+    except (KeyError, TypeError):
         temperature = 1.0
         warnings.warn(
             f"\nMissing temperature value for {model} and {module} layer.\nSetting temperature value to 1.\nThis may cause optimization problems during linear probing.\n"
