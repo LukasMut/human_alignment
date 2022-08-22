@@ -15,7 +15,7 @@ from typing import Tuple
 Array = np.ndarray
 Tensor = torch.Tensor
 
-object_concepts_link = "https://raw.githubusercontent.com/ViCCo-Group/THINGSvision/master/data/things_concepts.tsv"
+object_concepts_link = "https://raw.githubusercontent.com/ViCCo-Group/THINGSvision/master/data/files/things_concepts.tsv"
 
 
 class THINGSTriplet(torch.utils.data.Dataset):
