@@ -66,6 +66,10 @@ class Families:
     @property
     def densenet_children(self):
         return self.search("densenet")
+    
+    @property
+    def nasnet_children(self):
+        return self.search("nasnet")
 
     @property
     def clip_children(self):
@@ -197,7 +201,7 @@ class Families:
 
     @property
     def resnet(self):
-        return "resnet"
+        return r"^resnet"
 
     @property
     def vgg(self):
