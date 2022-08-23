@@ -22,24 +22,50 @@ class Families:
     @property
     def mapping(self) -> Dict[str, str]:
         mapping = {
-            "clip_children": "CLIP-models",
-            "vit_children": "ViTs",
+            "clip_children": "CLIP",
+            "vit_children": "ViT",
             "alexnet_children": "AlexNet",
-            "resnet_children": "ResNets",
-            "vgg_children": "VGGs",
-            "ssl_children": "SSLs",
-            "ssl_contrastive_children": "SSL contrastive",
-            "ssl_non_contrastive_children": "SSL non-contrastive",
-            "ssl_non_siamese_children": "SSL non-siamese",
-            "resnext_children": "ResNexts",
-            "cnn_children": "CNNs",
-            "efficientnet_children": "EfficientNets",
+            "resnet_children": "ResNet",
+            "vgg_children": "VGG",
+            "ssl_children": "SSL",
+            "ssl_contrastive_children": "SSL (contrastive)",
+            "ssl_non_contrastive_children": "SSL (non-contrastive)",
+            "ssl_non_siamese_children": "SSL (non-siamese)",
+            "resnext_children": "ResNext",
+            "cnn_children": "CNN",
+            "efficientnet_children": "EfficientNet",
+            "inception_children": "Inception",
+            "mobilenet_children": "MobileNet",
+            "nasnet_children": "NasNet",
+            "densenet_children": "DenseNet",
+            "basic_children": "Basic",
+            "align_children": "Align",
         }
         return mapping
 
     @property
     def vit_children(self):
         return self.search("vit")
+
+    @property
+    def inception_children(self):
+        return self.search("inception")
+
+    @property
+    def align_children(self):
+        return self.search("align")
+
+    @property
+    def basic_children(self):
+        return self.search("basic")
+
+    @property
+    def mobilenet_children(self):
+        return self.search("mobilenet")
+
+    @property
+    def densenet_children(self):
+        return self.search("densenet")
 
     @property
     def clip_children(self):
@@ -95,12 +121,35 @@ class Families:
 
     @property
     def vit(self):
-        # NOTE: do we want to include CLIP-ViT in the set of ViTs or not?
-        return r"^vit"  # 'vit'
+        return r"^vit"
 
     @property
     def ssl(self):
         return r"^r50"
+    
+    @property
+    def inception(self):
+        return r"^inception"
+
+    @property
+    def align(self):
+        return r"^align"
+
+    @property
+    def basic(self):
+        return r"^basic"
+
+    @property
+    def densenet(self):
+        return r"^densenet"
+
+    @property
+    def mobilenet(self):
+        return r"^mobilenet"
+
+    @property
+    def nasnet(self):
+        return r"^nasnet"
 
     @property
     def ssl_contrastive(self):
@@ -141,7 +190,6 @@ class Families:
     @property
     def rotnet(self):
         return f"(?=^{self.ssl})(?=.*rotnet$)"
-
 
     @property
     def cnn(self):
