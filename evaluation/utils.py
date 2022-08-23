@@ -71,7 +71,7 @@ def compute_distances(triplet: Tensor, pairs: List[Tuple[int]], dist: str) -> Te
 
 
 def get_predictions(
-    features: Array, triplets: Array, temperature: float = 1.0, dist: str = "cosine"
+        features: Array, triplets: Array, temperature: float = 1.0, dist: str = "cosine"
 ) -> Tuple[Tensor, Tensor]:
     """Get the odd-one-out choices for a given model."""
     features = torch.from_numpy(features)
@@ -86,7 +86,11 @@ def get_predictions(
         dots = compute_dots(triplet, pairs)
         most_sim_pair = pairs[torch.argmin(distances).item()]
         ooo_idx = indices.difference(most_sim_pair).pop()
-        choices[s] += ooo_idx
+        if distances[0] == distances[1] and distances[1] == distances[2]:
+            # If all distances are the same, we set the index to -1 to highlight this
+            choices[s] += -1
+        else:
+            choices[s] += ooo_idx
         probas[s] += F.softmax(dots * temperature, dim=0)
     return choices, probas
 
