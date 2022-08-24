@@ -72,13 +72,6 @@ def parseargs():
         choices=[64, 128, 256, 512, 1024],
     )
     aa(
-        "--transform_dim",
-        type=int,
-        default=200,
-        help="Output dimensionality of the linear transformation",
-        choices=[100, 200, 300, 400, 500],
-    )
-    aa(
         "--epochs",
         type=int,
         help="Maximum number of epochs to perform finetuning",
@@ -116,7 +109,6 @@ def create_optimization_config(args) -> Tuple[FrozenDict, FrozenDict]:
     optim_cfg["optim"] = args.optim
     optim_cfg["lr"] = args.learning_rate
     optim_cfg["lmbda"] = args.lmbda
-    optim_cfg["transform_dim"] = args.transform_dim
     optim_cfg["n_folds"] = args.n_folds
     optim_cfg["batch_size"] = args.batch_size
     optim_cfg["max_epochs"] = args.epochs
