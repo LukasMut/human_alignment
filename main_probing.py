@@ -193,7 +193,7 @@ def make_results_df(
     return probing_results_current_run
 
 
-def save_results(args, avg_cv_acc: float) -> None:
+def save_results(args, probing_acc: float) -> None:
     out_path = os.path.join(args.probing_root, "results")
     if not os.path.exists(out_path):
         print("\nCreating results directory...\n")
@@ -206,7 +206,7 @@ def save_results(args, avg_cv_acc: float) -> None:
         probing_results = pd.read_pickle(os.path.join(out_path, "probing_results.pkl"))
         probing_results_current_run = make_results_df(
             columns=probing_results.columns.values,
-            avg_cv_acc=avg_cv_acc,
+            probing_acc=probing_acc,
             model=args.model,
             module=args.module,
             source=args.source,
@@ -221,7 +221,7 @@ def save_results(args, avg_cv_acc: float) -> None:
         columns = ["model", "probing", "module", "family", "source", "n_folds"]
         probing_results = make_results_df(
             columns=columns,
-            avg_cv_acc=avg_cv_acc,
+            probing_acc=probing_acc,
             model_name=args.model,
             module_name=args.module,
             source=args.source,
@@ -327,7 +327,7 @@ if __name__ == "__main__":
         num_processes=args.num_processes,
     )
     avg_cv_acc = get_mean_cv_acc(cv_results)
-    save_results(args, avg_cv_acc=avg_cv_acc)
+    save_results(args, probing_acc=avg_cv_acc)
 
     """
     # save transformation matrix for every model (do we need this?)
