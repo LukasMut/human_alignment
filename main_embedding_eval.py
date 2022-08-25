@@ -10,6 +10,7 @@ import torch
 from ml_collections import config_dict
 from tqdm import tqdm
 
+import analyses
 import evaluation
 from data import DATASETS, load_dataset
 
@@ -100,7 +101,7 @@ def create_hyperparam_dicts(args, model_names) -> Tuple[FrozenDict, FrozenDict]:
         warnings.warn(
             f"\nCould not find model config dict in {args.model_dict_path}.\nSetting temperature values to 1.0.\n"
         )
-
+    model_cfg.source = args.embeddings_root.split("/")[-1] 
     model_cfg = config_dict.FrozenConfigDict(model_cfg)
     data_cfg.root = args.data_root
     data_cfg = config_dict.FrozenConfigDict(data_cfg)
@@ -124,6 +125,7 @@ def evaluate(args) -> None:
 
     model_features = dict()
     for i, (model_name, features) in tqdm(enumerate(embeddings.items()), desc="Model"):
+        family = analyses.get_family_name(model_name) 
         triplets = dataset.get_triplets()
         choices, probas = evaluation.get_predictions(
             features=features,
@@ -137,14 +139,16 @@ def evaluate(args) -> None:
         mean_entropy = entropies.mean().item()
         if args.verbose:
             print(
-                f"\nModel: {model_name}, Accuracy: {acc:.4f}, Average triplet entropy: {mean_entropy:.3f}\n"
+                f"\nModel: {model_name}, Family: {family}, Zero-shot accuracy: {acc:.4f}, Average triplet entropy: {mean_entropy:.3f}\n"
             )
         summary = {
-            "model": model_name,
-            "accuracy": acc,
-            "choices": choices.cpu().numpy(),
-            "entropies": entropies.cpu().numpy(),
-            "probas": probas.cpu().numpy(),
+            "model" : model_name,
+            "zero-shot" : acc,
+            "choices" : choices.cpu().numpy(),
+            "entropies" : entropies.cpu().numpy(),
+            "probas" : probas.cpu().numpy(),
+            "source" : model_cfg.source,
+            "family" : family,
         }
         results.append(summary)
         model_features[model_name] = features
@@ -154,7 +158,7 @@ def evaluate(args) -> None:
     failures = evaluation.get_failures(results)
 
     out_path = os.path.join(
-        args.out_path, args.dataset, args.embeddings_root.split("/")[-1], args.module
+        args.out_path, args.dataset, model_cfg.source, args.module
     )
     if not os.path.exists(out_path):
         print("\nCreating output directory...\n")
