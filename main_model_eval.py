@@ -15,6 +15,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 import evaluation
+import analyses
 from data import DATASETS, load_dataset
 from models import CustomModel
 
@@ -37,8 +38,8 @@ def parseargs():
         choices=["logits", "penultimate"],
         help="module for which to extract features")
     aa("--source", type=str, default="torchvision",
-        choices=["timm", "torchvision"],
-        help="Host of (pretrained) models")
+        choices=["timm", "torchvision", "google", "loss", "imagenet", "vit_best", "vit_same"],
+        help="Source of (pretrained) models")
     aa("--model_dict_path", type=str, 
         default="/home/space/datasets/things/model_dict.json", 
         help="Path to the model_dict.json")
@@ -152,14 +153,16 @@ def evaluate(args) -> None:
         mean_entropy = entropies.mean().item()
         if args.verbose:
             print(
-                f"\nModel: {model_name}, Accuracy: {acc:.4f}, Average triplet entropy: {mean_entropy:.3f}\n"
+                f"\nModel: {model_name}, Zero-shot accuracy: {acc:.4f}, Average triplet entropy: {mean_entropy:.3f}\n"
             )
         summary = {
             "model": model_name,
-            "accuracy": acc,
+            "zero-shot": acc,
             "choices": choices.cpu().numpy(),
             "entropies": entropies.cpu().numpy(),
-            "probas": probas.cpu().numpy(),
+            # "probas": probas.cpu().numpy(),
+            "source": model_cfg.source,
+            "family": analyses.get_family_name(model_name),
         }
         results.append(summary)
         model_features[model_name] = features
@@ -170,7 +173,8 @@ def evaluate(args) -> None:
 
     out_path = os.path.join(args.out_path, args.dataset, args.source, args.module)
     if not os.path.exists(out_path):
-        print("\nCreating output directory...\n")
+        print("\nOutput directory does not exist...")
+        print("Creating output directory to save results...\n")
         os.makedirs(out_path)
 
     # save dataframe to pickle to preserve data types after loading
