@@ -194,17 +194,17 @@ def save_results(args, probing_acc: float) -> None:
         print(
             "\nFile for probing results exists.\nConcatenating current results with existing results file...\n"
         )
-        probing_results = pd.read_pickle(os.path.join(out_path, "probing_results.pkl"))
+        probing_results_overall = pd.read_pickle(os.path.join(out_path, "probing_results.pkl"))
         probing_results_current_run = make_results_df(
-            columns=probing_results.columns.values,
+            columns=probing_results_overall.columns.values,
             probing_acc=probing_acc,
-            model=args.model,
-            module=args.module,
+            model_name=args.model,
+            module_name=args.module,
             source=args.source,
             n_folds=args.n_folds,
         )
         probing_results = pd.concat(
-            [probing_results, probing_results_current_run], axis=0, ignore_index=True
+            [probing_results_overall, probing_results_current_run], axis=0, ignore_index=True
         )
         probing_results.to_pickle(os.path.join(out_path, "probing_results.pkl"))
     else:
