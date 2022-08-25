@@ -121,6 +121,7 @@ def evaluate(args) -> None:
     results = []
     model_features = dict()
     for i, model_name in tqdm(enumerate(model_cfg.names), desc="Model"):
+        family_name = analyses.get_family_name(model_name)
         model = CustomModel(
             model_name=model_name,
             pretrained=not args.not_pretrained,
@@ -153,16 +154,16 @@ def evaluate(args) -> None:
         mean_entropy = entropies.mean().item()
         if args.verbose:
             print(
-                f"\nModel: {model_name}, Zero-shot accuracy: {acc:.4f}, Average triplet entropy: {mean_entropy:.3f}\n"
+                f"\nModel: {model_name}, Family: {family_name}, Zero-shot accuracy: {acc:.4f}, Average triplet entropy: {mean_entropy:.3f}\n"
             )
         summary = {
             "model": model_name,
             "zero-shot": acc,
             "choices": choices.cpu().numpy(),
             "entropies": entropies.cpu().numpy(),
-            # "probas": probas.cpu().numpy(),
+            "probas": probas.cpu().numpy(),
             "source": model_cfg.source,
-            "family": analyses.get_family_name(model_name),
+            "family": family_name,
         }
         results.append(summary)
         model_features[model_name] = features
