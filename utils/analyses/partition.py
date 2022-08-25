@@ -9,7 +9,7 @@ from typing import List, Tuple
 import numpy as np
 import pandas as pd
 
-from . import utils
+from . import helpers
 from .families import Families
 
 Array = np.ndarray
@@ -29,7 +29,7 @@ class Partition:
 
     def __post_init__(self):
         assert self.concept_importance in ["max", "topk"]
-        importance_fun = getattr(utils, f"get_{self.concept_importance}_dims")
+        importance_fun = getattr(helpers, f"get_{self.concept_importance}_dims")
         self.importance_fun = partial(importance_fun, self.concept_embedding)
         self.models = self.results.model.unique()
         self.families = Families(self.models)
