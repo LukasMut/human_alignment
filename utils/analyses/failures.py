@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from typing import List, Dict
 from dataclasses import dataclass
 from functools import partial
-
-from .families import Families
-from . import utils
+from typing import Dict, List
 
 import numpy as np
 import pandas as pd
+
+from . import helpers
+from .families import Families
 
 Array = np.ndarray
 
@@ -33,7 +33,7 @@ class Failures:
         assert self.iv in ["dimension", "entropy"]
         if self.iv == "dimension":
             assert self.concept_importance in ["max", "topk"]
-            importance_fun = getattr(utils, f"get_{self.concept_importance}_dims")
+            importance_fun = getattr(helpers, f"get_{self.concept_importance}_dims")
             self.importance_fun = partial(importance_fun, self.concept_embedding)
             self.n_triplets_per_bin = self.get_triplets_per_bin(self.triplets)
             self.n_bins = self.concept_embedding.shape[-1]

@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import re
 from dataclasses import dataclass
 from typing import Dict, List
-
-import re
 
 
 @dataclass
@@ -66,7 +65,7 @@ class Families:
     @property
     def densenet_children(self):
         return self.search("densenet")
-    
+
     @property
     def nasnet_children(self):
         return self.search("nasnet")
@@ -130,7 +129,7 @@ class Families:
     @property
     def ssl(self):
         return r"^r50"
-    
+
     @property
     def inception(self):
         return r"^inception"

@@ -14,8 +14,7 @@ from ml_collections import config_dict
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-import evaluation
-import analyses
+import utils
 from data import DATASETS, load_dataset
 from models import CustomModel
 
@@ -77,7 +76,7 @@ def get_module_names(
             module_name = model_config[model][module]["module_name"]
             module_names.append(module_name)
         except KeyError:
-            raise Exception(f"\nMissing module name for {model}. Check config file and add module name.\nAborting evaluation...\n")
+            raise Exception(f"\nMissing module name for {model}. Check config file and add module name.\nAborting evaluation run...\n")
     return module_names
 
 
@@ -98,7 +97,7 @@ def get_temperatures(
 
 def create_config_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
     """Create data and model config dictionaries."""
-    model_config = evaluation.load_model_config(args.model_dict_path)
+    model_config = utils.evaluation.load_model_config(args.model_dict_path)
     model_cfg = config_dict.ConfigDict()
     data_cfg = config_dict.ConfigDict()
     model_cfg.names = args.model_names
@@ -121,7 +120,7 @@ def evaluate(args) -> None:
     results = []
     model_features = dict()
     for i, model_name in tqdm(enumerate(model_cfg.names), desc="Model"):
-        family_name = analyses.get_family_name(model_name)
+        family_name = utils.analyses.get_family_name(model_name)
         model = CustomModel(
             model_name=model_name,
             pretrained=not args.not_pretrained,
@@ -146,11 +145,11 @@ def evaluate(args) -> None:
             return_probabilities=False,
         )
         triplets = dataset.get_triplets()
-        choices, probas = evaluation.get_predictions(
+        choices, probas = utils.evaluation.get_predictions(
             features, triplets, model_cfg.temperatures[i], args.distance
         )
-        acc = evaluation.accuracy(choices)
-        entropies = evaluation.ventropy(probas)
+        acc = utils.evaluation.accuracy(choices)
+        entropies = utils.evaluation.ventropy(probas)
         mean_entropy = entropies.mean().item()
         if args.verbose:
             print(
@@ -170,7 +169,7 @@ def evaluate(args) -> None:
 
     # convert results into Pandas DataFrame
     results = pd.DataFrame(results)
-    failures = evaluation.get_failures(results)
+    failures = utils.evaluation.get_failures(results)
 
     out_path = os.path.join(args.out_path, args.dataset, args.source, args.module)
     if not os.path.exists(out_path):
@@ -182,7 +181,7 @@ def evaluate(args) -> None:
     # load back with pd.read_pickle(/path/to/file/pkl)
     results.to_pickle(os.path.join(out_path, "results.pkl"))
     failures.to_pickle(os.path.join(out_path, "failures.pkl"))
-    evaluation.save_features(features=model_features, out_path=out_path)
+    utils.evaluation.save_features(features=model_features, out_path=out_path)
 
 
 if __name__ == "__main__":

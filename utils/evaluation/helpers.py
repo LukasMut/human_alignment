@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import itertools
 import json
 import os
 import pickle
@@ -33,7 +34,9 @@ def convert_filenames(filenames: Array) -> Array:
     )
 
 
-def load_embeddings(embeddings_root: str, object_names: str, module: str = 'embeddings') -> Dict[str, Array]:
+def load_embeddings(
+    embeddings_root: str, object_names: str, module: str = "embeddings"
+) -> Dict[str, Array]:
     """Load Google internal embeddings and sort them according to THINGS object sorting."""
     embeddings = {}
     for f in os.scandir(embeddings_root):
@@ -75,8 +78,8 @@ def get_predictions(
 ) -> Tuple[Tensor, Tensor]:
     """Get the odd-one-out choices for a given model."""
     features = torch.from_numpy(features)
-    pairs = [(0, 1), (0, 2), (1, 2)]
     indices = {0, 1, 2}
+    pairs = list(itertools.combinations(indices, r=2))
     choices = torch.zeros(triplets.shape[0])
     probas = torch.zeros(triplets.shape[0], len(indices))
     print(f"\nShape of embeddings {features.shape}\n")

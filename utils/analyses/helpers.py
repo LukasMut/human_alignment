@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import numpy as np
 from functools import partial
+
+import numpy as np
+
 from .families import Families
 
 Array = np.ndarray
@@ -46,10 +48,10 @@ def get_failures(triplets: Array, model_choices: Array, target: int = 2) -> Arra
 
 def get_family_name(model_name: str) -> str:
     families = Families([model_name])
-    all_children = [attr for attr in dir(families) if attr.endswith('children')]
+    all_children = [attr for attr in dir(families) if attr.endswith("children")]
     for children in all_children:
         if getattr(families, children):
             family_name = families.mapping[children]
-            if not (family_name == 'CNN' or family_name == 'SSL'):
+            if not (family_name == "CNN" or family_name == "SSL"):
                 break
     return family_name

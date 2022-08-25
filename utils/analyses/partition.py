@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from typing import List, Tuple
+import random
 from dataclasses import dataclass
 from functools import partial
-from .families import Families
-from . import utils
+from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
 
-import random
+from . import utils
+from .families import Families
 
 Array = np.ndarray
 
@@ -70,9 +70,7 @@ class Partition:
         """
         model_choices = np.stack(
             [
-                self.results[self.results.model == model]
-                .choices
-                .values[0]
+                self.results[self.results.model == model].choices.values[0]
                 for model in self.models
             ],
             axis=1,
@@ -195,7 +193,6 @@ class Partition:
             intersection, self.target, dtype=int
         )
         return hit_failure_intersection
-        
 
     def dimwise_hit_failure_intersection(self, dimension: int) -> pd.DataFrame:
         return self.familywise_hit_failure_intersection.filter(

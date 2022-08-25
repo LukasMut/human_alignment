@@ -12,7 +12,7 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-import evaluation
+import utils
 from data import DATASETS, load_dataset
 from models import CustomModel
 
@@ -65,7 +65,7 @@ def evaluate(args) -> None:
     device = torch.device(args.device)
     results = []
     model_features = dict()
-
+    family_name = utils.analyses.get_family_name(args.model)
     model = CustomModel(
         model_name=args.model,
         pretrained=not args.not_pretrained,
@@ -83,7 +83,7 @@ def evaluate(args) -> None:
         dataset=dataset, batch_size=args.batch_size, shuffle=False, drop_last=False
     )
 
-    for i, module_name in tqdm(enumerate(args.layers), desc="Layer"):
+    for module_name in tqdm(args.layers, desc="Layer"):
         features, _ = model.extract_features(
             data_loader=dl,
             module_name=module_name,
@@ -95,11 +95,11 @@ def evaluate(args) -> None:
             # global average pooling
             features = features.mean(axis=-1).mean(axis=-1)
         triplets = dataset.get_triplets()
-        choices, probas = evaluation.get_predictions(
+        choices, probas = utils.evaluation.get_predictions(
             features, triplets, 1.0, args.distance
         )
-        acc = evaluation.accuracy(choices)
-        entropies = evaluation.ventropy(probas)
+        acc = utils.evaluation.accuracy(choices)
+        entropies = utils.evaluation.ventropy(probas)
         mean_entropy = entropies.mean().item()
         if args.verbose:
             print(
@@ -108,17 +108,19 @@ def evaluate(args) -> None:
         summary = {
             "model": args.model,
             "layer": module_name,
-            "accuracy": acc,
+            "zero-shot": acc,
             "choices": choices.cpu().numpy(),
             "entropies": entropies.cpu().numpy(),
             "probas": probas.cpu().numpy(),
+            "source": args.source,
+            "family": family_name,
         }
         results.append(summary)
         model_features[module_name] = features
 
     # convert results into Pandas DataFrame
     results = pd.DataFrame(results)
-    failures = evaluation.get_failures(results)
+    failures = utils.evaluation.get_failures(results)
 
     out_path = args.out_path
     if not os.path.exists(out_path):
@@ -129,7 +131,7 @@ def evaluate(args) -> None:
     # load back with pd.read_pickle(/path/to/file/pkl)
     results.to_pickle(os.path.join(out_path, "results.pkl"))
     failures.to_pickle(os.path.join(out_path, "failures.pkl"))
-    evaluation.save_features(features=model_features, out_path=out_path)
+    utils.evaluation.save_features(features=model_features, out_path=out_path)
 
 
 if __name__ == "__main__":

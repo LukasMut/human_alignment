@@ -10,8 +10,7 @@ import torch
 from ml_collections import config_dict
 from tqdm import tqdm
 
-import analyses
-import evaluation
+import utils
 from data import DATASETS, load_dataset
 
 FrozenDict = Any
@@ -92,7 +91,7 @@ def create_hyperparam_dicts(args, model_names) -> Tuple[FrozenDict, FrozenDict]:
     data_cfg = config_dict.ConfigDict()
 
     try:
-        model_config = evaluation.load_model_config(args.model_dict_path)
+        model_config = utils.evaluation.load_model_config(args.model_dict_path)
         model_cfg.temperatures = get_temperatures(
             model_config, model_names, args.module
         )
@@ -110,8 +109,8 @@ def create_hyperparam_dicts(args, model_names) -> Tuple[FrozenDict, FrozenDict]:
 
 def evaluate(args) -> None:
     """Perform evaluation of embeddings with optimal temperature values."""
-    object_names = evaluation.get_things_objects(args.data_root)
-    embeddings = evaluation.load_embeddings(
+    object_names = utils.evaluation.get_things_objects(args.data_root)
+    embeddings = utils.evaluation.load_embeddings(
         embeddings_root=args.embeddings_root,
         object_names=object_names,
         module="embeddings" if args.module == "penultimate" else "logits",
@@ -125,17 +124,17 @@ def evaluate(args) -> None:
 
     model_features = dict()
     for i, (model_name, features) in tqdm(enumerate(embeddings.items()), desc="Model"):
-        family = analyses.get_family_name(model_name) 
+        family = utils.analyses.get_family_name(model_name) 
         triplets = dataset.get_triplets()
-        choices, probas = evaluation.get_predictions(
+        choices, probas = utils.evaluation.get_predictions(
             features=features,
             triplets=triplets,
             temperature=model_cfg.temperatures[i],
             dist=args.distance,
         )
 
-        acc = evaluation.accuracy(choices)
-        entropies = evaluation.ventropy(probas)
+        acc = utils.evaluation.accuracy(choices)
+        entropies = utils.evaluation.ventropy(probas)
         mean_entropy = entropies.mean().item()
         if args.verbose:
             print(
@@ -155,7 +154,7 @@ def evaluate(args) -> None:
 
     # convert results into Pandas DataFrame
     results = pd.DataFrame(results)
-    failures = evaluation.get_failures(results)
+    failures = utils.evaluation.get_failures(results)
 
     out_path = os.path.join(
         args.out_path, args.dataset, model_cfg.source, args.module
@@ -168,7 +167,7 @@ def evaluate(args) -> None:
     # load back with pd.read_pickle(/path/to/file/pkl)
     results.to_pickle(os.path.join(out_path, "results.pkl"))
     failures.to_pickle(os.path.join(out_path, "failures.pkl"))
-    evaluation.save_features(features=model_features, out_path=out_path)
+    utils.evaluation.save_features(features=model_features, out_path=out_path)
 
 
 if __name__ == "__main__":

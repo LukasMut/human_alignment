@@ -12,8 +12,7 @@ from sklearn.model_selection import KFold
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-import analyses
-import probing
+import utils
 
 Array = np.ndarray
 Tensor = torch.Tensor
@@ -179,7 +178,7 @@ def make_results_df(
     probing_results_current_run["model"] = model_name
     probing_results_current_run["probing"] = probing_acc
     probing_results_current_run["module"] = module_name
-    probing_results_current_run["family"] = analyses.get_family_name(model_name)
+    probing_results_current_run["family"] = utils.analyses.get_family_name(model_name)
     probing_results_current_run["source"] = source
     probing_results_current_run["n_folds"] = n_folds
     return probing_results_current_run
@@ -236,10 +235,10 @@ def run(
 ) -> Tuple[Dict[str, List[float]], Array]:
     """Run optimization process."""
     callbacks = get_callbacks(optim_cfg)
-    triplets = probing.load_triplets(data_root)
-    features = probing.standardize(features)
-    model_config = probing.load_model_config(data_root, source)
-    temperature = probing.get_temperature(
+    triplets = utils.probing.load_triplets(data_root)
+    features = utils.probing.standardize(features)
+    model_config = utils.probing.load_model_config(data_root, source)
+    temperature = utils.probing.get_temperature(
         model_config=model_config,
         model=model,
         module=module,
@@ -253,15 +252,15 @@ def run(
     for k, (train_idx, _) in tqdm(enumerate(kf.split(objects), start=1), desc="Fold"):
         train_objects = objects[train_idx]
         # partition triplets into disjoint object sets
-        triplet_partitioning = probing.partition_triplets(
+        triplet_partitioning = utils.probing.partition_triplets(
             triplets=triplets,
             train_objects=train_objects,
         )
-        train_triplets = probing.TripletData(
+        train_triplets = utils.probing.TripletData(
             triplets=triplet_partitioning["train"],
             n_objects=n_objects,
         )
-        val_triplets = probing.TripletData(
+        val_triplets = utils.probing.TripletData(
             triplets=triplet_partitioning["val"],
             n_objects=n_objects,
         )
@@ -275,7 +274,7 @@ def run(
             batch_size=optim_cfg["batch_size"],
             train=False,
         )
-        linear_probe = probing.Linear(
+        linear_probe = utils.probing.Linear(
             features=features,
             optim_cfg=optim_cfg,
         )

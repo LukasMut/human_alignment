@@ -11,7 +11,7 @@ import argparse
 import numpy as np
 import pandas as pd
 
-from analyses import CKA
+from utils.analyses import CKA
 
 Array = np.ndarray
 
@@ -68,10 +68,12 @@ def add_vice(
     vice = [
         {
             "model": "vice",
-            "accuracy": float(1),
+            "zero-shot": float(1),
             "entropies": vice_entropies,
             "choices": vice_choices,
             "probas": vice_probas,
+            "source": "torch",
+            "family": "VICE",
         }
     ]
     return pd.concat([results, pd.DataFrame(vice)])
