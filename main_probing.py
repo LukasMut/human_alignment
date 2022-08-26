@@ -61,7 +61,7 @@ def parseargs():
         type=float,
         default=1e-2,
         help="Relative contribution of the regularization term",
-        choices=[1e-1, 1e-2, 1e-3, 1e-4, 1e-5],
+        choices=[1e-1, 1e-2, 1e-3, 1e-4],
     )
     aa(
         "--batch_size",
@@ -172,6 +172,7 @@ def make_results_df(
     model_name: str,
     module_name: str,
     source: str,
+    lmbda: float,
     n_folds: int,
 ) -> pd.DataFrame:
     probing_results_current_run = pd.DataFrame(index=range(1), columns=columns)
@@ -180,6 +181,7 @@ def make_results_df(
     probing_results_current_run["module"] = module_name
     probing_results_current_run["family"] = utils.analyses.get_family_name(model_name)
     probing_results_current_run["source"] = source
+    probing_results_current_run["l2_reg"] = lmbda
     probing_results_current_run["n_folds"] = n_folds
     return probing_results_current_run
 
@@ -194,28 +196,42 @@ def save_results(args, probing_acc: float) -> None:
         print(
             "\nFile for probing results exists.\nConcatenating current results with existing results file...\n"
         )
-        probing_results_overall = pd.read_pickle(os.path.join(out_path, "probing_results.pkl"))
+        probing_results_overall = pd.read_pickle(
+            os.path.join(out_path, "probing_results.pkl")
+        )
         probing_results_current_run = make_results_df(
             columns=probing_results_overall.columns.values,
             probing_acc=probing_acc,
             model_name=args.model,
             module_name=args.module,
             source=args.source,
+            lmbda=args.lmbda,
             n_folds=args.n_folds,
         )
         probing_results = pd.concat(
-            [probing_results_overall, probing_results_current_run], axis=0, ignore_index=True
+            [probing_results_overall, probing_results_current_run],
+            axis=0,
+            ignore_index=True,
         )
         probing_results.to_pickle(os.path.join(out_path, "probing_results.pkl"))
     else:
         print("\nCreating file for probing results...\n")
-        columns = ["model", "probing", "module", "family", "source", "n_folds"]
+        columns = [
+            "model",
+            "probing",
+            "module",
+            "family",
+            "source",
+            "lmbda",
+            "n_folds",
+        ]
         probing_results = make_results_df(
             columns=columns,
             probing_acc=probing_acc,
             model_name=args.model,
             module_name=args.module,
             source=args.source,
+            lmbda=args.lmbda,
             n_folds=args.n_folds,
         )
         probing_results.to_pickle(os.path.join(out_path, "probing_results.pkl"))
