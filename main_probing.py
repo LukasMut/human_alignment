@@ -319,7 +319,7 @@ if __name__ == "__main__":
     # seed everything for reproducibility
     seed_everything(args.rnd_seed, workers=True)
     features = load_features(args.probing_root)
-    model_features = features[args.model][args.module]
+    model_features = features[args.source][args.model][args.module]
     optim_cfg = create_optimization_config(args)
     cv_results, transformation = run(
         features=model_features,
