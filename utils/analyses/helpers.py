@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import os
+import warnings
 from functools import partial
+from typing import List
 
 import numpy as np
+import pandas as pd
 
 from .families import Families
 
@@ -55,3 +59,27 @@ def get_family_name(model_name: str) -> str:
             if not (family_name == "CNN" or family_name == "SSL"):
                 break
     return family_name
+
+
+def merge_results(
+    root: str, model_sources: List[str], dataset: str, layer: str
+) -> pd.DataFrame:
+    results = []
+    for source in model_sources:
+        results_path = os.path.join(root, dataset, source, layer)
+        try:
+            source_results = get_results(results_path)
+        except FileNotFoundError:
+            warnings.warn(
+                f"\nCould not find any results for source: <{source}> and layer: <{layer}>.\n"
+            )
+            continue
+        if "source" not in source_results.columns.values:
+            source_results["source"] = source
+        results.append(source_results)
+    results = pd.concat(results, axis=0, ignore_index=True)
+    return results
+
+
+def get_results(root: str) -> pd.DataFrame:
+    return pd.read_pickle(os.path.join(root, "results.pkl"))
