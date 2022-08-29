@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List
+from typing import Dict, List
 
 import pandas as pd
 
@@ -21,41 +21,31 @@ class Mapper:
         ]
         return training_objectives
 
-    def imagenet1k_condition(self, model: str, family: str, source: str) -> str:
+    def imagenet1k_condition(self, meta_info: Dict[str, str]) -> str:
         if (
-            not self._is_clip_model(family)
-            and not self._is_source_google(source)
-            and not self._is_ssl_model(family)
-            and not self._is_imagenet21k_model(model)
+            not self._is_clip_model(meta_info)
+            and not self._is_source_google(meta_info)
+            and not self._is_ssl_model(meta_info)
+            and not self._is_imagenet21k_model(meta_info)
         ):
             return self.imagenet1k_objective
 
-    def imagenet21k_condition(self, model: str) -> str:
-        if self._is_imagenet21k_model(model):
+    def imagenet21k_condition(self, meta_info: Dict[str, str]) -> str:
+        if self._is_imagenet21k_model(meta_info):
             return self.imagenet21k_objective
 
-    def jft30k_condition(self, family: str, source: str) -> str:
-        if self._is_jft30k_model(family, source):
+    def jft30k_condition(self, meta_info: Dict[str, str]) -> str:
+        if self._is_jft30k_model(meta_info):
             return self.jft30k_objective
 
-    def imagetext_condition(self, family: str) -> str:
-        if self._is_imagetext_model(family):
+    def imagetext_condition(self, meta_info: Dict[str, str]) -> str:
+        if self._is_imagetext_model(meta_info):
             return self.imagetext_objective
 
     def check_conditions(self, model: str, family: str, source: str) -> str:
+        meta_info = {"model": model, "family": family, "source": source}
         for objective in self.objectives:
-            if objective == "imagenet1k":
-                training = getattr(self, f"{objective}_condition")(
-                    model=model, family=family, source=source
-                )
-            elif objective == "imagenet21k":
-                training = getattr(self, f"{objective}_condition")(model)
-            elif objective == "jft30k":
-                training = getattr(self, f"{objective}_condition")(
-                    family=family, source=source
-                )
-            else:
-                training = getattr(self, f"{objective}_condition")(family)
+            training = getattr(self, f"{objective}_condition")(meta_info)
             if training:
                 return training
         assert self._is_ssl_model(
@@ -80,25 +70,25 @@ class Mapper:
         return "Image/Text"
 
     @staticmethod
-    def _is_imagenet21k_model(model: str) -> bool:
-        return model.endswith("21k")
+    def _is_imagenet21k_model(meta_info: Dict[str, str]) -> bool:
+        return meta_info["model"].endswith("21k")
 
     @staticmethod
-    def _is_clip_model(family: str) -> bool:
-        return family == "CLIP"
+    def _is_clip_model(meta_info: Dict[str, str]) -> bool:
+        return meta_info["family"] == "CLIP"
 
     @staticmethod
-    def _is_ssl_model(family: str) -> bool:
-        return family.startswith("SSL")
+    def _is_ssl_model(meta_info: Dict[str, str]) -> bool:
+        return meta_info["family"].startswith("SSL")
 
     @staticmethod
-    def _is_source_google(source: str) -> bool:
-        return source == "google"
+    def _is_source_google(meta_info: Dict[str, str]) -> bool:
+        return meta_info["source"] == "google"
 
     @staticmethod
-    def _is_jft30k_model(family: str, source: str) -> bool:
-        return family == "ViT" and source == "google"
+    def _is_jft30k_model(meta_info: Dict[str, str]) -> bool:
+        return meta_info["family"] == "ViT" and meta_info["source"] == "google"
 
     @staticmethod
-    def _is_imagetext_model(family: str) -> bool:
-        return family in ["CLIP", "Align", "Basic"]
+    def _is_imagetext_model(meta_info: Dict[str, str]) -> bool:
+        return meta_info["family"] in ["CLIP", "Align", "Basic"]

@@ -82,10 +82,16 @@ class Failures:
             failure_triplets = self.get_failures(model_choices)
             n_failures_per_bin = self.get_triplets_per_bin(failure_triplets)
             binwise_zero_one_loss = n_failures_per_bin / self.n_triplets_per_bin
-            classification_errors[child_data.model][child_data.source] = binwise_zero_one_loss.tolist()
+            classification_errors[child_data.model][
+                child_data.source
+            ] = binwise_zero_one_loss.tolist()
 
         # average zero-one losses per dimesions over the children of a family
-        family_classification_errors = [zero_one_loss for sources in classification_errors.values() for zero_one_loss in sources.values()]
+        family_classification_errors = [
+            zero_one_loss
+            for sources in classification_errors.values()
+            for zero_one_loss in sources.values()
+        ]
         family_classification_errors = np.stack(family_classification_errors, axis=0)
         family_classification_error = family_classification_errors.mean(axis=0)
 

@@ -176,7 +176,7 @@ class Families:
 
     @property
     def barlowtins(self):
-        return f"(?=^{self.ssl})(?=.*barlowtins$)"
+        return f"(?=^{self.ssl})(?=.*barlowtwins$)"
 
     @property
     def simclr(self):
