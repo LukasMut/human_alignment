@@ -49,7 +49,7 @@ class Mapper:
             if training:
                 return training
         assert self._is_ssl_model(
-            family
+            meta_info
         ), f"\nMapping from model, family, and source to training objective did not work correctly for model: <{model}> and source: <{source}.\n"
         return family
 
