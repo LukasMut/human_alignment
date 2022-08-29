@@ -1,4 +1,15 @@
 ![code style](https://img.shields.io/badge/code%20style-black-black)
+
+
+<div align="center">
+    <a href="https://github.com/LukasMut/human_alignment/blob/main" rel="nofollow">
+        <img src="https://img.shields.io/badge/python-3.8%20%7C%203.9-blue.svg" alt="PyPI" />
+    </a>
+    <a href="https://github.com/psf/black" rel="nofollow">
+        <img src="https://img.shields.io/badge/code%20style-black-000000.svg" alt="Code style: black" />
+    </a>
+</div>
+
 # Predicting the "odd-one-out" on a triplet task
 
 ## Cifar-100 triplet task
@@ -9,17 +20,34 @@ with a different coarse label. This results for example in the following triplet
 with bike and train being in the same coarse category and tree being the odd one out.
 
 
-## Research Questions/Ideas
-* How does the pre-training task affect accuracy? (supervised vs. self-supervised learning)
-* How does model size/embeddings size affect accuracy?
-* Does scaling really help to peform close to human-level intelligence?
-* How does model architecture affect accuracy? (e. g. VGGs vs. ResNets vs. ViTs)
-* Linear probing on top of representations/finetuning
-* Can we correlate accuracy with CKA similarity of representations?
-* How uniformly do models make mistakes vs. humans?
-* Fine-tune each model on THINGS (multi-class classification for THINGS) and then compare models against humans?
-* Predict the similarity space of a different model (use predictions of one model as label).
-* Do self-supervised learning on THINGS dataset and then measure the performance.
+## Repository structure
+
+```bash
+root
+├── envs
+├── └── environment.yml
+├── data
+├── ├── cifar.py
+├── └── things.py
+├── utils
+├── ├── analyses/*.py
+├── ├── evaluation/*.py
+├── └── probing/*.py
+├── models
+├── ├── custom_mode.py
+├── └── utils.py
+├── .gitignore
+├── README.md
+├── main_embedding_eval.py
+├── main_model_comparison.py
+├── main_model_eval.py
+├── main_probing.py
+├── requirements.txt
+├── search_temp_scaling.py
+├── show_triplets.py
+└── visualize_embeddings.py
+```
+
 
 ## Usage
 
@@ -36,27 +64,3 @@ python main_eval.py --data_root /home/space/datasets/things \
 --rnd_seed 42 \
 --verbose
 ```
-
-## Results
-| Model                 | Things (Penultimate) | Things (Logits; Dot) | Cifar-100-0 | #parameters | Imagenet Accuracy |
-|-----------------------|----------------------|----------------------|-------------|-------------|-------------------|
-| Efficientnet B0       |                      | 45.35                |             |             | 77.692            |
-| Efficientnet B1       |                      | 43.01                |             |             | 78.642            |
-| Efficientnet B2       |                      | 43.39                |             |             | 80.608            |
-| Efficientnet B3       |                      | 38.90                |             |             | 82.008            |
-| Efficientnet B4       |                      | 43.84                |             |             | 83.384            |
-| Efficientnet B5       |                      | 44.80                |             |             | 83.444            |
-| Efficientnet B6       |                      | 45.57                |             |             | 84.008            |
-| Efficientnet B7       |                      | 45.53                |             |             | 84.122            |
-| Resnet 18             | 47.33                |                      | 62.09       |             | 69.758            |
-| Resnet 34             | 47.44                |                      |             |             | 73.314            |
-| Resnet 50             | 47.74                |                      | 64.75       |             | 76.130            |
-| Resnet 50 BarlowTwins | 43.84                |                      | 59.72       |             | 73.5              |
-| Resnet 101            | 47.56                |                      |             |             | 77.374            |
-| Resnet 152            | 47.24                |                      | 68.32       |             | 78.312            |
-| Vit-B 16              | 50.89                |                      |             |             | (81.072)          |
-| VGG 11                |                      | 51.96                |             |             | 69.020            |
-| VGG 13                |                      | 52.19                |             |             | 69.928            |
-| VGG 16                |                      | 52.06                |             |             | 71.592            |
-| VGG 19                |                      | 51.83                | 66.49       |             | 72.376            |
-| AlexNet               |                      |                      |             |             |                   |
