@@ -1,6 +1,3 @@
-![code style](https://img.shields.io/badge/code%20style-black-black)
-
-
 <div align="center">
     <a href="https://github.com/LukasMut/human_alignment/blob/main" rel="nofollow">
         <img src="https://img.shields.io/badge/python-3.8%20%7C%203.9-blue.svg" alt="PyPI" />
