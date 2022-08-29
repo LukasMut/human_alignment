@@ -22,7 +22,8 @@ class Families:
     def mapping(self) -> Dict[str, str]:
         mapping = {
             "clip_children": "CLIP",
-            "vit_children": "ViT",
+            "vit_in_children": "ViT-IN",
+            "vit_jft_children": "ViT-JFT",
             "alexnet_children": "AlexNet",
             "resnet_children": "ResNet",
             "vgg_children": "VGG",
@@ -43,8 +44,12 @@ class Families:
         return mapping
 
     @property
-    def vit_children(self):
-        return self.search("vit")
+    def vit_in_children(self):
+        return self.search("vit_in")
+
+    @property
+    def vit_jft_children(self):
+        return self.search("vit_jft")
 
     @property
     def inception_children(self):
@@ -123,8 +128,12 @@ class Families:
         return "clip"
 
     @property
-    def vit(self):
-        return r"^vit"
+    def vit_in(self):
+        return r"^(vit_b|vit_tiny|vit_small|vit_base|vit-S|vit-B|vit-L|)"
+
+    @property
+    def vit_jft(self):
+        return r"^vit-G"
 
     @property
     def ssl(self):
