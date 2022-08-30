@@ -51,7 +51,8 @@ class Mapper:
         assert self._is_ssl_model(
             meta_info
         ), f"\nMapping from model, family, and source to training objective did not work correctly for model: <{model}> and source: <{source}.\n"
-        return family
+        training = 'Self-supervised'
+        return training
 
     @property
     def imagenet1k_objective(self) -> str:
