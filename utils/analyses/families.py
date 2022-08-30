@@ -129,7 +129,7 @@ class Families:
 
     @property
     def vit_in(self):
-        return r"^(vit_b|vit_tiny|vit_small|vit_base|vit-S|vit-B|vit-L|)"
+        return r"^(vit_b|vit_tiny|vit_small|vit_base|vit-S|vit-B|vit-L)"
 
     @property
     def vit_jft(self):
