@@ -56,7 +56,7 @@ def get_family_name(model_name: str) -> str:
     for children in all_children:
         if getattr(families, children):
             family_name = families.mapping[children]
-            if not (family_name == "CNN" or family_name == "SSL"):
+            if not family_name == "CNN" or family_name == "SSL":
                 break
     return family_name
 

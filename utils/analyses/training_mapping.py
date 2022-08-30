@@ -51,7 +51,7 @@ class Mapper:
         assert self._is_ssl_model(
             meta_info
         ), f"\nMapping from model, family, and source to training objective did not work correctly for model: <{model}> and source: <{source}.\n"
-        training = 'Self-Supervised'
+        training = "Self-Supervised"
         return training
 
     @property
@@ -88,7 +88,7 @@ class Mapper:
 
     @staticmethod
     def _is_jft30k_model(meta_info: Dict[str, str]) -> bool:
-        return meta_info["family"].startswith('ViT') and meta_info["source"] == "google"
+        return meta_info["family"].startswith("ViT") and meta_info["source"] == "google"
 
     @staticmethod
     def _is_imagetext_model(meta_info: Dict[str, str]) -> bool:
