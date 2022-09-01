@@ -201,3 +201,57 @@ def plot_probing_vs_zeroshot_performances(
     if verbose:
         plt.show()
     plt.close()
+
+
+def plot_logits_vs_penultimate(
+    out_path: str,
+    probing_results: pd.DataFrame,
+    verbose: bool = True,
+) -> None:
+    min = .4
+    max = .6
+    plt.figure(figsize=(8, 6), dpi=100)
+    sns.set_style("ticks")
+    sns.set_context("paper")
+    ax = sns.scatterplot(
+        data=probing_results, 
+        x="probing_penultimate", 
+        y="probing_logits", 
+        hue="Architecture", # marker color is determined by a model's base architecture
+        style="Training", # marker style is determined by training data/objective
+        s=90,
+        alpha=.9,
+        legend='full',
+        palette=sns.color_palette("colorblind", probing_results["Architecture"].unique().shape[0])
+    )
+    ax.set_xlabel('Penultimate', fontsize=18, labelpad=12)
+    ax.set_ylabel('Logits', fontsize=18, labelpad=12)
+    ax.set_ylim([min, max])
+    ax.set_xlim([min, max])
+    lims = [
+    np.min([ax.get_xlim(), ax.get_ylim()]),  # min of both axes
+    np.max([ax.get_xlim(), ax.get_ylim()]),  # max of both axes
+    ]
+    # now plot both limits against each other (this is the x=y line)
+    ax.plot(lims, lims, '--', alpha=0.8, color='grey', zorder=0)
+    ax.set_xticks(np.arange(min, max + .01, 0.02), fontsize=16)
+    ax.set_yticks(np.arange(min, max + .01, 0.02), fontsize=16)
+    ax.legend(title='', loc='upper left', ncol=2, fancybox=True, fontsize=9)
+    ax.set_title("Probing odd-one-out accuracy", fontsize=18, pad=10)
+    plt.tight_layout()
+    
+    if not os.path.exists(out_path):
+        print("\nOutput directory does not exist.")
+        print("Creating output directory to save plot.\n")
+        os.makedirs(out_path)
+
+    plt.savefig(
+        os.path.join(
+            out_path,
+            f"penultimate_vs_logits.png",
+        ),
+        bbox_inches="tight",
+    )
+    if verbose:
+        plt.show()
+    plt.close()
