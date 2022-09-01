@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from tueplots.constants.color import rgb
 
 Array = np.ndarray
 
@@ -23,13 +24,12 @@ def concat_images(images: Array, top_k: int) -> Array:
 def visualize_dimension(
     ax: Any, images: Array, dimension: Array, top_k: int = 6
 ) -> None:
-    """Plot the top-k objects for a single VICE dimension/concept."""
     # sort dimension by weights in decending order and get top-k objects
     topk_objects = np.argsort(-dimension)[:top_k]
     topk_images = images[topk_objects]
     img_comb = concat_images(images=topk_images, top_k=top_k)
     for spine in ax.spines:
-        ax.spines[spine].set_color("black")
+        ax.spines[spine].set_color(rgb.tue_dark)
         ax.spines[spine].set_linewidth(7)
     ax.imshow(img_comb)
     ax.set_xticks([])
@@ -56,7 +56,7 @@ def plot_conceptwise_accuracies(
     ax.set_ylim([0.1, 0.8])
     if xlabel:
         ax.set_xticklabels(
-            labels=concept_errors.family.unique(), fontsize=30, rotation=40, ha="right"
+            labels=concept_errors.family.unique(), fontsize=32, rotation=40, ha="right"
         )
     else:
         ax.set_xticks([])
@@ -77,7 +77,6 @@ def plot_conceptwise_performances(
     images: List[Any],
     verbose: bool = True,
 ) -> None:
-    """Plot concept-wise odd-one-out accuracies of all models for a subset of dimensions ."""
     n_rows = 2
     f = plt.figure(figsize=(40, 20), dpi=150)
     gs = f.add_gridspec(n_rows, len(dimensions))
@@ -105,15 +104,17 @@ def plot_conceptwise_performances(
         x=0,
         y=0.35,
     )
+    """
     f.supxlabel(
-        "Architecture",
-        fontsize=45,
-        y=-0.01,
-        x=0.5,
-        ha="center",
-        va="bottom",
-        color="black",
+            'Architecture',
+            fontsize=45,
+            y=-0.01,
+            x=0.5,
+            ha='center',
+            va='bottom',
+            color='black',
     )
+    """
     f.tight_layout()
 
     if not os.path.exists(out_path):
@@ -208,38 +209,40 @@ def plot_logits_vs_penultimate(
     probing_results: pd.DataFrame,
     verbose: bool = True,
 ) -> None:
-    min = .4
-    max = .6
+    min = 0.4
+    max = 0.6
     plt.figure(figsize=(8, 6), dpi=100)
     sns.set_style("ticks")
     sns.set_context("paper")
     ax = sns.scatterplot(
-        data=probing_results, 
-        x="probing_penultimate", 
-        y="probing_logits", 
-        hue="Architecture", # marker color is determined by a model's base architecture
-        style="Training", # marker style is determined by training data/objective
+        data=probing_results,
+        x="probing_penultimate",
+        y="probing_logits",
+        hue="Architecture",  # marker color is determined by a model's base architecture
+        style="Training",  # marker style is determined by training data/objective
         s=90,
-        alpha=.9,
-        legend='full',
-        palette=sns.color_palette("colorblind", probing_results["Architecture"].unique().shape[0])
+        alpha=0.9,
+        legend="full",
+        palette=sns.color_palette(
+            "colorblind", probing_results["Architecture"].unique().shape[0]
+        ),
     )
-    ax.set_xlabel('Penultimate', fontsize=18, labelpad=12)
-    ax.set_ylabel('Logits', fontsize=18, labelpad=12)
+    ax.set_xlabel("Penultimate", fontsize=18, labelpad=12)
+    ax.set_ylabel("Logits", fontsize=18, labelpad=12)
     ax.set_ylim([min, max])
     ax.set_xlim([min, max])
     lims = [
-    np.min([ax.get_xlim(), ax.get_ylim()]),  # min of both axes
-    np.max([ax.get_xlim(), ax.get_ylim()]),  # max of both axes
+        np.min([ax.get_xlim(), ax.get_ylim()]),  # min of both axes
+        np.max([ax.get_xlim(), ax.get_ylim()]),  # max of both axes
     ]
     # now plot both limits against each other (this is the x=y line)
-    ax.plot(lims, lims, '--', alpha=0.8, color='grey', zorder=0)
-    ax.set_xticks(np.arange(min, max + .01, 0.02), fontsize=16)
-    ax.set_yticks(np.arange(min, max + .01, 0.02), fontsize=16)
-    ax.legend(title='', loc='upper left', ncol=2, fancybox=True, fontsize=9)
+    ax.plot(lims, lims, "--", alpha=0.8, color="grey", zorder=0)
+    ax.set_xticks(np.arange(min, max + 0.01, 0.02), fontsize=16)
+    ax.set_yticks(np.arange(min, max + 0.01, 0.02), fontsize=16)
+    ax.legend(title="", loc="upper left", ncol=2, fancybox=True, fontsize=9)
     ax.set_title("Probing odd-one-out accuracy", fontsize=18, pad=10)
     plt.tight_layout()
-    
+
     if not os.path.exists(out_path):
         print("\nOutput directory does not exist.")
         print("Creating output directory to save plot.\n")

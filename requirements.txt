@@ -9,6 +9,7 @@ functorch==0.1.*
 thingsvision==1.6.0
 tqdm==4.64.0
 pytorch_lightning==1.7.0
+tueplots
 ml_collections
 pyflakes
 black
