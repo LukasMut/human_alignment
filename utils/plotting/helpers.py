@@ -9,6 +9,14 @@ from tueplots.constants.color import rgb
 
 Array = np.ndarray
 
+PALETTE = {
+    "Image/Text": "darkgreen",
+    "Supervised (ImageNet 1k)": "coral",
+    "Supervised (ImageNet 21k)": "darkcyan",
+    "Supervised (JFT 30k)": "black",
+    "Self-Supervised": "darkmagenta",
+}
+
 
 def concat_images(images: Array, top_k: int) -> Array:
     img_combination = np.concatenate(
@@ -49,9 +57,10 @@ def plot_conceptwise_accuracies(
         x="family",
         y="odd-one-out-accuracy",
         orient="v",  # vertical orientation
+        hue="training",
         s=12,
         alpha=0.7,
-        color="dimgrey",  # dimgrey seems to be a good color for plots withput color-mapping
+        palette=PALETTE,
     )
     ax.set_ylim([0.1, 0.8])
     if xlabel:
@@ -146,12 +155,18 @@ def plot_probing_vs_zeroshot(results: pd.DataFrame, module: str, ylabel: bool) -
         s=400,
         alpha=0.9,
         legend="full",
-        palette=sns.color_palette("colorblind", results["Training"].unique().shape[0]),
+        palette={
+            "Image/Text": "darkgreen",
+            "Supervised (ImageNet 1k)": "coral",
+            "Supervised (ImageNet 21k)": "darkcyan",
+            "Supervised (JFT 30k)": "black",
+            "Self-Supervised": "darkmagenta",
+        },
     )
-    ax.set_xlabel("Zero-shot odd-one-out accuracy", fontsize=30, labelpad=20)
+    ax.set_xlabel("Zero-shot odd-one-out accuracy", fontsize=30, labelpad=25)
 
     if ylabel:
-        ax.set_ylabel("Probing odd-one-out accuracy", fontsize=30, labelpad=20)
+        ax.set_ylabel("Probing odd-one-out accuracy", fontsize=30, labelpad=25)
     else:
         ax.set_ylabel("")
 
@@ -163,7 +178,9 @@ def plot_probing_vs_zeroshot(results: pd.DataFrame, module: str, ylabel: bool) -
     ax.plot([min, max], [min, max], "--", alpha=0.8, color="grey", zorder=0)
     ax.set_xticks(np.arange(min, max, 0.02).round(2))
     ax.set_yticks(np.arange(min, max, 0.02).round(2))
-    ax.legend(title="", ncol=1, loc="lower right", fancybox=True, fontsize=20)
+    ax.set_xticklabels(np.arange(min, max, 0.02).round(2), fontsize=20)
+    ax.set_yticklabels(np.arange(min, max, 0.02).round(2), fontsize=20)
+    ax.legend(title="", ncol=1, loc="lower right", fancybox=True, fontsize=22)
 
 
 def plot_probing_vs_zeroshot_performances(
@@ -235,7 +252,7 @@ def plot_logits_vs_penultimate(
         np.min([ax.get_xlim(), ax.get_ylim()]),  # min of both axes
         np.max([ax.get_xlim(), ax.get_ylim()]),  # max of both axes
     ]
-    # now plot both limits against each other (this is the x=y line)
+    # now plot both limits against each other
     ax.plot(lims, lims, "--", alpha=0.8, color="grey", zorder=0)
     ax.set_xticks(np.arange(min, max + 0.01, 0.02), fontsize=16)
     ax.set_yticks(np.arange(min, max + 0.01, 0.02), fontsize=16)
