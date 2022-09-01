@@ -10,11 +10,11 @@ from tueplots.constants.color import rgb
 Array = np.ndarray
 
 PALETTE = {
-    "Image/Text": "darkgreen",
+    "Image/Text": "darkmagenta",
     "Supervised (ImageNet 1k)": "coral",
     "Supervised (ImageNet 21k)": "darkcyan",
     "Supervised (JFT 30k)": "black",
-    "Self-Supervised": "darkmagenta",
+    "Self-Supervised": "darkgreen",
 }
 
 
@@ -56,11 +56,18 @@ def plot_conceptwise_accuracies(
         data=concept_errors,
         x="family",
         y="odd-one-out-accuracy",
-        orient="v",  # vertical orientation
         hue="training",
-        s=12,
+        orient="v",  # vertical orientation
+        s=14,
         alpha=0.7,
-        palette=PALETTE,
+        # color='dimgrey', # dimgrey seems to be a good color for plots withput color-mapping
+        palette={
+            "Image/Text": "darkmagenta",
+            "Supervised (ImageNet 1k)": "coral",
+            "Supervised (ImageNet 21k)": "darkcyan",
+            "Supervised (JFT 30k)": "black",
+            "Self-Supervised": "darkgreen",
+        },
     )
     ax.set_ylim([0.1, 0.8])
     if xlabel:
@@ -75,6 +82,8 @@ def plot_conceptwise_accuracies(
         ax.set_yticks([])
     ax.set_xlabel("")
     ax.set_ylabel("")
+    ax.get_legend().remove()
+    # ax.legend(title="", ncol=1, loc="best", fancybox=True, fontsize=30)
     plt.tight_layout()
 
 
@@ -109,9 +118,9 @@ def plot_conceptwise_performances(
                     )
     f.supylabel(
         "Zero-shot odd-one-out accuracy",
-        fontsize=40,
+        fontsize=42,
         x=0,
-        y=0.35,
+        y=0.33,
     )
     """
     f.supxlabel(
