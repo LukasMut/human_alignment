@@ -61,13 +61,7 @@ def plot_conceptwise_accuracies(
         s=14,
         alpha=0.7,
         # color='dimgrey', # dimgrey seems to be a good color for plots withput color-mapping
-        palette={
-            "Image/Text": "darkmagenta",
-            "Supervised (ImageNet 1k)": "coral",
-            "Supervised (ImageNet 21k)": "darkcyan",
-            "Supervised (JFT 30k)": "black",
-            "Self-Supervised": "darkgreen",
-        },
+        palette=PALETTE,
     )
     ax.set_ylim([0.1, 0.8])
     if xlabel:
@@ -83,7 +77,6 @@ def plot_conceptwise_accuracies(
     ax.set_xlabel("")
     ax.set_ylabel("")
     ax.get_legend().remove()
-    # ax.legend(title="", ncol=1, loc="best", fancybox=True, fontsize=30)
     plt.tight_layout()
 
 
@@ -122,17 +115,6 @@ def plot_conceptwise_performances(
         x=0,
         y=0.33,
     )
-    """
-    f.supxlabel(
-            'Architecture',
-            fontsize=45,
-            y=-0.01,
-            x=0.5,
-            ha='center',
-            va='bottom',
-            color='black',
-    )
-    """
     f.tight_layout()
 
     if not os.path.exists(out_path):
@@ -164,13 +146,7 @@ def plot_probing_vs_zeroshot(results: pd.DataFrame, module: str, ylabel: bool) -
         s=400,
         alpha=0.9,
         legend="full",
-        palette={
-            "Image/Text": "darkgreen",
-            "Supervised (ImageNet 1k)": "coral",
-            "Supervised (ImageNet 21k)": "darkcyan",
-            "Supervised (JFT 30k)": "black",
-            "Self-Supervised": "darkmagenta",
-        },
+        palette=PALETTE,
     )
     ax.set_xlabel("Zero-shot odd-one-out accuracy", fontsize=30, labelpad=25)
 
@@ -180,7 +156,7 @@ def plot_probing_vs_zeroshot(results: pd.DataFrame, module: str, ylabel: bool) -
         ax.set_ylabel("")
 
     ax.set_title(module.capitalize(), fontsize=32, pad=20)
-    # set x and y limits to be the same
+    # make x and y limits equivalent
     ax.set_ylim([min, max])
     ax.set_xlim([min, max])
     # plot the x=y line
@@ -241,7 +217,7 @@ def plot_logits_vs_penultimate(
     sns.set_style("ticks")
     sns.set_context("paper")
     ax = sns.scatterplot(
-        data=probing_results, 
+        data=probing_results,
         x="probing_penultimate", 
         y="probing_logits", 
         hue="Architecture", # marker color is determined by a model's base architecture
