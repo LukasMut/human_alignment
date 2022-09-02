@@ -59,7 +59,17 @@ def load_features(features_path: str, data_root: str) -> Array:
     with open(os.path.join(features_path, "features.pkl"), "rb") as f:
         features = pickle.load(f)
     vice_embedding = get_vice_embedding(data_root)
-    features.update({"vice": {"logits": vice_embedding, "penultimate": vice_embedding}})
+    features.update(
+        {
+            "PyTorch": 
+            {
+                "vice":
+                {
+                    "logits": vice_embedding, "penultimate": vice_embedding
+                }
+            }
+        }
+    )
     return features
 
 
@@ -74,11 +84,11 @@ def add_vice(
     vice = [
         {
             "model": "vice",
-            "zero-shot": float(1),
-            "entropies": vice_entropies,
+            "accuracy": float(1),
             "choices": vice_choices,
+            "entropies": vice_entropies,
             "probas": vice_probas,
-            "source": "torch",
+            "source": "PyTorch",
             "family": "VICE",
         }
     ]
@@ -127,8 +137,8 @@ def compare_model_representations(
         for j in range(len(models)):
             if i != j:
                 if np.isnan(alignments.iloc[i, j]):
-                    X = features[models[i]][module]
-                    Y = features[models[j]][module]
+                    X = features[results.loc[i, 'source']][models[i]][module]
+                    Y = features[results.loc[j, 'source']][models[j]][module]
                     rho = cka.compare(X, Y)
                 else:
                     continue
