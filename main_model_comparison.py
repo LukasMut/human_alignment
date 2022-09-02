@@ -124,7 +124,6 @@ def compare_model_representations(
 ) -> pd.DataFrame:
     cka = CKA(m=m, kernel="linear")
     models = results.model.values
-    models = np.append(models, "vice")
     alignments = pd.DataFrame(index=models, columns=models, dtype=float)
     for i in range(len(models)):
         for j in range(len(models)):
