@@ -22,9 +22,15 @@ def parseargs():
     def aa(*args, **kwargs):
         parser.add_argument(*args, **kwargs)
 
-    aa("--data_root", type=str, help="path/to/things")
-    aa("--dataset", type=str, help="Which dataset to use", choices=DATASETS)
+    aa("--data_root", type=str, 
+        help="path/to/things")
+    aa("--dataset", type=str, 
+        help="Whether to use things, things-aligned, or CIFAR-100", choices=DATASETS)
+    aa("--module", type=str, 
+        help="Whether to compare odd-one-out choices of the logits or penultimate layer",
+        choices=["logits", "penultimate"])
     aa("--results_path", type=str, help="path/to/results")
+    aa("--features_path", type=str, help="path/to/features")
     args = parser.parse_args()
     return args
 
@@ -35,13 +41,13 @@ def unpickle_results(results_path: str) -> pd.DataFrame:
 
 def get_vice_probas(data_root: str) -> Array:
     return np.load(
-        os.path.join(data_root, "probas", "probabilities_correct_triplets.npy")
+        os.path.join(data_root, "probas", "probabilities_all_triplets.npy")
     )
 
 
 def get_vice_entropies(data_root: str) -> Array:
     return np.load(
-        os.path.join(data_root, "entropies", "entropies_correct_triplets.npy")
+        os.path.join(data_root, "entropies", "entropies_all_triplets.npy")
     )
 
 
@@ -49,11 +55,11 @@ def get_vice_embedding(data_root: str) -> Array:
     return np.load(os.path.join(data_root, "dimensions", "vice_embedding.npy"))
 
 
-def load_features(results_path: str, data_root: str) -> Array:
-    with open(os.path.join(results_path, "features.pkl"), "rb") as f:
+def load_features(features_path: str, data_root: str) -> Array:
+    with open(os.path.join(features_path, "features.pkl"), "rb") as f:
         features = pickle.load(f)
     vice_embedding = get_vice_embedding(data_root)
-    features.update({"vice": vice_embedding})
+    features.update({"vice": {"logits": vice_embedding, "penultimate": vice_embedding}})
     return features
 
 
@@ -110,6 +116,7 @@ def compare_model_choices(results: pd.DataFrame) -> pd.DataFrame:
 def compare_model_representations(
     results: pd.DataFrame,
     features: Dict[str, Array],
+    module: str,
     m=1854,
 ) -> pd.DataFrame:
     cka = CKA(m=m, kernel="linear")
@@ -120,8 +127,8 @@ def compare_model_representations(
         for j in range(len(models)):
             if i != j:
                 if np.isnan(alignments.iloc[i, j]):
-                    X = features[models[i]]
-                    Y = features[models[j]]
+                    X = features[models[i]][module]
+                    Y = features[models[j]][module]
                     rho = cka.compare(X, Y)
                 else:
                     continue
@@ -137,7 +144,7 @@ if __name__ == "__main__":
     args = parseargs()
     # unpickle results and features
     results = unpickle_results(args.results_path)
-    features = load_features(args.results_path, args.data_root)
+    features = load_features(args.features_path, args.data_root)
     # load vice entropies and probas
     vice_entropies = get_vice_entropies(args.data_root)
     vice_probas = get_vice_probas(args.data_root)
@@ -145,7 +152,8 @@ if __name__ == "__main__":
     results = add_vice(results, vice_entropies, vice_probas)
     # compute triplet agreements and jensen-shannon distances
     agreements = compare_model_choices(results)
-    alignments = compare_model_representations(results=results, features=features)
+    alignments = compare_model_representations(
+        results=results, features=features, module=args.module)
     # save dataframes as pkl files
     agreements.to_pickle(os.path.join(args.results_path, "agreements.pkl"))
     alignments.to_pickle(os.path.join(args.results_path, "alignments.pkl"))
