@@ -70,7 +70,7 @@ def add_vice(
     results: pd.DataFrame, vice_entropies: Array, vice_probas: Array
 ) -> pd.DataFrame:
     vice_choices = np.full_like(
-        a=results[results.model == np.unique(results.model)[0]].choices[0],
+        a=results[results.model == np.unique(results.model)[0]].choices.values[0],
         fill_value=2,
         dtype=int,
     )
