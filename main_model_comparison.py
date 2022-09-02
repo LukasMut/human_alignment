@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from data import DATASETS
-from typing import Dict
-
-import pickle
-import os
 import argparse
+import os
+import pickle
+from typing import Dict
 
 import numpy as np
 import pandas as pd
 
+from data import DATASETS
 from utils.analyses import CKA
 
 Array = np.ndarray
@@ -22,13 +21,19 @@ def parseargs():
     def aa(*args, **kwargs):
         parser.add_argument(*args, **kwargs)
 
-    aa("--data_root", type=str, 
-        help="path/to/things")
-    aa("--dataset", type=str, 
-        help="Whether to use things, things-aligned, or CIFAR-100", choices=DATASETS)
-    aa("--module", type=str, 
+    aa("--data_root", type=str, help="path/to/things")
+    aa(
+        "--dataset",
+        type=str,
+        help="Whether to use things, things-aligned, or CIFAR-100",
+        choices=DATASETS,
+    )
+    aa(
+        "--module",
+        type=str,
         help="Whether to compare odd-one-out choices of the logits or penultimate layer",
-        choices=["logits", "penultimate"])
+        choices=["logits", "penultimate"],
+    )
     aa("--results_path", type=str, help="path/to/results")
     aa("--features_path", type=str, help="path/to/features")
     args = parser.parse_args()
@@ -40,15 +45,11 @@ def unpickle_results(results_path: str) -> pd.DataFrame:
 
 
 def get_vice_probas(data_root: str) -> Array:
-    return np.load(
-        os.path.join(data_root, "probas", "probabilities_all_triplets.npy")
-    )
+    return np.load(os.path.join(data_root, "probas", "probabilities_all_triplets.npy"))
 
 
 def get_vice_entropies(data_root: str) -> Array:
-    return np.load(
-        os.path.join(data_root, "entropies", "entropies_all_triplets.npy")
-    )
+    return np.load(os.path.join(data_root, "entropies", "entropies_all_triplets.npy"))
 
 
 def get_vice_embedding(data_root: str) -> Array:
@@ -60,15 +61,7 @@ def load_features(features_path: str, data_root: str) -> Array:
         features = pickle.load(f)
     vice_embedding = get_vice_embedding(data_root)
     features.update(
-        {
-            "PyTorch": 
-            {
-                "vice":
-                {
-                    "logits": vice_embedding, "penultimate": vice_embedding
-                }
-            }
-        }
+        {"PyTorch": {"vice": {"logits": vice_embedding, "penultimate": vice_embedding}}}
     )
     return features
 
@@ -137,8 +130,8 @@ def compare_model_representations(
         for j in range(len(models)):
             if i != j:
                 if np.isnan(alignments.iloc[i, j]):
-                    X = features[results.loc[i, 'source']][models[i]][module]
-                    Y = features[results.loc[j, 'source']][models[j]][module]
+                    X = features[results.loc[i, "source"]][models[i]][module]
+                    Y = features[results.loc[j, "source"]][models[j]][module]
                     rho = cka.compare(X, Y)
                 else:
                     continue
@@ -163,7 +156,8 @@ if __name__ == "__main__":
     # compute triplet agreements and jensen-shannon distances
     agreements = compare_model_choices(results)
     alignments = compare_model_representations(
-        results=results, features=features, module=args.module)
+        results=results, features=features, module=args.module
+    )
     # save dataframes as pkl files
     agreements.to_pickle(os.path.join(args.results_path, "agreements.pkl"))
     alignments.to_pickle(os.path.join(args.results_path, "alignments.pkl"))
