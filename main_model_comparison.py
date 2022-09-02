@@ -85,7 +85,7 @@ def add_vice(
             "family": "VICE",
         }
     ]
-    return pd.concat([results, pd.DataFrame(vice)])
+    return pd.concat([results, pd.DataFrame(vice)], axis=0, ignore_index=True)
 
 
 def get_agreement(choices_i, choices_j) -> float:
