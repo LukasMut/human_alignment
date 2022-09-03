@@ -160,7 +160,7 @@ def get_callbacks(optim_cfg: FrozenDict, steps: int = 20) -> List[Callable]:
 
 
 def get_mean_cv_acc(
-    cv_results: Dict[str, List[float]], metric: str = "val_acc"
+    cv_results: Dict[str, List[float]], metric: str = "test_acc"
 ) -> float:
     avg_val_acc = np.mean([vals[0][metric] for vals in cv_results.values()])
     return avg_val_acc
