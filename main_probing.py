@@ -97,7 +97,7 @@ def parseargs():
     )
     aa("--probing_root", type=str, help="path/to/probing")
     aa("--log_dir", type=str, help="directory to checkpoint transformations")
-    aa("--rnd_seed", type=int, help="random seed for reproducibility")
+    aa("--rnd_seed", type=int, default=42, help="random seed for reproducibility")
     args = parser.parse_args()
     return args
 
@@ -169,6 +169,7 @@ def get_mean_cv_acc(
 def make_results_df(
     columns: List[str],
     probing_acc: float,
+    ooo_choices: Array,
     model_name: str,
     module_name: str,
     source: str,
@@ -178,6 +179,7 @@ def make_results_df(
     probing_results_current_run = pd.DataFrame(index=range(1), columns=columns)
     probing_results_current_run["model"] = model_name
     probing_results_current_run["probing"] = probing_acc
+    probing_results_current_run["choices"] = [ooo_choices]
     probing_results_current_run["module"] = module_name
     probing_results_current_run["family"] = utils.analyses.get_family_name(model_name)
     probing_results_current_run["source"] = source
@@ -186,13 +188,13 @@ def make_results_df(
     return probing_results_current_run
 
 
-def save_results(args, probing_acc: float) -> None:
+def save_results(args, probing_acc: float, ooo_choices: Array) -> None:
     out_path = os.path.join(args.probing_root, "results")
     if not os.path.exists(out_path):
         print("\nCreating results directory...\n")
         os.makedirs(out_path)
 
-    if os.path.isfile(os.path.join(out_path, "probing_results.pkl")):
+    if os.path.isfile(os.path.join(out_path, "probing_results_choices.pkl")):
         print(
             "\nFile for probing results exists.\nConcatenating current results with existing results file...\n"
         )
@@ -202,6 +204,7 @@ def save_results(args, probing_acc: float) -> None:
         probing_results_current_run = make_results_df(
             columns=probing_results_overall.columns.values,
             probing_acc=probing_acc,
+            ooo_choices=ooo_choices,
             model_name=args.model,
             module_name=args.module,
             source=args.source,
@@ -219,15 +222,17 @@ def save_results(args, probing_acc: float) -> None:
         columns = [
             "model",
             "probing",
+            "choices",
             "module",
             "family",
             "source",
-            "lmbda",
+            "l2_reg",
             "n_folds",
         ]
         probing_results = make_results_df(
             columns=columns,
             probing_acc=probing_acc,
+            ooo_choices=ooo_choices,
             model_name=args.model,
             module_name=args.module,
             source=args.source,
@@ -265,6 +270,7 @@ def run(
     # NOTE: we can try k = 5, but k = 10 doesn't work
     kf = KFold(n_splits=optim_cfg["n_folds"], random_state=rnd_seed, shuffle=True)
     cv_results = {}
+    ooo_choices = []
     for k, (train_idx, _) in tqdm(enumerate(kf.split(objects), start=1), desc="Fold"):
         train_objects = objects[train_idx]
         # partition triplets into disjoint object sets
@@ -297,20 +303,25 @@ def run(
         trainer = Trainer(
             accelerator=device,
             callbacks=callbacks,
-            strategy="ddp_spawn" if device == "cpu" else None,
+            # strategy="ddp_spawn" if device == "cpu" else None,
+            strategy="ddp",
             max_epochs=optim_cfg["max_epochs"],
             min_epochs=optim_cfg["min_epochs"],
             devices=num_processes if device == "cpu" else "auto",
             enable_progress_bar=True,
         )
         trainer.fit(linear_probe, train_batches, val_batches)
-        val_performance = trainer.validate(
+        val_performance = trainer.test(
             linear_probe,
             dataloaders=val_batches,
         )
+        predictions = trainer.predict(linear_probe, dataloaders=val_batches)
+        predictions = torch.cat(predictions, dim=0).tolist()
+        ooo_choices.append(predictions)
         cv_results[f"fold_{k:02d}"] = val_performance
     transformation = linear_probe.transform.data.detach().cpu().numpy()
-    return cv_results, transformation
+    ooo_choices = np.concatenate(ooo_choices)
+    return ooo_choices, cv_results, transformation
 
 
 if __name__ == "__main__":
@@ -321,7 +332,7 @@ if __name__ == "__main__":
     features = load_features(args.probing_root)
     model_features = features[args.source][args.model][args.module]
     optim_cfg = create_optimization_config(args)
-    cv_results, transformation = run(
+    ooo_choices, cv_results, transformation = run(
         features=model_features,
         model=args.model,
         module=args.module,
@@ -334,7 +345,7 @@ if __name__ == "__main__":
         num_processes=args.num_processes,
     )
     avg_cv_acc = get_mean_cv_acc(cv_results)
-    save_results(args, probing_acc=avg_cv_acc)
+    save_results(args, probing_acc=avg_cv_acc, ooo_choices=ooo_choices)
 
     """
     # save transformation matrix for every model (do we need this?)

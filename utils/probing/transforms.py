@@ -25,8 +25,7 @@ class Linear(pl.LightningModule):
         self.feature_dim = self.features.shape[1]
         # initialize transformation matrix with \tau I (temperature-scaled identity matrix)
         self.transform = torch.nn.Parameter(
-            data=torch.eye(self.feature_dim)
-            * optim_cfg["temperature"],
+            data=torch.eye(self.feature_dim) * optim_cfg["temperature"],
             requires_grad=True,
         )
         self.optim = optim_cfg["optim"]
@@ -37,8 +36,19 @@ class Linear(pl.LightningModule):
 
     def forward(self, one_hots: Tensor) -> Tensor:
         embedding = self.features @ self.transform
-        embeddings = one_hots @ embedding
-        return embeddings
+        # normalize object embeddings to lie on the unit-sphere
+        embedding = F.normalize(embedding, dim=1)
+        batch_embeddings = one_hots @ embedding
+        return batch_embeddings
+
+    @staticmethod
+    def convert_predictions(sim_predictions: Tensor) -> Tensor:
+        """Convert similarity predictions into odd-one-out predictions."""
+        first_conversion = torch.where(
+            sim_predictions != 1, sim_predictions - 2, sim_predictions
+        )
+        ooo_predictions = torch.where(first_conversion < 0, 2, first_conversion)
+        return ooo_predictions
 
     @staticmethod
     def compute_similarities(
@@ -94,11 +104,7 @@ class Linear(pl.LightningModule):
         return complexity_loss
 
     def training_step(self, one_hots: Tensor, batch_idx: int):
-        # training_step defines the train loop. It is independent of forward
-        embedding = self.features @ self.transform
-        # normalize object embeddings to lie on the unit-sphere
-        embedding = F.normalize(embedding, dim=1)
-        batch_embeddings = one_hots @ embedding
+        batch_embeddings = self(one_hots)
         anchor, positive, negative = self.unbind(batch_embeddings)
         dots = self.compute_similarities(anchor, positive, negative)
         c_entropy = self.loss_fun(dots)
@@ -111,30 +117,34 @@ class Linear(pl.LightningModule):
         return loss
 
     def validation_step(self, one_hots: Tensor, batch_idx: int):
-        embedding = self.features @ self.transform
-        # normalize object embeddings to lie on the unit-sphere
-        embedding = F.normalize(embedding, dim=1)
-        batch_embeddings = one_hots @ embedding
-        anchor, positive, negative = self.unbind(batch_embeddings)
-        similarities = self.compute_similarities(anchor, positive, negative)
-        val_loss = self.loss_fun(similarities)
-        val_acc = self.choice_accuracy(similarities)
-        self.log("val_loss", val_loss)
-        self.log("val_acc", val_acc)
-        return val_loss, val_acc
+        loss, acc = self._shared_eval_step(one_hots, batch_idx)
+        metrics = {"val_acc": acc, "val_loss": loss}
+        self.log_dict(metrics)
+        return metrics
 
     def test_step(self, one_hots: Tensor, batch_idx: int):
-        embedding = self.features @ self.transform
-        # normalize object embeddings to lie on the unit-sphere
-        embedding = F.normalize(embedding, dim=1)
-        batch_embeddings = one_hots @ embedding
+        loss, acc = self._shared_eval_step(one_hots, batch_idx)
+        metrics = {"test_acc": acc, "test_loss": loss}
+        self.log_dict(metrics)
+        return metrics
+
+    def _shared_eval_step(self, one_hots: Tensor, batch_idx: int):
+        batch_embeddings = self(one_hots)
         anchor, positive, negative = self.unbind(batch_embeddings)
         similarities = self.compute_similarities(anchor, positive, negative)
-        test_loss = self.loss_fun(similarities)
-        test_acc = self.choice_accuracy(similarities)
-        self.log("test_loss", test_loss)
-        self.log("test_acc", test_acc)
-        return test_loss, test_acc
+        loss = self.loss_fun(similarities)
+        acc = self.choice_accuracy(similarities)
+        return loss, acc
+
+    def predict_step(self, one_hots: Tensor, batch_idx: int):
+        batch_embeddings = self(one_hots)
+        anchor, positive, negative = self.unbind(batch_embeddings)
+        similarities = self.compute_similarities(anchor, positive, negative)
+        sim_predictions = torch.argmax(
+            F.softmax(torch.stack(similarities, dim=1), dim=1), dim=1
+        )
+        ooo_predictions = self.convert_predictions(sim_predictions)
+        return ooo_predictions
 
     def backward(self, loss, optimizer, optimizer_idx):
         loss.backward()
@@ -148,6 +158,6 @@ class Linear(pl.LightningModule):
             optimizer = optimizer(self.parameters(), lr=self.lr, momentum=0.9)
         else:
             raise ValueError(
-                "\nUse Adam or SGD for learning a transformation of a network's feature space.\n"
+                "\nUse Adam or SGD for learning a linear transformation of a network's feature space.\n"
             )
         return optimizer

@@ -14,7 +14,7 @@ def load_triplets(data_root: str) -> Array:
     train_triplets = np.load(os.path.join(data_root, "triplets", "train_90.npy"))
     val_triplets = np.load(os.path.join(data_root, "triplets", "test_10.npy"))
     triplets = np.concatenate((train_triplets, val_triplets), axis=0)
-    return triplets
+    return triplets.astype(int)
 
 
 def partition_triplets(triplets: Array, train_objects: Array) -> Dict[str, List[int]]:
