@@ -59,9 +59,9 @@ def parseargs():
     aa(
         "--lmbda",
         type=float,
-        default=1e-2,
+        default=1e-3,
         help="Relative contribution of the regularization term",
-        choices=[1e-1, 1e-2, 1e-3, 1e-4],
+        choices=[1e-2, 1e-3, 1e-4, 1e-5],
     )
     aa(
         "--batch_size",
