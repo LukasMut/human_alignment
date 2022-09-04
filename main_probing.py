@@ -194,7 +194,7 @@ def save_results(args, probing_acc: float, ooo_choices: Array) -> None:
         print("\nCreating results directory...\n")
         os.makedirs(out_path)
 
-    if os.path.isfile(os.path.join(out_path, "probing_results_choices.pkl")):
+    if os.path.isfile(os.path.join(out_path, "probing_results.pkl")):
         print(
             "\nFile for probing results exists.\nConcatenating current results with existing results file...\n"
         )

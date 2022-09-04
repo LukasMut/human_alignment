@@ -18,7 +18,7 @@ Array = np.ndarray
 @dataclass
 class Failures:
     results: pd.DataFrame
-    triplet_dataset: object
+    triplets: Array
     concept_embedding: Array
     iv: str
     concept_importance: str = None
@@ -27,7 +27,6 @@ class Failures:
     def __post_init__(self):
         self.models = self.results.model.unique()
         self.families = Families(self.models)
-        self.triplets = self.triplet_dataset.triplets
         self.classification_errors = dict()
         self.n_families = 0
 
