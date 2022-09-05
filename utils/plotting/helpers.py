@@ -182,29 +182,29 @@ def plot_probing_vs_zeroshot(results: pd.DataFrame, module: str, ylabel: bool) -
         hue="Training",  # marker color is determined by training objective
         style="Training",  # marker style is also determined by training objective
         s=400,
-        alpha=0.9,
+        alpha=0.6,
         legend="full",
         palette=PALETTE,
         markers=MARKERS,
     )
-    ax.set_xlabel("Zero-shot odd-one-out accuracy", fontsize=30, labelpad=25)
+    ax.set_xlabel("Zero-shot odd-one-out accuracy", fontsize=35, labelpad=25)
 
     if ylabel:
-        ax.set_ylabel("Probing odd-one-out accuracy", fontsize=30, labelpad=25)
+        ax.set_ylabel("Probing odd-one-out accuracy", fontsize=35, labelpad=25)
     else:
         ax.set_ylabel("")
 
-    ax.set_title(module.capitalize(), fontsize=32, pad=20)
-    # make x and y limits equivalent
+    ax.set_title(module.capitalize(), fontsize=40, pad=20)
+    # set x and y limits to be the same
     ax.set_ylim([min, max])
     ax.set_xlim([min, max])
     # plot the x=y line
     ax.plot([min, max], [min, max], "--", alpha=0.8, color="grey", zorder=0)
-    ax.set_xticks(np.arange(min, max, 0.02).round(2))
-    ax.set_yticks(np.arange(min, max, 0.02).round(2))
-    ax.set_xticklabels(np.arange(min, max, 0.02).round(2), fontsize=20)
-    ax.set_yticklabels(np.arange(min, max, 0.02).round(2), fontsize=20)
-    ax.legend(title="", ncol=1, loc="lower right", fancybox=True, fontsize=22)
+    ax.set_xticks(np.arange(min, max, 0.04).round(2))
+    ax.set_yticks(np.arange(min, max, 0.04).round(2))
+    ax.set_xticklabels(np.arange(min, max, 0.04).round(2), fontsize=22)
+    ax.set_yticklabels(np.arange(min, max, 0.04).round(2), fontsize=22)
+    ax.legend(title="", ncol=1, loc="lower right", fancybox=True, fontsize=24)
 
 
 def plot_probing_vs_zeroshot_performances(
@@ -262,7 +262,7 @@ def plot_logits_vs_penultimate(
         hue="Architecture",  # marker color is determined by a model's base architecture
         style="Training",  # marker style is determined by training data/objective
         s=90,
-        alpha=0.9,
+        alpha=0.7,
         legend="full",
         palette=sns.color_palette(
             "colorblind", probing_results["Architecture"].unique().shape[0]
