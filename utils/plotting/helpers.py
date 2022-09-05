@@ -27,6 +27,11 @@ MARKERS = {
     "VICE": "*",
 }
 
+
+def set_context() -> None:
+    sns.set_context("paper")
+
+
 def concat_images(images: Array, top_k: int) -> Array:
     img_combination = np.concatenate(
         [
