@@ -56,56 +56,69 @@ def visualize_dimension(
     ax.imshow(img_comb)
     ax.set_xticks([])
     ax.set_yticks([])
+    plt.tight_layout()
 
 
 def plot_conceptwise_accuracies(
-    concept_errors: pd.DataFrame, ylabel: bool, xlabel: bool
+    concept_subset: pd.DataFrame,
+    ylabel: bool,
+    xlabel: bool,
+    probing: bool,
 ) -> None:
     # sort models by their odd-one-out accuracy in descending order
-    concept_errors.sort_values(
+    ymin = 0.1
+    ymax = 0.9
+    concept_subset.sort_values(
         by=["odd-one-out-accuracy"], axis=0, ascending=False, inplace=True
     )
-    sns.set_context("paper")
+    set_context()
     ax = sns.swarmplot(
-        data=concept_errors,
+        data=concept_subset,
         x="family",
         y="odd-one-out-accuracy",
         hue="training",
-        orient="v",  # vertical orientation
+        orient="v",
+        edgecolor="gray",
         s=14,
         alpha=0.7,
-        edgecolor="gray",
-        # color='dimgrey', # dimgrey seems to be a good color for plots withput color-mapping
         palette=PALETTE,
-        markers=MARKERS,
     )
-    ax.set_ylim([0.1, 0.8])
+    ax.set_ylim([ymin, ymax])
     if xlabel:
         ax.set_xticklabels(
-            labels=concept_errors.family.unique(), fontsize=32, rotation=40, ha="right"
+            labels=concept_subset.family.unique(), fontsize=34, rotation=40, ha="right"
         )
     else:
         ax.set_xticks([])
     if ylabel:
-        ax.set_yticklabels(labels=np.arange(0.1, 0.9, 0.1).round(1), fontsize=30)
+        label = (
+            "Odd-one-out accuracy after probing"
+            if probing
+            else "Zero-shot odd-one-out accuracy"
+        )
+        ax.set_ylabel(label, fontsize=35, labelpad=20)
+        ax.set_yticklabels(
+            labels=np.arange(ymin, ymax + 0.1, 0.1).round(1), fontsize=30
+        )
     else:
+        ax.set_ylabel("")
         ax.set_yticks([])
     ax.set_xlabel("")
-    ax.set_ylabel("")
     ax.get_legend().remove()
     plt.tight_layout()
 
 
 def plot_conceptwise_performances(
     out_path: str,
-    concept_errors: pd.DataFrame,
+    zeroshot_concept_errors: pd.DataFrame,
+    probing_concept_errors: pd.DataFrame,
     dimensions: List[int],
     vice_embedding: Array,
     images: List[Any],
     verbose: bool = True,
 ) -> None:
-    n_rows = 2
-    f = plt.figure(figsize=(40, 20), dpi=150)
+    n_rows = 3
+    f = plt.figure(figsize=(40, 34), dpi=150)
     gs = f.add_gridspec(n_rows, len(dimensions))
     for i in range(n_rows):
         for j, d in enumerate(dimensions):
@@ -119,20 +132,24 @@ def plot_conceptwise_performances(
                         dimension=dimension,
                     )
                 else:
-                    concept_subset = concept_errors[concept_errors.dimension == d]
+                    if i == 1:
+                        concept_subset = zeroshot_concept_errors[
+                            zeroshot_concept_errors.dimension == d
+                        ]
+                        probing = False
+                    else:
+                        concept_subset = probing_concept_errors[
+                            probing_concept_errors.dimension == d
+                        ]
+                        probing = True
                     plot_conceptwise_accuracies(
-                        concept_subset,
-                        ylabel=True if j == 0 else False,
+                        concept_subset=concept_subset,
+                        ylabel=True if (j == 0) else False,
                         xlabel=True,
+                        probing=probing,
                     )
-    f.supylabel(
-        "Zero-shot odd-one-out accuracy",
-        fontsize=42,
-        x=0,
-        y=0.33,
-    )
-    f.tight_layout()
 
+    f.tight_layout()
     if not os.path.exists(out_path):
         print("\nOutput directory does not exist.")
         print("Creating output directory to save plot.\n")
@@ -228,40 +245,42 @@ def plot_logits_vs_penultimate(
     probing_results: pd.DataFrame,
     verbose: bool = True,
 ) -> None:
-    min = .39
-    max = .59
+    min = 0.39
+    max = 0.59
     plt.figure(figsize=(8, 6), dpi=100)
     sns.set_style("ticks")
     sns.set_context("paper")
     ax = sns.scatterplot(
         data=probing_results,
-        x="probing_penultimate", 
-        y="probing_logits", 
-        hue="Architecture", # marker color is determined by a model's base architecture
-        style="Training", # marker style is determined by training data/objective
+        x="probing_penultimate",
+        y="probing_logits",
+        hue="Architecture",  # marker color is determined by a model's base architecture
+        style="Training",  # marker style is determined by training data/objective
         s=90,
-        alpha=.9,
-        legend='full',
-        palette=sns.color_palette("colorblind", probing_results["Architecture"].unique().shape[0])
+        alpha=0.9,
+        legend="full",
+        palette=sns.color_palette(
+            "colorblind", probing_results["Architecture"].unique().shape[0]
+        ),
     )
-    ax.set_xlabel('Penultimate', fontsize=18, labelpad=12)
-    ax.set_ylabel('Logits', fontsize=18, labelpad=12)
+    ax.set_xlabel("Penultimate", fontsize=18, labelpad=12)
+    ax.set_ylabel("Logits", fontsize=18, labelpad=12)
     ax.set_ylim([min, max])
     ax.set_xlim([min, max])
     lims = [
-    np.min([ax.get_xlim(), ax.get_ylim()]),  # min of both axes
-    np.max([ax.get_xlim(), ax.get_ylim()]),  # max of both axes
+        np.min([ax.get_xlim(), ax.get_ylim()]),  # min of both axes
+        np.max([ax.get_xlim(), ax.get_ylim()]),  # max of both axes
     ]
     # now plot both limits against each other
-    ax.plot(lims, lims, '--', alpha=0.8, color='grey', zorder=0)
-    ax.set_xticks(np.arange(min, max + .01, 0.02), fontsize=16)
-    ax.set_yticks(np.arange(min, max + .01, 0.02), fontsize=16)
-    ax.set_xticklabels(np.arange(min - .01, max, 0.02).round(2), fontsize=12)
-    ax.set_yticklabels(np.arange(min - .01, max, 0.02).round(2), fontsize=12)
-    ax.legend(title='', loc='upper left', ncol=2, fancybox=True, fontsize=11)
+    ax.plot(lims, lims, "--", alpha=0.8, color="grey", zorder=0)
+    ax.set_xticks(np.arange(min, max + 0.01, 0.02), fontsize=16)
+    ax.set_yticks(np.arange(min, max + 0.01, 0.02), fontsize=16)
+    ax.set_xticklabels(np.arange(min - 0.01, max, 0.02).round(2), fontsize=12)
+    ax.set_yticklabels(np.arange(min - 0.01, max, 0.02).round(2), fontsize=12)
+    ax.legend(title="", loc="upper left", ncol=2, fancybox=True, fontsize=11)
     ax.set_title("Probing odd-one-out accuracy", fontsize=18, pad=10)
     plt.tight_layout()
-    
+
     if not os.path.exists(out_path):
         print("\nOutput directory does not exist.")
         print("Creating output directory to save plot.\n")
