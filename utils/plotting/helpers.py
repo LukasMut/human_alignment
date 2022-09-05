@@ -15,8 +15,17 @@ PALETTE = {
     "Supervised (ImageNet 21k)": "darkcyan",
     "Supervised (JFT 30k)": "black",
     "Self-Supervised": "darkgreen",
+    "VICE": "red",
 }
 
+MARKERS = {
+    "Image/Text": "o",
+    "Supervised (ImageNet 1k)": "s",
+    "Supervised (ImageNet 21k)": "P",
+    "Supervised (JFT 30k)": "X",
+    "Self-Supervised": "D",
+    "VICE": "*",
+}
 
 def concat_images(images: Array, top_k: int) -> Array:
     img_combination = np.concatenate(
@@ -60,8 +69,10 @@ def plot_conceptwise_accuracies(
         orient="v",  # vertical orientation
         s=14,
         alpha=0.7,
+        edgecolor="gray",
         # color='dimgrey', # dimgrey seems to be a good color for plots withput color-mapping
         palette=PALETTE,
+        markers=MARKERS,
     )
     ax.set_ylim([0.1, 0.8])
     if xlabel:
@@ -147,6 +158,7 @@ def plot_probing_vs_zeroshot(results: pd.DataFrame, module: str, ylabel: bool) -
         alpha=0.9,
         legend="full",
         palette=PALETTE,
+        markers=MARKERS,
     )
     ax.set_xlabel("Zero-shot odd-one-out accuracy", fontsize=30, labelpad=25)
 
