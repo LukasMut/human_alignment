@@ -9,11 +9,14 @@ from matplotlib import pyplot as plt
 import argparse
 import json
 import os
+import timm
 import torch
 import torchvision
 
 import numpy as np
 import pandas as pd
+
+EMBEDDINGS = ["google", "imagenet", "loss", "vit_same", "vit_best"]
 
 
 class DotDict(dict):
@@ -42,7 +45,7 @@ def parseargs():
         "--source",
         type=str,
         default="torchvsion",
-        choices=["timm", "torchvision", "local"],
+        choices=["timm", "torchvision"] + EMBEDDINGS,
         help="Host of (pretrained) models",
     )
     aa(
@@ -63,13 +66,9 @@ def parseargs():
             0.005,
             0.0025,
             0.001,
-            0.00075,
             0.0005,
-            0.00025,
             0.0001,
-            0.000075,
             0.00005,
-            0.000025,
             0.00001,
         ],
     )
@@ -81,9 +80,8 @@ def parseargs():
     )
     aa(
         "--run_models",
-        type=bool,
+        action="store_true",
         help="If set to False, probas will be loaded from storage (if possible).",
-        default=False,
     )
     aa(
         "--distance",
@@ -151,7 +149,6 @@ def _is_model_name_accepted(name: str):
     name_starts = ["alexnet", "vgg", "res", "vit", "efficient", "clip", "r50"]
     is_ok = any([name.startswith(start) for start in name_starts])
     is_ok &= not name.endswith("_bn")
-    is_ok &= not "vit_l" in name
     is_ok &= name == "alexnet" or any(c.isdigit() for c in name)
     return is_ok
 
@@ -191,7 +188,9 @@ def get_penult_module_name(model: Model):
     return module_name
 
 
-def get_model_dict(model_names: List[str], dist: str, ssl_models_path: str):
+def get_model_dict(
+    model_names: List[str], dist: str, ssl_models_path: str, source: str
+):
     """Returns a dictionary with logit and penultimate layer module names for every model."""
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model_dict = {
@@ -210,13 +209,18 @@ def get_model_dict(model_names: List[str], dist: str, ssl_models_path: str):
         for model_name in model_names
     }
     for model_name in model_names:
-        try:
+        if source in EMBEDDINGS:
+            # Embeddings do not have models
+            model_dict[model_name]["logits"]["module_name"] = "logits"
+            model_dict[model_name]["penultimate"]["module_name"] = "penultimate"
+        else:
             model = CustomModel(
                 model_name=model_name,
                 pretrained=True,
                 model_path=None,
                 device=device,
                 ssl_models_path=ssl_models_path,
+                source=source,
             )
             model_dict[model_name]["logits"]["module_name"] = get_logit_module_name(
                 model
@@ -224,10 +228,6 @@ def get_model_dict(model_names: List[str], dist: str, ssl_models_path: str):
             model_dict[model_name]["penultimate"][
                 "module_name"
             ] = get_penult_module_name(model)
-        except AttributeError:
-            # Embeddings do not have custom models
-            model_dict[model_name]["logits"]["module_name"] = "logits"
-            model_dict[model_name]["penultimate"]["module_name"] = "penultimate"
 
     return model_dict
 
@@ -293,6 +293,7 @@ def search_temperatures(
     """Find the temperature scaling with minimal average distance over the VICE-correct triplets and populate the
     dictionary with it."""
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    is_embedding_src = source in EMBEDDINGS
 
     # Get probas for each configuration
     model_names = [str(k) for k in model_dict.keys()]
@@ -303,13 +304,24 @@ def search_temperatures(
                 results_root = _get_results_path(
                     out_path, temp, distance, one_hot=False
                 )
-                results_path = os.path.join(results_root, model_name)
-                results_exists = os.path.exists(results_path)
+                model_results_path = os.path.join(results_root, model_name)
+                single_result_path = os.path.join(
+                    model_results_path, dataset, source, module_type_name
+                )
+                results_exists = os.path.exists(single_result_path)
+                # print(single_result_path, "exists:", results_exists)
+
                 if run_models or not results_exists:
                     # Save a configuration to be loaded in the evaluate function
-                    model_dict[model_name][module_type_name]["temperature"][
-                        distance
-                    ] = temp
+                    if is_embedding_src:
+                        for embedding_name in model_names:
+                            model_dict[embedding_name][module_type_name]["temperature"][
+                                distance
+                            ] = temp
+                    else:
+                        model_dict[model_name][module_type_name]["temperature"][
+                            distance
+                        ] = temp
                     save_dict(model_dict, out_path, overwrite, one_hot)
 
                     config = DotDict(
@@ -319,7 +331,7 @@ def search_temperatures(
                             "model_names": [model_name],
                             "module": module_type_name,
                             "distance": distance,
-                            "out_path": results_path,
+                            "out_path": model_results_path,
                             "device": device,
                             "batch_size": 8,
                             "num_threads": 4,
@@ -329,8 +341,10 @@ def search_temperatures(
                         }
                     )
                     print("Evaluating:", model_name, module_name, temp)
-                    if source == "local":
-                        config.update({"embeddings_root": embeddings_root})
+                    if is_embedding_src:
+                        config.update(
+                            {"embeddings_root": embeddings_root}
+                        )  # "/".join(list(embeddings_root.split('/')[0:-1])) })
                         try:
                             evaluate_embeddings(config)
                         except KeyError as error:
@@ -342,7 +356,7 @@ def search_temperatures(
                         evaluate(config)
                 else:
                     print("Will load probas for:", model_name, module_name, temp)
-        if source == "local":
+        if is_embedding_src:
             # Local models will be evaluated all at once
             break
 
@@ -364,45 +378,53 @@ def search_temperatures(
     # Load probas for each configuration and select best temperature
     for model_name in model_names:
         for module_type_name in module_type_names:
+            if module_type_name == "logits" and source == "google":
+                print("Skipping logits.")
+                continue
             min_value = None
             kls = []
             jss = []
             ece = []
             ece_eq_mass = []
+            module_folder_name = model_names[0] if is_embedding_src else model_name
             for temp in temperatures:
                 module_name = model_dict[model_name][module_type_name]["module_name"]
                 results_root = _get_results_path(
                     out_path, temp, distance, one_hot=False
                 )
-                results_path = os.path.join(results_root, model_name)
+                single_result_path = os.path.join(
+                    results_root, module_folder_name, dataset, source, module_type_name
+                )
 
                 print("Processing...", model_name, module_name, temp, flush=True)
 
-                with open(os.path.join(results_path, "results.pkl"), "rb") as f:
+                with open(os.path.join(single_result_path, "results.pkl"), "rb") as f:
                     df = pd.read_pickle(f)
-                    probas = torch.tensor(df[df.model == model_name]["probas"][0])
+                    probas = torch.tensor(
+                        df[df.model == model_name]["probas"][
+                            df[df.model == model_name].index[0]
+                        ]
+                    )
 
                 if probas_vice is None:
                     probas_vice = torch.zeros_like(probas)
                     probas_vice[:, 2] = 1
 
-                avg_kl = torch.nn.KLDivLoss()(probas, probas_vice)
+                avg_kl = 0  # torch.nn.KLDivLoss()(probas, probas_vice)
                 kls.append(avg_kl)
 
-                avg_js = np.mean(
-                    [jensenshannon(p, pv) for (p, pv) in zip(probas, probas_vice)]
-                )
+                avg_js = 0  #  np.mean([jensenshannon(p, pv) for (p, pv) in zip(probas, probas_vice)])
                 jss.append(avg_js)
 
                 ece_val = ECE(probas, equal_mass=False)
-                ece_em_val = ECE(probas, equal_mass=True)
+                ece_em_val = 0  # ECE(probas, equal_mass=True)
                 ece.append(ece_val)
                 ece_eq_mass.append(ece_em_val)
 
-                print("    js %.4f" % avg_js)
-                print("    kl %.4f" % avg_kl)
+                # print("    js %.4f" % avg_js)
+                # print("    kl %.4f" % avg_kl)
                 print("    ece %.4f" % ece_val)
-                print("    eceem %.4f" % ece_em_val)
+                # print("    eceem %.4f" % ece_em_val)
                 if min_value is None or ece_val < min_value:
                     min_value = ece_val
                     model_dict[model_name][module_type_name]["temperature"][
@@ -464,7 +486,9 @@ def save_dict(dictionary: dict, out_path: str, overwrite: bool, one_hot: bool):
         except FileNotFoundError:
             print("Could not load dictionary. Creating new one.")
 
-    with open(os.path.join(out_path, get_model_dict_name(one_hot)), "w+") as f:
+    model_dict_path = os.path.join(out_path, get_model_dict_name(one_hot))
+    with open(model_dict_path, "w+") as f:
+        print("Saving model dict to", model_dict_path)
         json.dump(dictionary, f, indent=4)
 
 
@@ -570,14 +594,15 @@ if __name__ == "__main__":
     source = args.source
     embeddings_root = args.embeddings_root
 
-    out_path = os.path.join(out_path, source)
+    out_path = os.path.join(out_path, dataset, source)
     if not os.path.exists(out_path):
         os.makedirs(out_path)
 
-    if source == "local":
+    if source in EMBEDDINGS:
+        embeddings_root = os.path.join(embeddings_root, source)
         object_names = evaluation.get_things_objects(args.data_root)
         embeddings = evaluation.load_embeddings(
-            embeddings_root=args.embeddings_root,
+            embeddings_root=embeddings_root,
             object_names=object_names,
             module="embeddings",
         )
@@ -585,44 +610,46 @@ if __name__ == "__main__":
     else:
         model_names = [
             name for name in dir(torchvision.models) if _is_model_name_accepted(name)
-        ] + [
-            "clip-ViT",
-            "clip-RN",
-            "r50-simclr",
-            "r50-mocov2",
-            "r50-jigsaw",
-            "r50-colorization",
-            "r50-rotnet",
-            "r50-swav",
-            "r50-vicreg",
-            "r50-barlowtwins",
-            "vit_base_patch16_224",
-            "vit_base_patch32_224",
-            "vit_large_patch16_224",
-            "vit_small_patch16_224",
-            "vit_small_patch32_224",
-            "vit_tiny_patch16_224",
-            "resnet26",
-            "resnetv2_50",
-            "resnetv2_101",
-            "convnext_femto",
-            "convnext_pico",
-            "convnext_nano",
-            "convnext_tiny",
-            "convnext_small",
-            "convnext_base",
-            "convnext_large",
         ]
-        if args_model_names:
-            model_names = [
-                name
-                for name in model_names
-                if any([name.startswith(args_name) for args_name in args_model_names])
+        if source == "torchvision":
+            model_names += [
+                "clip-ViT",
+                "clip-RN",
+                "r50-simclr",
+                "r50-mocov2",
+                "r50-jigsaw",
+                "r50-colorization",
+                "r50-rotnet",
+                "r50-swav",
+                "r50-vicreg",
+                "r50-barlowtwins",
             ]
+        elif source == "timm":
+            model_names = [
+                mn for mn in model_names if mn in timm.list_models(pretrained=True)
+            ]
+            model_names += [
+                "vit_base_patch16_224",
+                "vit_base_patch32_224",
+                "vit_large_patch16_224",
+                "vit_small_patch16_224",
+                "vit_small_patch32_224",
+                "vit_tiny_patch16_224",
+                "convnext_tiny",
+                "convnext_small",
+                "convnext_base",
+                "convnext_large",
+            ]
+    if args_model_names and args_model_names[0] != "None":
+        model_names = [
+            name
+            for name in model_names
+            if any([name.startswith(args_name) for args_name in args_model_names])
+        ]
     print("Models to process:", model_names)
 
     model_dict = get_model_dict(
-        model_names, dist=distance, ssl_models_path=ssl_models_path
+        model_names, dist=distance, ssl_models_path=ssl_models_path, source=source
     )
 
     search_temperatures(
