@@ -53,12 +53,12 @@ class Failures:
     def get_model_subset(self, family: str) -> List[str]:
         return getattr(self.families, family)
 
-    def get_failures(self, model_choices: Array) -> Array:
+    def get_correct_predictions(self, model_choices: Array) -> Array:
         """Partition triplets into failure and correctly predicted triplets."""
-        model_failures = np.where(model_choices != 2)[0]
+        correct_predictions = np.where(model_choices == 2)[0]
         if self.iv == "dimension":
-            model_failures = self.triplets[model_failures]
-        return model_failures
+            correct_predictions = self.triplets[correct_predictions]
+        return correct_predictions
 
     def get_triplets_per_bin(self, triplets: Array) -> Array:
         if self.iv == "dimension":
@@ -78,9 +78,9 @@ class Failures:
         for _, child_data in family_subset.iterrows():
             model_choices = child_data["choices"]
             # get triplet indices for which a model predictly differently than humans
-            failure_triplets = self.get_failures(model_choices)
-            n_failures_per_bin = self.get_triplets_per_bin(failure_triplets)
-            binwise_zero_one_loss = n_failures_per_bin / self.n_triplets_per_bin
+            correct_predictions = self.get_correct_predictions(model_choices)
+            num_hits_per_bin = self.get_triplets_per_bin(correct_predictions)
+            binwise_zero_one_loss = 1 - (num_hits_per_bin / self.n_triplets_per_bin)
             classification_errors[child_data.model][
                 child_data.source
             ] = binwise_zero_one_loss.tolist()
