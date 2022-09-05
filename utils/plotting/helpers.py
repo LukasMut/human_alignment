@@ -50,13 +50,15 @@ def visualize_dimension(
     topk_objects = np.argsort(-dimension)[:top_k]
     topk_images = images[topk_objects]
     img_comb = concat_images(images=topk_images, top_k=top_k)
+    set_context()
     for spine in ax.spines:
         ax.spines[spine].set_color(rgb.tue_dark)
-        ax.spines[spine].set_linewidth(7)
+        ax.spines[spine].set_linewidth(8)
     ax.imshow(img_comb)
     ax.set_xticks([])
     ax.set_yticks([])
-    plt.tight_layout()
+    ax.set_xlabel("")
+    ax.set_ylabel("")
 
 
 def plot_conceptwise_accuracies(
@@ -66,7 +68,7 @@ def plot_conceptwise_accuracies(
     probing: bool,
 ) -> None:
     # sort models by their odd-one-out accuracy in descending order
-    ymin = 0.1
+    ymin = 0.2
     ymax = 0.9
     concept_subset.sort_values(
         by=["odd-one-out-accuracy"], axis=0, ascending=False, inplace=True
@@ -79,30 +81,33 @@ def plot_conceptwise_accuracies(
         hue="training",
         orient="v",
         edgecolor="gray",
-        s=14,
-        alpha=0.7,
+        s=16,
+        alpha=0.6,
         palette=PALETTE,
     )
     ax.set_ylim([ymin, ymax])
+
     if xlabel:
         ax.set_xticklabels(
             labels=concept_subset.family.unique(), fontsize=34, rotation=40, ha="right"
         )
     else:
         ax.set_xticks([])
+
     if ylabel:
         label = (
-            "Odd-one-out accuracy after probing"
+            "Probing odd-one-out accuracy"
             if probing
             else "Zero-shot odd-one-out accuracy"
         )
-        ax.set_ylabel(label, fontsize=35, labelpad=20)
+        ax.set_ylabel(label, fontsize=40, labelpad=30)
         ax.set_yticklabels(
-            labels=np.arange(ymin, ymax + 0.1, 0.1).round(1), fontsize=30
+            labels=np.arange(ymin, ymax + 0.1, 0.1).round(1), fontsize=36
         )
     else:
         ax.set_ylabel("")
         ax.set_yticks([])
+
     ax.set_xlabel("")
     ax.get_legend().remove()
     plt.tight_layout()
@@ -117,12 +122,13 @@ def plot_conceptwise_performances(
     images: List[Any],
     verbose: bool = True,
 ) -> None:
-    n_rows = 3
-    f = plt.figure(figsize=(40, 34), dpi=150)
-    gs = f.add_gridspec(n_rows, len(dimensions))
-    for i in range(n_rows):
+    nrow = 3
+    ncol = len(dimensions)
+    f = plt.figure(figsize=(40, 32), dpi=150)
+    gs = f.add_gridspec(nrow, ncol)
+    for i in range(nrow):
         for j, d in enumerate(dimensions):
-            with sns.axes_style("ticks"):
+            with sns.axes_style("white"):
                 ax = f.add_subplot(gs[i, j])
                 if i == 0:
                     dimension = vice_embedding[:, d]
@@ -144,11 +150,10 @@ def plot_conceptwise_performances(
                         probing = True
                     plot_conceptwise_accuracies(
                         concept_subset=concept_subset,
-                        ylabel=True if (j == 0) else False,
+                        ylabel=True if j == 0 else False,
                         xlabel=True,
                         probing=probing,
                     )
-
     f.tight_layout()
     if not os.path.exists(out_path):
         print("\nOutput directory does not exist.")
