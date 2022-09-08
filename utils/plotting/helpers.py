@@ -310,3 +310,47 @@ def plot_logits_vs_penultimate(
     if verbose:
         plt.show()
     plt.close()
+
+
+
+def alignment_plot(
+    agreements: pd.DataFrame,
+    layer: str,
+    comparison: str,
+    title: bool,
+    ylabel: bool,
+    cbar: bool,
+) -> None:
+    min_agreement = agreements.to_numpy().min()
+    sns.set_context("paper")
+    # here set the scale by 3
+    sns.set(font_scale=1.3)
+    sns.heatmap(
+                data=agreements,
+                vmin=0, #min_agreement, # TODO: set vmin to 0 or minimum agreement percentage?
+                vmax=float(1),
+                annot=False,
+                cbar=False, #True if cbar else False,
+                square=True,
+                xticklabels=True, #'auto',
+                yticklabels=True, #'auto',
+                alpha=.8, #.9
+                cmap=sns.color_palette("flare", as_cmap=True),
+    )
+    plt.xlabel('')
+    
+    if ylabel:
+        plt.ylabel(layer.capitalize(), fontsize=35, labelpad=30)
+    else:
+        plt.ylabel('')
+        
+    plt.xticks([])
+    plt.yticks([])
+    plt.tight_layout()
+    
+    if title:
+        if comparison.lower() == 'cka':
+            title = 'Centered Kernel Alignment (CKA)' 
+        else:
+            title = 'Odd-one-out choice agreement'
+        plt.title(title, fontsize=30, pad=20)
