@@ -83,3 +83,91 @@ def merge_results(
 
 def get_results(root: str) -> pd.DataFrame:
     return pd.read_pickle(os.path.join(root, "results.pkl"))
+
+
+def map_model_name(name: str) -> str:
+    mapping = {
+        "resnet_v1_50_tpu_softmax_seed0": "ResNet50 (Softmax)",
+        "resnet_v1_50_tpu_label_smoothing_seed0": "ResNet50 (Label smooth.)",
+        "resnet_v1_50_tpu_sigmoid_seed0": "ResNet50 (Sigmoid)",
+        "resnet_v1_50_tpu_extra_wd_seed0": "ResNet50 (Extra L2)",
+        "resnet_v1_50_tpu_dropout_seed0": "ResNet50 (Dropout)",
+        "resnet_v1_50_tpu_logit_penalty_seed0": "ResNet50 (Logit penalty)",
+        "resnet_v1_50_tpu_nt_xent_weights_seed0": "ResNet50 (Cosine softmax)",
+        "resnet_v1_50_tpu_nt_xent_seed0": "ResNet50 (Logit norm)",
+        "resnet_v1_50_tpu_squared_error_seed0": "ResNet50 (Squared error)",
+        "resnet_v1_50_tpu_mixup_seed0": "ResNet50 (MixUp)",
+        "resnet_v1_50_tpu_autoaugment_seed0": "ResNet50 (AutoAugment)",
+        "align": "Align",
+        "basic-l": "Basic-L",
+        "mobilenet_v2_1": "MobileNet v2 (1.4x)",
+        "nasnet_mobile-retrained-no_ls-no_dropout-no_aux": "NASNet Mobile",
+        "nasnet_large-retrained-no_ls-no_dropout-no_aux": "NASNet Large",
+    }
+
+    if name in mapping:
+        name = mapping[name].replace("ResNet", "RN")
+    else:
+        if "retrained" in name:
+            name = name.replace("_tpu", "").replace("_keras", "")
+            name = name.split("-retrained")[0]
+        else:
+            name = name.replace("patch", "")
+            name = (
+                name.replace("_small_", "-S/")
+                .replace("_tiny_", "-T/")
+                .replace("_base_", "-B/")
+                .replace("_large_", "-L/")
+            )
+            name = name.replace("-i1k", " (i1k)").replace("-i21k", " (i21k)")
+
+        name = (
+            name.replace("r50", "RN50").replace("resnet", "RN")
+        )
+
+        capitalize = {
+            "net": "Net",
+            "_b": "_B",
+            "efficient": "Efficient",
+            "vgg": "VGG",
+            "mobile": "Mobile",
+            "alex": "Alex",
+            "vit": "ViT",
+            "incept": "Incept",
+            "dense": "Dense",
+            "resnext": "ResNeXt",
+            "clip": "CLIP",
+            "mocov": "MoCoV",
+            "simclr": "SimCLR",
+            "barlowt": "BarlowT",
+            "swav": "Swav",
+            "jigsaw": "Jigsaw",
+            "vicreg": "VICReg",
+            "rot": "Rot",
+        }
+        for k, v in capitalize.items():
+            name = name.replace(k, v)
+
+        name = name.replace("Net_", "Net")
+        name = name.replace("_", " ")
+
+        if name == "RN v1 50":
+            name = "RN50 v1"
+        elif name == "RN v1 101":
+            name = "RN101 v1"
+        elif name == "RN v1 152":
+            name = "RN152 v1"
+        else:
+            name = name.replace("Inception RN", "Inception-RN")
+            name = name.replace("etB", "et B")
+            name = name.replace("v1", " v1").replace("v2", " v2").replace("  ", " ")
+            name = name.replace("ViT ", "ViT-").replace("ViT_", "ViT-")
+            name = (
+                name.replace("-B ", "-B/")
+                .replace("-T ", "-T/")
+                .replace("-S ", "-S/")
+                .replace("-L ", "-L/")
+                .replace("-G ", "-G/")
+            )
+
+    return name
