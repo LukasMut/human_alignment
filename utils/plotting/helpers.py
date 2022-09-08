@@ -15,7 +15,7 @@ PALETTE = {
     "Supervised (ImageNet 21k)": "darkcyan",
     "Supervised (JFT 30k)": "black",
     "Self-Supervised": "darkgreen",
-    "VICE": "red",
+    # "VICE": "red",
 }
 
 MARKERS = {
@@ -24,8 +24,30 @@ MARKERS = {
     "Supervised (ImageNet 21k)": "P",
     "Supervised (JFT 30k)": "X",
     "Self-Supervised": "D",
-    "VICE": "*",
+    # "VICE": "*",
 }
+
+CONCEPT_MAPPING = {
+        0: 'Tools',
+        1: 'Food',
+        2: 'Plant-related', 
+        3: 'Animal-related',
+        4: 'Furniture',
+        5: 'Clothing',
+        6: 'Royal',
+        7: 'Outdoors-related',
+        8: 'Body part',
+        9: 'Vehicles',
+        10: 'Wood',
+        11: 'Tools',
+        12: 'Technology',
+        13: 'Colorful',
+        14: 'Patterns',
+        15: 'Circular',
+        16: 'Sports',
+        17: 'Paper',
+}
+    
 
 
 def set_context() -> None:
@@ -33,18 +55,17 @@ def set_context() -> None:
 
 
 def concat_images(images: Array, top_k: int) -> Array:
-    img_combination = np.concatenate(
-        [
-            np.concatenate([img for img in images[: int(top_k / 2)]], axis=1),
-            np.concatenate([img for img in images[int(top_k / 2) :]], axis=1),
-        ],
-        axis=0,
-    )
+    img_combination = np.concatenate([
+        np.concatenate([img for img in images[:int(top_k/2)]], axis = 1),
+        np.concatenate([img for img in images[int(top_k/2):]], axis = 1)], axis = 0)
     return img_combination
 
-
 def visualize_dimension(
-    ax: Any, images: Array, dimension: Array, top_k: int = 6
+    ax: Any, 
+    images: Array, 
+    dimension: Array,
+    d: int,
+    top_k: int = 6
 ) -> None:
     # sort dimension by weights in decending order and get top-k objects
     topk_objects = np.argsort(-dimension)[:top_k]
@@ -57,36 +78,34 @@ def visualize_dimension(
     ax.imshow(img_comb)
     ax.set_xticks([])
     ax.set_yticks([])
-    ax.set_xlabel("")
-    ax.set_ylabel("")
-
-
+    ax.set_xlabel('')
+    ax.set_ylabel('')
+    ax.set_title(f'Dimension {d+1} / {CONCEPT_MAPPING[d]}', fontsize=62, pad=30, color='dimgrey')
+    
 def plot_conceptwise_accuracies(
-    concept_subset: pd.DataFrame,
-    ylabel: bool,
+    concept_subset: pd.DataFrame, 
+    ylabel: bool, 
     xlabel: bool,
     probing: bool,
 ) -> None:
     # sort models by their odd-one-out accuracy in descending order
-    ymin = 0.2
-    ymax = 0.9
-    concept_subset.sort_values(
-        by=["odd-one-out-accuracy"], axis=0, ascending=False, inplace=True
-    )
+    ymin = .2
+    ymax = .9
+    concept_subset.sort_values(by=['odd-one-out-accuracy'], axis=0, ascending=False, inplace=True)
     set_context()
     ax = sns.swarmplot(
         data=concept_subset,
-        x="family",
+        x="family", 
         y="odd-one-out-accuracy",
         hue="training",
         orient="v",
         edgecolor="gray",
         s=16,
-        alpha=0.6,
+        alpha=.6,
         palette=PALETTE,
     )
     ax.set_ylim([ymin, ymax])
-
+    
     if xlabel:
         ax.set_xticklabels(
             labels=concept_subset.family.unique(), fontsize=34, rotation=40, ha="right"
@@ -102,16 +121,15 @@ def plot_conceptwise_accuracies(
         )
         ax.set_ylabel(label, fontsize=40, labelpad=30)
         ax.set_yticklabels(
-            labels=np.arange(ymin, ymax + 0.1, 0.1).round(1), fontsize=36
+            labels=np.arange(ymin, ymax + 0.1, 0.1).round(1), fontsize=38
         )
     else:
         ax.set_ylabel("")
         ax.set_yticks([])
-
+    
     ax.set_xlabel("")
     ax.get_legend().remove()
     plt.tight_layout()
-
 
 def plot_conceptwise_performances(
     out_path: str,
@@ -120,7 +138,7 @@ def plot_conceptwise_performances(
     dimensions: List[int],
     vice_embedding: Array,
     images: List[Any],
-    verbose: bool = True,
+    verbose: bool = True 
 ) -> None:
     nrow = 3
     ncol = len(dimensions)
@@ -136,37 +154,28 @@ def plot_conceptwise_performances(
                         ax=ax,
                         images=images,
                         dimension=dimension,
+                        d=d,
                     )
                 else:
                     if i == 1:
-                        concept_subset = zeroshot_concept_errors[
-                            zeroshot_concept_errors.dimension == d
-                        ]
+                        concept_subset = zeroshot_concept_errors[zeroshot_concept_errors.dimension==d]
                         probing = False
                     else:
-                        concept_subset = probing_concept_errors[
-                            probing_concept_errors.dimension == d
-                        ]
+                        concept_subset = probing_concept_errors[probing_concept_errors.dimension==d]
                         probing = True
                     plot_conceptwise_accuracies(
-                        concept_subset=concept_subset,
+                        concept_subset=concept_subset, 
                         ylabel=True if j == 0 else False,
                         xlabel=True,
                         probing=probing,
                     )
     f.tight_layout()
     if not os.path.exists(out_path):
-        print("\nOutput directory does not exist.")
-        print("Creating output directory to save plot.\n")
+        print('\nOutput directory does not exist.')
+        print('Creating output directory to save plot.\n')
         os.makedirs(out_path)
 
-    plt.savefig(
-        os.path.join(
-            out_path,
-            f"conceptwise_performance_{dimensions[0]:02d}_{dimensions[1]:02d}_{dimensions[2]:02d}.png",
-        ),
-        bbox_inches="tight",
-    )
+    plt.savefig(os.path.join(out_path, f'conceptwise_performance_{dimensions[0]:02d}_{dimensions[1]:02d}_{dimensions[2]:02d}.png'), bbox_inches='tight')
     if verbose:
         plt.show()
     plt.close()
