@@ -15,7 +15,6 @@ def parseargs():
         parser.add_argument(*args, **kwargs)
 
     aa("--data_root", type=str, help="path/to/things")
-    aa("--dataset", type=str, help="Which dataset to use", default="things")
     aa(
         "--n_folds",
         type=int,
@@ -24,7 +23,7 @@ def parseargs():
     )
     aa("--model_names", type=str, nargs="+", default=[])
     aa("--rnd_seed", type=int, default=42, help="random seed for reproducibility")
-    aa("--load", action="store_false", help="Load results if they exist.")
+    aa("--load", action="store_true", help="Load results if they exist.")
     args = parser.parse_args()
     return args
 
@@ -37,7 +36,7 @@ def regress(
     train_source_features: Array,
     test_target_features: Array,
     test_source_features: Array,
-    k: int,
+    k: int = None,
 ):
     train_target_features = train_target_features.T
     test_target_features = test_target_features.T
@@ -49,7 +48,7 @@ def regress(
         alphas=(1e-1, 1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6),
         fit_intercept=True,
         scoring=None,
-        # cv=k # TODO
+        cv=k,
     )
 
     r2 = np.zeros([n_dimensions])
@@ -94,7 +93,6 @@ def regress_k_fold(
             train_source_features=train_source_features,
             test_target_features=test_target_features,
             test_source_features=test_source_features,
-            k=10,
         )
 
         r2s[:, k_i] = r2
@@ -120,13 +118,9 @@ def triplet_task(features: Array, data_root: str, k: int, rnd_seed: int):
             triplets=triplets,
             train_objects=train_objects,
         )
-        val_triplets = utils.probing.TripletData(
-            triplets=triplet_partitioning["val"],
-            n_objects=n_objects,
-        )
 
         choices, _ = utils.evaluation.get_predictions(
-            features, val_triplets, 1.0, args.distance
+            features, np.array(triplet_partitioning["val"])
         )
         acc = utils.evaluation.accuracy(choices)
         accs[k_i] = acc
@@ -140,11 +134,12 @@ if __name__ == "__main__":
 
     k = args.n_folds
     rnd_seed = args.rnd_seed
-    load = args.load
 
-    dataset_path = args.data_root  # '/home/space/datasets/things'
+    dataset_path = args.data_root
     vice_path = os.path.join(dataset_path, "dimensions/vice_embedding.npy")
-    features_path = os.path.join(dataset_path, "embeddings/all_features.pkl")
+    features_path = os.path.join(
+        dataset_path, "embeddings/model_features_per_source.pkl"
+    )
     out_path = os.path.join(dataset_path, "regression")
     out_file_path = os.path.join(dataset_path, "regression_results.pkl")
     if not os.path.exists(out_path):
@@ -156,9 +151,16 @@ if __name__ == "__main__":
     vice_features = np.load(vice_path)
     n_features = vice_features.shape[1]
 
-    # Load object embeddings for al# models
+    # Load object embeddings for all models
     with open(features_path, "rb") as f:
-        features = pd.read_pickle(f)
+        features_src = pd.read_pickle(f)
+
+    features = {}
+    sources = {}
+    for s in features_src.keys():
+        if s != "vit_best":
+            features.update(features_src[s])
+            sources.update({str(k): str(s) for k in features_src[s].keys()})
 
     # Filter models if necessary
     model_names = [str(m) for m in features.keys()]
@@ -168,27 +170,30 @@ if __name__ == "__main__":
     print("Models to run:", model_names)
 
     # Run regression
-    results = {m: {} for m in model_names}
     for m_i, model in enumerate(model_names):
         out_file_path = os.path.join(
             out_path, "regression_results_k%d_%s.pkl" % (k, model)
         )
+        results = {model: {}}
+        load = args.load
+        if load:
+            try:
+                with open(out_file_path, "rb") as f:
+                    results = pd.read_pickle(f)
+                print("  Loaded.")
+            except FileNotFoundError:
+                load = False
 
+        # Regress on targets
         for layer in features[model].keys():
-            if load:
-                try:
-                    with open(out_file_path, "rb") as f:
-                        results = pd.read_pickle(f)
-                except FileNotFoundError:
-                    load = False
+            print(
+                "(%d/%d)" % (m_i + 1, len(model_names)),
+                model,
+                layer,
+                "dim=%d" % features[model][layer].shape[1],
+                flush=True,
+            )
             if not load:
-                print(
-                    "(%d/%d)" % (m_i + 1, len(model_names)),
-                    model,
-                    layer,
-                    "dim=%d" % features[model][layer].shape[1],
-                    flush=True
-                )
                 r2s, preds, truths, idcs = regress_k_fold(
                     target_features=vice_features,
                     source_features=features[model][layer],
@@ -208,21 +213,25 @@ if __name__ == "__main__":
                     "targets": truths,
                 }
 
-                pd.DataFrame(results).to_pickle(out_file_path)
+        # Save intermediate regression results
+        if not load:
+            pd.DataFrame(results).to_pickle(out_file_path)
 
-            # Do triplet task
-            if False:
-                accs = triplet_task(
-                    features=results[model][layer]["predictions"],
-                    data_root=os.path.join(dataset_path, args.dataset),
-                    k=k,
-                    rnd_seed=rnd_seed,
-                )
+        # Do triplet task
+        for layer in features[model].keys():
+            accs = triplet_task(
+                features=results[model][layer]["predictions"].T,
+                data_root=dataset_path,
+                k=k,
+                rnd_seed=rnd_seed,
+            )
 
-                results[model][layer].update(
-                    {
-                        "accuracy": np.mean(accs),
-                        "accuracy_per_fold": accs,
-                    }
-                )
-                pd.DataFrame(results).to_pickle(out_file_path)
+            results[model][layer].update(
+                {
+                    "accuracy": np.mean(accs),
+                    "accuracy_per_fold": accs,
+                }
+            )
+
+        # Save triplet-task regression results
+        pd.DataFrame(results).to_pickle(out_file_path)
