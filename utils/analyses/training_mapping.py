@@ -56,15 +56,15 @@ class Mapper:
 
     @property
     def imagenet1k_objective(self) -> str:
-        return "Supervised (ImageNet 1k)"
+        return "Supervised (ImageNet-1k)"
 
     @property
     def imagenet21k_objective(self) -> str:
-        return "Supervised (ImageNet 21k)"
+        return "Supervised (ImageNet-21k)"
 
     @property
     def jft30k_objective(self) -> str:
-        return "Supervised (JFT 30k)"
+        return "Supervised (JFT-3B)"
 
     @property
     def imagetext_objective(self) -> str:
