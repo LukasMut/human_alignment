@@ -11,18 +11,18 @@ Array = np.ndarray
 
 PALETTE = {
     "Image/Text": "darkmagenta",
-    "Supervised (ImageNet 1k)": "coral",
-    "Supervised (ImageNet 21k)": "darkcyan",
-    "Supervised (JFT 30k)": "black",
+    "Supervised (ImageNet-1k)": "coral",
+    "Supervised (ImageNet-21k)": "darkcyan",
+    "Supervised (JFT-3B)": "black",
     "Self-Supervised": "darkgreen",
     # "VICE": "red",
 }
 
 MARKERS = {
     "Image/Text": "o",
-    "Supervised (ImageNet 1k)": "s",
-    "Supervised (ImageNet 21k)": "P",
-    "Supervised (JFT 30k)": "X",
+    "Supervised (ImageNet-1k)": "s",
+    "Supervised (ImageNet-21k)": "P",
+    "Supervised (JFT-3B)": "X",
     "Self-Supervised": "D",
     # "VICE": "*",
 }
