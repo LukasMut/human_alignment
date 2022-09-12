@@ -46,7 +46,13 @@ CONCEPT_MAPPING = {
         15: 'Circular',
         16: 'Sports',
         17: 'Paper',
-}
+        18: 'Liquids',
+        19: 'Sea',
+        20: 'Red',
+        21: 'Powdery',
+        22: 'Hygiene',
+        23: 'Weapons',
+    }
     
 
 
