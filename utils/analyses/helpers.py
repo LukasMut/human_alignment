@@ -98,11 +98,12 @@ def map_model_name(name: str) -> str:
         "resnet_v1_50_tpu_squared_error_seed0": "ResNet50 (Squared error)",
         "resnet_v1_50_tpu_mixup_seed0": "ResNet50 (MixUp)",
         "resnet_v1_50_tpu_autoaugment_seed0": "ResNet50 (AutoAugment)",
-        "align": "Align",
+        "align": "ALIGN",
         "basic-l": "Basic-L",
         "mobilenet_v2_1": "MobileNet v2 (1.4x)",
         "nasnet_mobile-retrained-no_ls-no_dropout-no_aux": "NASNet Mobile",
         "nasnet_large-retrained-no_ls-no_dropout-no_aux": "NASNet Large",
+        "vice": "VICE"
     }
 
     if name in mapping:
