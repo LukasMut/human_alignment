@@ -11,8 +11,8 @@ Array = np.ndarray
 
 PALETTE = {
     "Image/Text": "darkmagenta",
-    "Supervised (ImageNet-1k)": "coral",
-    "Supervised (ImageNet-21k)": "darkcyan",
+    "Supervised (ImageNet-1K)": "coral",
+    "Supervised (ImageNet-21K)": "darkcyan",
     "Supervised (JFT-3B)": "black",
     "Self-Supervised": "darkgreen",
     # "VICE": "red",
@@ -20,15 +20,15 @@ PALETTE = {
 
 MARKERS = {
     "Image/Text": "o",
-    "Supervised (ImageNet-1k)": "s",
-    "Supervised (ImageNet-21k)": "P",
+    "Supervised (ImageNet-1K)": "s",
+    "Supervised (ImageNet-21K)": "P",
     "Supervised (JFT-3B)": "X",
     "Self-Supervised": "D",
     # "VICE": "*",
 }
 
 CONCEPT_MAPPING = {
-        0: 'Tools',
+        0: 'Metal',
         1: 'Food',
         2: 'Plant-related', 
         3: 'Animal-related',
@@ -52,10 +52,29 @@ CONCEPT_MAPPING = {
         21: 'Powdery',
         22: 'Hygiene',
         23: 'Weapons',
+        24: 'Has-grating',  # switch w 33?
+        25: 'Black',
+        26: 'Sky-related',
+        27: 'Long/thin',
+        28: 'White',
+        29: 'Decorative',  # feminine (stereotypically) fits better but is too long
+        30: 'Spherical',
+        31: 'Green',  # Looks like green, but there is no such dimension?
+        32: 'Musical instrument',  # dropped the "related"
+        33: 'Patterned',  # switch w 24?
+        34: 'Bugs',
+        35: 'Fire-related',
+        36: 'Shiny',
+        37: 'String-related',
+        38: 'Arms/legs/skin',  # dropped the related
+        39: 'Elongated',  # confounded w "long"
+        40: 'Home-related',  # really no idea
+        41: 'Toy-related',
+        42: 'Yellow',  # this seems to be mixed w yellow
+        43: 'Medicine-related',
+        44: 'Ice/Winter',
     }
     
-
-
 def set_context() -> None:
     sns.set_context("paper")
 
