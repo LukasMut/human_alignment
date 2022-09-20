@@ -32,7 +32,7 @@ def parseargs():
     aa("--model", type=str, help="model for which we want to extract features")
     aa("--layers", type=str, nargs='+', help="module for which to extract features")
     aa("--source", type=str, default="torchvision",
-       choices=["timm", "torchvision"],
+       choices=["timm", "torchvision", "custom"],
        help="Host of (pretrained) models")
     aa("--model_dict_path", type=str,
        default="/home/space/datasets/things/model_dict.json",
