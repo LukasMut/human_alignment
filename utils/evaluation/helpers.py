@@ -71,6 +71,8 @@ def compute_distances(triplet: Tensor, pairs: List[Tuple[int]], dist: str) -> Te
         dist_fun = lambda u, v: 1 - F.cosine_similarity(u, v, dim=0)
     elif dist == "euclidean":
         dist_fun = lambda u, v: torch.linalg.norm(u - v, ord=2)
+    elif dist == "dot":
+        dist_fun = lambda u, v: - torch.dot(u, v)
     else:
         raise Exception(
             "\nDistance function other than Cosine or Euclidean distance is not yet implemented\n"
