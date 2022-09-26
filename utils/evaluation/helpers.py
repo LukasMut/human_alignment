@@ -35,7 +35,10 @@ def convert_filenames(filenames: Array) -> Array:
 
 
 def load_embeddings(
-    embeddings_root: str, object_names: str, module: str = "embeddings", thing_sort: bool = True
+    embeddings_root: str, 
+    object_names: str, 
+    module: str = "embeddings", 
+    things_sorting: bool = True,
 ) -> Dict[str, Array]:
     """Load Google internal embeddings and sort them according to THINGS object sorting."""
     embeddings = {}
@@ -45,7 +48,7 @@ def load_embeddings(
         with open(os.path.join(embeddings_root, fname), "rb") as f:
             embedding_file = pickle.load(f)
             embedding = embedding_file[module]
-            if thing_sort:
+            if things_sorting:
                 filenames = embedding_file["filenames"]
                 filenames = convert_filenames(filenames)
                 things_sorting = np.array(
