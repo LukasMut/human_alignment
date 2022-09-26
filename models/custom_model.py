@@ -47,8 +47,6 @@ class CustomModel(Model):
 
     def get_transformations(self, resize_dim: int = 256, crop_dim: int = 224, apply_center_crop: bool = True):
         if self.model_name in ['r50-simclr', 'r50-mocov2', 'r50-jigsaw', 'r50-colorization', 'r50-rotnet']:
-            # NOTE: NO normalization?
-            # TODO: check this carefully!
             pipeline = transforms.Compose([
                 transforms.Resize(resize_dim),
                 transforms.CenterCrop(crop_dim),

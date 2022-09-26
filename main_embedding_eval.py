@@ -65,6 +65,10 @@ def parseargs():
         action="store_true",
         help="show print statements about model performance during training",
     )
+    aa(
+        "--cifar100",
+        action='store_true'
+    )
     args = parser.parse_args()
     return args
 
@@ -109,11 +113,15 @@ def create_hyperparam_dicts(args, model_names) -> Tuple[FrozenDict, FrozenDict]:
 
 def evaluate(args) -> None:
     """Perform evaluation of embeddings with optimal temperature values."""
-    object_names = utils.evaluation.get_things_objects(args.data_root)
+    if args.cifar100:
+        object_names = None
+    else:
+        object_names = utils.evaluation.get_things_objects(args.data_root)
     embeddings = utils.evaluation.load_embeddings(
         embeddings_root=args.embeddings_root,
         object_names=object_names,
         module="embeddings" if args.module == "penultimate" else "logits",
+        thing_sort=not args.cifar100
     )
     model_cfg, data_cfg = create_hyperparam_dicts(args, embeddings.keys())
     dataset = load_dataset(
