@@ -62,7 +62,7 @@ def get_family_name(model_name: str) -> str:
 
 
 def merge_results(
-    root: str, model_sources: List[str], dataset: str, layer: str
+        root: str, model_sources: List[str], dataset: str, layer: str
 ) -> pd.DataFrame:
     results = []
     for source in model_sources:
@@ -116,9 +116,9 @@ def map_model_name(name: str) -> str:
             name = name.replace("patch", "")
             name = (
                 name.replace("_small_", "-S/")
-                .replace("_tiny_", "-T/")
-                .replace("_base_", "-B/")
-                .replace("_large_", "-L/")
+                    .replace("_tiny_", "-T/")
+                    .replace("_base_", "-B/")
+                    .replace("_large_", "-L/")
             )
             name = name.replace("-i1k", " (i1k)").replace("-i21k", " (i21k)")
 
@@ -165,10 +165,30 @@ def map_model_name(name: str) -> str:
             name = name.replace("ViT ", "ViT-").replace("ViT_", "ViT-")
             name = (
                 name.replace("-B ", "-B/")
-                .replace("-T ", "-T/")
-                .replace("-S ", "-S/")
-                .replace("-L ", "-L/")
-                .replace("-G ", "-G/")
+                    .replace("-T ", "-T/")
+                    .replace("-S ", "-S/")
+                    .replace("-L ", "-L/")
+                    .replace("-G ", "-G/")
             )
 
     return name
+
+
+def map_objective_function(model_name, source, family):
+    objective = 'Supervised (softmax)'
+    if source == 'vit_same' or model_name in ['resnet_v1_50_tpu_sigmoid_seed0']:
+        objective = 'Supervised (sigmoid)'
+    elif model_name in ['resnet_v1_50_tpu_nt_xent_weights_seed0',
+                        'resnet_v1_50_tpu_nt_xent_seed0',
+                        'resnet_v1_50_tpu_label_smoothing_seed0',
+                        'resnet_v1_50_tpu_logit_penalty_seed0',
+                        'resnet_v1_50_tpu_mixup_seed0',
+                        'resnet_v1_50_tpu_extra_wd_seed0']:
+        objective = 'Supervised (softmax+)'
+    elif family.startswith('SSL'):
+        objective = 'Self-sup.'
+    elif source == 'loss' and model_name == 'resnet_v1_50_tpu_squared_error_seed0':
+        objective = 'Supervised (squared error)'
+    elif family in ['Align', 'Basic', 'CLIP']:
+        objective = 'Image/Text (contrastive)'
+    return objective
