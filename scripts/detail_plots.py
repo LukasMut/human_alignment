@@ -90,6 +90,7 @@ def configure_axis(ax, limits=True, show_ylabel=True):
 
 def plot_imagenet_models(df):
     df = df[df.source == 'imagenet']
+    print(len(df))
     ax = sns.scatterplot(
         data=df,
         x=args.x_metric,
@@ -148,8 +149,8 @@ def plot_arch_models(df):
     selectors = [('VGG', df.family.isin(['VGG'])),
                  ('EfficientNet', df.family.isin(['EfficientNet'])),
                  ('ResNet', ((df.family == 'ResNet') & (df.source == 'torchvision'))),
-                 ('VIT (ImageNet-1k)', (df.training == 'Supervised (ImageNet-1k)') & (df.source == 'vit_same')),
-                 ('VIT (ImageNet-21k)', (df.training == 'Supervised (ImageNet-21k)') & (df.source == 'vit_same'))
+                 ('VIT (ImageNet-1K)', (df.training == 'Supervised (ImageNet-1K)') & (df.source == 'vit_same')),
+                 ('VIT (ImageNet-21K)', (df.training == 'Supervised (ImageNet-21K)') & (df.source == 'vit_same'))
                  ]
 
     df['label'] = 'None'
@@ -172,7 +173,7 @@ def plot_arch_models(df):
         **DEFAULT_SCATTER_PARAMS
     )
     configure_axis(ax, limits=False, show_ylabel=False)
-    ax.set_xlabel('#Parameters', fontsize=X_AXIS_FONT_SIZE)
+    ax.set_xlabel('#Parameters (Million)', fontsize=X_AXIS_FONT_SIZE)
     ax.legend(title="", ncol=1, loc="upper right", fancybox=True, fontsize=LEGEND_FONT_SIZE)
 
 
@@ -195,13 +196,20 @@ if __name__ == '__main__':
 
     results_path = args.path
     results = pd.read_csv(args.path)
+    print(len(results[results.source == 'imagenet']))
     final_layer_indices = []
+    k = 0
     for name, group in results.groupby('model'):
+        if 'imagenet' in group.source.values.tolist():
+            print(name)
+            k += 1
         if len(group.index) > 2:
             sources = group.source.values.tolist()
             assert 'vit_best' in sources and 'vit_same' in sources
             group = group[group.source == 'vit_same']
         final_layer_indices.append(group[group.accuracy.max() == group.accuracy].index[0])
+
+    print(k)
 
     final_layer_results = results.iloc[final_layer_indices]
     df = final_layer_results.merge(networks, on='model')
