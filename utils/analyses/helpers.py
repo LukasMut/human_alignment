@@ -175,20 +175,20 @@ def map_model_name(name: str) -> str:
 
 
 def map_objective_function(model_name, source, family):
-    objective = 'Supervised (softmax)'
+    objective = 'Softmax'
     if source == 'vit_same' or model_name in ['resnet_v1_50_tpu_sigmoid_seed0']:
-        objective = 'Supervised (sigmoid)'
+        objective = 'Sigmoid'
     elif model_name in ['resnet_v1_50_tpu_nt_xent_weights_seed0',
                         'resnet_v1_50_tpu_nt_xent_seed0',
                         'resnet_v1_50_tpu_label_smoothing_seed0',
                         'resnet_v1_50_tpu_logit_penalty_seed0',
                         'resnet_v1_50_tpu_mixup_seed0',
                         'resnet_v1_50_tpu_extra_wd_seed0']:
-        objective = 'Supervised (softmax+)'
+        objective = 'Softmax+'
     elif family.startswith('SSL'):
         objective = 'Self-sup.'
     elif source == 'loss' and model_name == 'resnet_v1_50_tpu_squared_error_seed0':
-        objective = 'Supervised (squared error)'
+        objective = 'Squared error'
     elif family in ['Align', 'Basic', 'CLIP']:
-        objective = 'Image/Text (contrastive)'
+        objective = 'Contrastive (image/text)'
     return objective
