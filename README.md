@@ -51,16 +51,35 @@ root
 
 ## Usage
 
-Run evaluation on things triplet task with Imagenet pretrained Resnet18 and Resnet50.
+Run evaluation script on things triplet odd-one-out task with some pretrained model.
 
-```python
-python main_eval.py --data_root /home/space/datasets/things \
---model_names vgg16 alexnet resnet18 resnet50 clip-ViT \
---module logits
+```python main_model_triplet_eval.py --data_root /path/to/data/name \ 
+--dataset name \
+--model_names resnet101 vgg11 clip_ViT-B/32 clip_RN50 vit_b_16 \
+--module logits \
+--overall_source thingsvision \
+--sources torchvision torchvision custom custom torchvision  \
+--model_dict_path /path/to/model_dict.json \
 --batch_size 128 \
---out_path /path/to/results \
---device cuda \
 --distance cosine \
+--out_path /path/to/results \
+--device cpu \
+--verbose \
 --rnd_seed 42 \
---verbose
+```
+
+Run evaluation script on multi-arrangement similarity judgements with some pretrained model.
+
+```python main_model_sim_eval.py --data_root /path/to/data/name \ 
+--dataset name \
+--model_names resnet101 vgg11 clip_ViT-B/32 clip_RN50 vit_b_16 \
+--module logits \
+--overall_source thingsvision \
+--sources torchvision torchvision custom custom torchvision  \
+--model_dict_path /path/to/model_dict.json \
+--batch_size 118 
+--out_path /path/to/results \
+--device cpu \
+--verbose \
+--rnd_seed 42 \
 ```
