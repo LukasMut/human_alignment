@@ -7,9 +7,9 @@
     </a>
 </div>
 
-# Predicting the "odd-one-out" on a triplet task
+# Human alignment of neural network representations
 
-## Environment set-up
+## Environment setup and dependencies
 
 We recommend to create a virtual environment (e.g., human_alignment), including all dependencies, via `conda`
 
