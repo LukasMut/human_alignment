@@ -9,6 +9,25 @@
 
 # Predicting the "odd-one-out" on a triplet task
 
+## Environment set-up
+
+We recommend to create a virtual environment (e.g., human_alignment), including all dependencies, via `conda`
+
+```bash
+$ conda env create --prefix /path/to/conda/envs/human_alignment --file envs/environment.yml
+$ conda activate human_alignment
+```
+
+Alternatively, dependencies can be installed via `pip`,
+
+```bash
+$ conda create --name human_alignment python=3.9
+$ conda activate human_alignment
+$ pip install --upgrade pip
+$ pip install -r requirements.txt
+```
+
+
 ## Repository structure
 
 ```bash
