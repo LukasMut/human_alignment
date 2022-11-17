@@ -116,6 +116,7 @@ def create_config_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
     model_cfg.input_dim = args.input_dim
     model_cfg = config_dict.FrozenConfigDict(model_cfg)
     data_cfg.root = args.data_root
+    data_cfg.name = args.dataset
     data_cfg = config_dict.FrozenConfigDict(data_cfg)
     return model_cfg, data_cfg
 
@@ -168,6 +169,7 @@ def evaluate(args) -> None:
             "probas": probas.cpu().numpy(),
             "source": model_cfg.source,
             "family": family_name,
+            "dataset": data_cfg.name,
         }
         results.append(summary)
         model_features[model_name] = features
