@@ -35,7 +35,8 @@ class MultiArrangement(torch.utils.data.Dataset):
             os.path.join(self.root, self.sim_subfolder, "judgments_general.mat")
         )
         rdms = sim_judgements["judgments"]
-        rdm = rdms.mean(axis=0)
+        # we can simply average across all participants' RDMs
+        rdm = rdms.mean(axis=0) 
         return rdm
 
     def __getitem__(self, idx: int) -> Tensor:
