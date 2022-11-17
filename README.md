@@ -66,7 +66,8 @@ root
 
 Run evaluation script on things triplet odd-one-out task with some pretrained model.
 
-```python main_model_triplet_eval.py --data_root /path/to/data/name \ 
+```python
+python main_model_triplet_eval.py --data_root /path/to/data/name \ 
 --dataset name \
 --model_names resnet101 vgg11 clip_ViT-B/32 clip_RN50 vit_b_16 \
 --module logits \
@@ -83,7 +84,8 @@ Run evaluation script on things triplet odd-one-out task with some pretrained mo
 
 Run evaluation script on multi-arrangement similarity judgements with some pretrained model.
 
-```python main_model_sim_eval.py --data_root /path/to/data/name \ 
+```python
+python main_model_sim_eval.py --data_root /path/to/data/name \ 
 --dataset name \
 --model_names resnet101 vgg11 clip_ViT-B/32 clip_RN50 vit_b_16 \
 --module logits \
