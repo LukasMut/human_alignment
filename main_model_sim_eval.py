@@ -150,15 +150,17 @@ def evaluate(args) -> None:
         )
         rdm_dnn = compute_rdm(features, method="correlation")
         rdm_humans = dataset.get_rdm()
-        corr_coef = correlate_rdms(rdm_dnn, rdm_humans, correlation="spearman")
+        spearman_rho = correlate_rdms(rdm_dnn, rdm_humans, correlation="spearman")
+        pearson_corr_coef = correlate_rdms(rdm_dnn, rdm_humans, correlation="pearson")
 
         if args.verbose:
             print(
-                f"\nModel: {model_name}, Family: {family_name}, Correlation coefficient: {corr_coef:.4f}\n"
+                f"\nModel: {model_name}, Family: {family_name}, Spearman's rho: {spearman_rho:.4f}, Pearson correlation coefficient: {pearson_corr_coef:.4f}\n"
             )
         summary = {
             "model": model_name,
-            "zero-shot": corr_coef,
+            "zero-shot spearman": spearman_rho,
+            "zero-shot pearson": pearson_corr_coef,
             "source": model_cfg.source,
             "family": family_name,
             "dataset": data_cfg.name,
