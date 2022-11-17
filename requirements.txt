@@ -2,11 +2,10 @@ matplotlib==3.5.*
 seaborn==0.11.*
 numpy==1.22.*
 Pillow==9.1.*
-torch==1.11.*
-torchvision==0.12.*
+torch==1.12.*
 pandas==1.4.*
 functorch==0.1.*
-thingsvision==1.6.0
+thingsvision==2.2.8
 tqdm==4.64.0
 pytorch_lightning==1.7.0
 tueplots
