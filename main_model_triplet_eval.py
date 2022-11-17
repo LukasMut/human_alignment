@@ -36,7 +36,8 @@ def parseargs():
     aa("--module", type=str,
         choices=["logits", "penultimate"],
         help="module for which to extract features")
-    aa("--source", type=str, default="torchvision",
+    aa("--overall_source", type=str, default="thingsvision")
+    aa("--sources", type=str, nargs="+",
         choices=[
             "custom",
             "timm",
@@ -128,12 +129,20 @@ def evaluate(args) -> None:
     results = []
     model_features = dict()
     for i, model_name in tqdm(enumerate(model_cfg.names), desc="Model"):
+        
+        if model_name.startswith('clip'):
+            model_name, variant = model_name.split('_')
+            model_params = dict(variant=variant)
+        else:
+            model_params = None
+        
         family_name = utils.analyses.get_family_name(model_name)
         extractor = get_extractor(
             model_name=model_name,
             source=model_cfg.source,
             device=device,
             pretrained=not args.not_pretrained,
+            model_parameters=model_params,
         )
         dataset = load_dataset(
             name=args.dataset,

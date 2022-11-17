@@ -127,11 +127,13 @@ def evaluate(args) -> None:
     results = []
     model_features = dict()
     for i, (model_name, source) in tqdm(enumerate(zip(model_cfg.names, model_cfg.sources)), desc="Model"):
+        
         if model_name.startswith('clip'):
             model_name, variant = model_name.split('_')
-            model_params = {'variant': variant}
+            model_params = dict(variant=variant)
         else:
             model_params = None
+        
         family_name = utils.analyses.get_family_name(model_name)
         extractor = get_extractor(
             model_name=model_name,
