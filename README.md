@@ -49,9 +49,11 @@ root
 ├── └── utils.py
 ├── .gitignore
 ├── README.md
-├── main_embedding_eval.py
+├── main_embedding_sim_eval.py
+├── main_embedding_triplet_eval.py
 ├── main_model_comparison.py
-├── main_model_eval.py
+├── main_model_sim_eval.py
+├── main_model_triplet_eval.py
 ├── main_probing.py
 ├── requirements.txt
 ├── search_temp_scaling.py
