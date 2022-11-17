@@ -43,9 +43,6 @@ def parseargs():
     aa("--model_dict_path", type=str, 
         default="/home/space/datasets/things/model_dict.json", 
         help="Path to the model_dict.json")
-    aa("--kernel", type=str, default="cosine", 
-        choices=["cosine", "euclidean", "dot"],
-        help="distance function used to predict the odd-one-out")
     aa("--input_dim", type=int, default=224, help="input image dimensionality")
     aa("--batch_size", metavar="B", type=int, default=118,
         help="number of triplets sampled during each step (i.e., mini-batch size)")

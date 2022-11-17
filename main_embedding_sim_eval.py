@@ -27,48 +27,22 @@ def parseargs():
     aa("--data_root", type=str, help="path/to/things")
     aa("--embeddings_root", type=str, help="path/to/embeddings")
     aa("--dataset", type=str, help="Which dataset to use", choices=DATASETS)
-    aa(
-        "--module",
-        type=str,
-        default="penultimate",
+    aa("--module", type=str, default="penultimate",
         choices=["logits", "penultimate"],
-        help="module for which to extract features",
-    )
-    aa(
-        "--model_dict_path",
-        type=str,
-        default="/home/space/datasets/things/model_dict.json",
-        help="Path to the model_dict.json",
-    )
-    aa(
-        "--distance",
-        type=str,
-        default="cosine",
+        help="module for which to extract features")
+    aa("--model_dict_path", type=str, default="/home/space/datasets/things/model_dict.json",
+        help="Path to the model_dict.json")
+    aa("--distance", type=str, default="cosine",
         choices=["cosine", "euclidean"],
-        help="distance function used for predicting the odd-one-out",
-    )
+        help="distance function used for predicting the odd-one-out")
     aa("--out_path", type=str, help="path/to/results", default='/home/space/datasets/things/results')
-    aa(
-        "--num_threads",
-        type=int,
-        default=4,
-        help="number of threads used for intraop parallelism on CPU; use only if device is CPU",
-    )
-    aa(
-        "--rnd_seed",
-        type=int,
-        default=42,
-        help="random seed for reproducibility of results",
-    )
-    aa(
-        "--verbose",
-        action="store_true",
-        help="show print statements about model performance during training",
-    )
-    aa(
-        "--cifar100",
-        action='store_true'
-    )
+    aa("--num_threads", type=int, default=4,
+        help="number of threads used for intraop parallelism on CPU; use only if device is CPU")
+    aa("--rnd_seed", type=int, default=42,
+        help="random seed for reproducibility of results")
+    aa("--verbose", action="store_true",
+        help="show print statements about model performance during training")
+    aa("--cifar100", action='store_true')
     args = parser.parse_args()
     return args
 
