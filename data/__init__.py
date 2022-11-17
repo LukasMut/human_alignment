@@ -1,9 +1,10 @@
 from .things import THINGSBehavior
 from .cifar import CIFAR100Triplet, CIFAR100CoarseTriplet, CIFAR10Triplet
 from .things import THINGSTriplet, THINGSBehavior
+from .multi_arrangement import MultiArrangement
 import os
 
-DATASETS = ['cifar100-coarse', 'cifar100-fine', 'cifar10', 'things', 'things-aligned']
+DATASETS = ['cifar100-coarse', 'cifar100-fine', 'cifar10', 'things', 'things-aligned', 'multi-arrangement']
 
 
 def load_dataset(name: str, data_dir: str, transform=None):
@@ -20,6 +21,10 @@ def load_dataset(name: str, data_dir: str, transform=None):
         dataset = THINGSBehavior(
             root=data_dir, aligned=True,
             download=True, transform=transform)
+    elif name == 'multi-arrangement':
+        dataset = MultiArrangement(
+            root=data_dir, transform=transform
+        )
     else:
         raise ValueError('\nUnknown dataset\n')
 
