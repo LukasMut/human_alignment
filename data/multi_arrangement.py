@@ -28,13 +28,13 @@ class MultiArrangement(torch.utils.data.Dataset):
                 if f.name.endswith("jpg")
             ]
         )
-        self.sim_judgements = self.load_sim_judgements()
+        self.rdm = self.load_sim_judgements()
 
     def load_sim_judgements(self) -> Array:
         sim_judgements = loadmat(os.path.join(self.root, self.sim_subfolder))
-        sim_judgements = sim_judgements["judgments"]
-        avg_sim_judgements = sim_judgements.mean(axis=0)
-        return avg_sim_judgements
+        rdms = sim_judgements["judgments"]
+        rdm = rdms.mean(axis=0)
+        return rdm
 
     def __getitem__(self, idx: int) -> Tensor:
         img = os.path.join(self.root, self.img_subfolder, self.order[idx])
@@ -46,5 +46,5 @@ class MultiArrangement(torch.utils.data.Dataset):
     def __len__(self) -> int:
         return len(self.order)
 
-    def get_sim_judgments(self) -> Array:
-        return self.sim_judgements
+    def get_rsm(self) -> Array:
+        return self.rdm
