@@ -43,7 +43,7 @@ class MultiArrangement(torch.utils.data.Dataset):
         img = Image.open(img)
         if self.transform is not None:
             img = self.transform(img)
-        return img, torch.tensor([idx])
+        return img
 
     def __len__(self) -> int:
         return len(self.order)
