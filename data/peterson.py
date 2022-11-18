@@ -78,7 +78,9 @@ class Peterson(torch.utils.data.Dataset):
         )
 
     def __getitem__(self, idx: int) -> Tensor:
-        img = os.path.join(self.root, self.img_subfolder, self.order[idx])
+        img = os.path.join(
+            self.root, self.category, self.img_subfolder, self.order[idx]
+        )
         img = Image.open(img)
         if self.transform is not None:
             img = self.transform(img)
