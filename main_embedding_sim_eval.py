@@ -9,6 +9,7 @@ import pandas as pd
 import torch
 from ml_collections import config_dict
 from thingsvision.core.rsa import compute_rdm, correlate_rdms
+from thingsvision.core.rsa.helpers import correlation_matrix, cosine_matrix
 from tqdm import tqdm
 
 import utils
@@ -28,6 +29,10 @@ def parseargs():
     aa("--data_root", type=str, help="path/to/things")
     aa("--embeddings_root", type=str, help="path/to/embeddings")
     aa("--dataset", type=str, help="Which dataset to use", choices=DATASETS)
+    aa("--category", type=str, default=None,
+        choices=["animals", "automobiles", "fruits", "furniture", "various", "vegetables"],
+        help="Similarity judgments of the dataset from Peterson et al. (2016) were collected for inidivdual categories",
+    )
     aa("--module", type=str, default="penultimate",
         choices=["logits", "penultimate"],
         help="module for which to extract features")
@@ -85,6 +90,7 @@ def create_hyperparam_dicts(args, model_names) -> Tuple[FrozenDict, FrozenDict]:
     model_cfg = config_dict.FrozenConfigDict(model_cfg)
     data_cfg.root = args.data_root
     data_cfg.name = args.dataset
+    data_cfg.category = args.category
     data_cfg = config_dict.FrozenConfigDict(data_cfg)
     return model_cfg, data_cfg
 
@@ -111,10 +117,17 @@ def evaluate(args) -> None:
     model_features = dict()
     for model_name, features in tqdm(embeddings.items(), desc="Model"):
         family_name = utils.analyses.get_family_name(model_name)
-        rdm_dnn = compute_rdm(features, method="correlation")
-        rdm_humans = dataset.get_rdm()
+
+        if dataset == 'peterson':
+            rdm_dnn = correlation_matrix(features)
+            rdm_humans = dataset.get_rsm()
+        else:
+            rdm_dnn = compute_rdm(features, method="correlation")
+            rdm_humans = dataset.get_rdm()
+
         spearman_rho = correlate_rdms(rdm_dnn, rdm_humans, correlation="spearman")
         pearson_corr_coef = correlate_rdms(rdm_dnn, rdm_humans, correlation="pearson")
+        
         if args.verbose:
             print(
                 f"\nModel: {model_name}, Family: {family_name}, Spearman's rho: {spearman_rho:.4f}, Pearson correlation coefficient: {pearson_corr_coef:.4f}\n"
@@ -126,6 +139,7 @@ def evaluate(args) -> None:
             "source": model_cfg.source,
             "family": family_name,
             "dataset": data_cfg.name,
+            "category": data_cfg.category,
         }
         results.append(summary)
         model_features[model_name] = features
