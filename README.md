@@ -16,6 +16,7 @@ We recommend to create a virtual environment (e.g., human_alignment), including 
 ```bash
 $ conda env create --prefix /path/to/conda/envs/human_alignment --file envs/environment.yml
 $ conda activate human_alignment
+$ pip install git+https://github.com/openai/CLIP.git
 ```
 
 Alternatively, dependencies can be installed via `pip`,
@@ -25,6 +26,7 @@ $ conda create --name human_alignment python=3.9
 $ conda activate human_alignment
 $ pip install --upgrade pip
 $ pip install -r requirements.txt
+$ pip install git+https://github.com/openai/CLIP.git
 ```
 
 
