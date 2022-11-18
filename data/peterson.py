@@ -28,7 +28,9 @@ class Peterson(torch.utils.data.Dataset):
         self.order = sorted(
             [
                 f.name
-                for f in os.scandir(os.path.join(self.root, self.img_subfolder))
+                for f in os.scandir(
+                    os.path.join(self.root, self.category, self.img_subfolder)
+                )
                 if re.search(r"(jpg|png)$", f.name)
             ]
         )
