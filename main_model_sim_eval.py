@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+from email.policy import default
 import os
 import random
 import warnings
@@ -13,6 +14,7 @@ import torch
 from ml_collections import config_dict
 from thingsvision import get_extractor
 from thingsvision.core.rsa import compute_rdm, correlate_rdms
+from thingsvision.core.rsa.helpers import correlation_matrix, cosine_matrix
 from thingsvision.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -32,6 +34,10 @@ def parseargs():
 
     aa("--data_root", type=str, help="path/to/things")
     aa("--dataset", type=str, help="Which dataset to use", choices=DATASETS)
+    aa("--category", type=str, default=None,
+        choices=["animals", "automobiles", "fruits", "furniture", "various", "vegetables"],
+        help="Similarity judgments of the dataset from Peterson et al. (2016) were collected for inidivdual categories",
+    )
     aa("--model_names", type=str, nargs="+",
         help="models for which we want to extract featues")
     aa("--module", type=str, choices=["logits", "penultimate"],
@@ -116,6 +122,7 @@ def create_config_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
     model_cfg = config_dict.FrozenConfigDict(model_cfg)
     data_cfg.root = args.data_root
     data_cfg.name = args.dataset
+    data_cfg.category = args.category
     data_cfg = config_dict.FrozenConfigDict(data_cfg)
     return model_cfg, data_cfg
 
@@ -146,6 +153,7 @@ def evaluate(args) -> None:
         dataset = load_dataset(
             name=args.dataset,
             data_dir=data_cfg.root,
+            category=data_cfg.category,
             transform=extractor.get_transformations(),
         )
         batches = DataLoader(
@@ -158,8 +166,13 @@ def evaluate(args) -> None:
             module_name=model_cfg.modules[i],
             flatten_acts=True,
         )
-        rdm_dnn = compute_rdm(features, method="correlation")
-        rdm_humans = dataset.get_rdm()
+        if dataset == 'peterson':
+            rdm_dnn = correlation_matrix(features)
+            rdm_humans = dataset.get_rsm()
+        else:
+            rdm_dnn = compute_rdm(features, method="correlation")
+            rdm_humans = dataset.get_rdm()
+            
         spearman_rho = correlate_rdms(rdm_dnn, rdm_humans, correlation="spearman")
         pearson_corr_coef = correlate_rdms(rdm_dnn, rdm_humans, correlation="pearson")
 
@@ -174,6 +187,7 @@ def evaluate(args) -> None:
             "source": source,
             "family": family_name,
             "dataset": data_cfg.name,
+            "category": data_cfg.category,
         }
         results.append(summary)
         model_features[model_name] = features
