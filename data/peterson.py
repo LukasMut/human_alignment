@@ -4,7 +4,7 @@
 import os
 import pickle
 import re
-from typing import Dict, List
+from typing import Dict, List, Union
 
 import numpy as np
 import torch
@@ -46,10 +46,10 @@ class Peterson(torch.utils.data.Dataset):
             rsm = self._compute_rsm()
         return rsm
 
-    def _compute_rsm(self, max_rating: int = 10) -> Array:
+    def _compute_rsm(self, maximum_rating: int = 10) -> Array:
         sim_judgements = self._load_pickle()
         rsm = np.eye(len(self.order))
-        rsm *= max_rating
+        rsm *= maximum_rating
         for stimulus_pair, ratings in sim_judgements.items():
             stimulus_i, stimulus_j = stimulus_pair.split(",")
             i = int(re.search(r"\d+", stimulus_i).group()) - 1
@@ -68,13 +68,13 @@ class Peterson(torch.utils.data.Dataset):
             sim_judgements = pickle.load(f)
         return sim_judgements
 
-    def _find_rsm(self, suffix: str = ".mat") -> str:
+    def _find_rsm(self, fformat: str = ".mat") -> Union[str, Exception]:
         dir = os.path.join(self.root, self.category, self.sim_subfolder)
         for f in os.scandir(dir):
-            if re.search(r"sim", f.name.lower()) and f.name.endswith(suffix):
+            if re.search(r"sim", f.name.lower()) and f.name.endswith(fformat):
                 return f.name
         raise FileNotFoundError(
-            "\nCould not find representational similarity matrix in {dir}\n"
+            f"\nCould not find representational similarity matrix for {self.category}\n"
         )
 
     def __getitem__(self, idx: int) -> Tensor:
@@ -87,5 +87,5 @@ class Peterson(torch.utils.data.Dataset):
     def __len__(self) -> int:
         return len(self.order)
 
-    def get_rdm(self) -> Array:
-        return self.rdm
+    def get_rsm(self) -> Array:
+        return self.rsm
