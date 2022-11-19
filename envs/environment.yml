@@ -24,3 +24,4 @@ dependencies:
    - pyflakes
    - isort
    - black
+   - git+https://github.com/openai/CLIP.git
