@@ -8,6 +8,7 @@ functorch==0.2.*
 thingsvision==2.2.10
 tqdm==4.64.0
 pytorch_lightning==1.7.0
+einops
 tueplots
 ml_collections
 pyflakes
