@@ -32,7 +32,7 @@ def parseargs():
     aa("--dataset", type=str, help="Which dataset to use", choices=DATASETS)
     aa("--category", type=str, default=None,
         choices=["animals", "automobiles", "fruits", "furniture", "various", "vegetables"],
-        help="Similarity judgments of the dataset from Peterson et al. (2016) were collected for inidivdual categories",
+        help="Similarity judgments of the dataset from Peterson et al. (2016) were collected for specific categories",
     )
     aa("--module", type=str, default="penultimate",
         choices=["logits", "penultimate"],
