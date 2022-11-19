@@ -6,12 +6,12 @@ from typing import Any, Callable, Dict, Iterator, List, Tuple
 import numpy as np
 import pandas as pd
 import torch
+from einops import rearrange
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from sklearn.model_selection import KFold
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from einops import rearrange
 
 import utils
 
@@ -191,7 +191,9 @@ def make_results_df(
     return probing_results_current_run
 
 
-def save_results(args, probing_acc: float, ooo_choices: Array, transform: Array) -> None:
+def save_results(
+    args, probing_acc: float, ooo_choices: Array, transform: Array
+) -> None:
     out_path = os.path.join(args.probing_root, "results")
     if not os.path.exists(out_path):
         print("\nCreating results directory...\n")
@@ -351,4 +353,6 @@ if __name__ == "__main__":
         num_processes=args.num_processes,
     )
     avg_cv_acc = get_mean_cv_acc(cv_results)
-    save_results(args, probing_acc=avg_cv_acc, ooo_choices=ooo_choices, transform=transform)
+    save_results(
+        args, probing_acc=avg_cv_acc, ooo_choices=ooo_choices, transform=transform
+    )
