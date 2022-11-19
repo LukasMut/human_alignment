@@ -11,6 +11,7 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from sklearn.model_selection import KFold
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+from einops import rearrange
 
 import utils
 
@@ -175,6 +176,7 @@ def make_results_df(
     source: str,
     lmbda: float,
     n_folds: int,
+    transform: Array,
 ) -> pd.DataFrame:
     probing_results_current_run = pd.DataFrame(index=range(1), columns=columns)
     probing_results_current_run["model"] = model_name
@@ -185,10 +187,11 @@ def make_results_df(
     probing_results_current_run["source"] = source
     probing_results_current_run["l2_reg"] = lmbda
     probing_results_current_run["n_folds"] = n_folds
+    probing_results_current_run["transform"] = rearrange(transform, "d p -> (d p)")
     return probing_results_current_run
 
 
-def save_results(args, probing_acc: float, ooo_choices: Array) -> None:
+def save_results(args, probing_acc: float, ooo_choices: Array, transform: Array) -> None:
     out_path = os.path.join(args.probing_root, "results")
     if not os.path.exists(out_path):
         print("\nCreating results directory...\n")
@@ -210,6 +213,7 @@ def save_results(args, probing_acc: float, ooo_choices: Array) -> None:
             source=args.source,
             lmbda=args.lmbda,
             n_folds=args.n_folds,
+            transform=transform,
         )
         probing_results = pd.concat(
             [probing_results_overall, probing_results_current_run],
@@ -228,6 +232,7 @@ def save_results(args, probing_acc: float, ooo_choices: Array) -> None:
             "source",
             "l2_reg",
             "n_folds",
+            "transform",
         ]
         probing_results = make_results_df(
             columns=columns,
@@ -238,6 +243,7 @@ def save_results(args, probing_acc: float, ooo_choices: Array) -> None:
             source=args.source,
             lmbda=args.lmbda,
             n_folds=args.n_folds,
+            transform=transform,
         )
         probing_results.to_pickle(os.path.join(out_path, "probing_results.pkl"))
 
@@ -332,7 +338,7 @@ if __name__ == "__main__":
     features = load_features(args.probing_root)
     model_features = features[args.source][args.model][args.module]
     optim_cfg = create_optimization_config(args)
-    ooo_choices, cv_results, transformation = run(
+    ooo_choices, cv_results, transform = run(
         features=model_features,
         model=args.model,
         module=args.module,
@@ -345,13 +351,4 @@ if __name__ == "__main__":
         num_processes=args.num_processes,
     )
     avg_cv_acc = get_mean_cv_acc(cv_results)
-    save_results(args, probing_acc=avg_cv_acc, ooo_choices=ooo_choices)
-
-    """
-    # save transformation matrix for every model (do we need this?)
-    out_path = os.path.join(args.probing_root, 'results', args.model, args.module)
-    if not os.path.exists(out_path):
-        os.makedirs(out_path)
-    with open(os.path.join(out_path, 'transform.npy'), 'wb') as f:
-        np.save(file=f, arr=transformation)
-    """
+    save_results(args, probing_acc=avg_cv_acc, ooo_choices=ooo_choices, transform=transform)
