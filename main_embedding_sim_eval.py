@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import torch
 from ml_collections import config_dict
+from thingsvision.core.extraction import center_features
 from thingsvision.core.rsa import compute_rdm, correlate_rdms
 from thingsvision.core.rsa.helpers import correlation_matrix, cosine_matrix
 from tqdm import tqdm
@@ -117,7 +118,8 @@ def evaluate(args) -> None:
     model_features = dict()
     for model_name, features in tqdm(embeddings.items(), desc="Model"):
         family_name = utils.analyses.get_family_name(model_name)
-
+        features = center_features(features)
+        
         if dataset == 'peterson':
             rdm_dnn = correlation_matrix(features)
             rdm_humans = dataset.get_rsm()
@@ -127,7 +129,7 @@ def evaluate(args) -> None:
 
         spearman_rho = correlate_rdms(rdm_dnn, rdm_humans, correlation="spearman")
         pearson_corr_coef = correlate_rdms(rdm_dnn, rdm_humans, correlation="pearson")
-        
+
         if args.verbose:
             print(
                 f"\nModel: {model_name}, Family: {family_name}, Spearman's rho: {spearman_rho:.4f}, Pearson correlation coefficient: {pearson_corr_coef:.4f}\n"
