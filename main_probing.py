@@ -6,7 +6,6 @@ from typing import Any, Callable, Dict, Iterator, List, Tuple
 import numpy as np
 import pandas as pd
 import torch
-from einops import rearrange
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from sklearn.model_selection import KFold
@@ -187,7 +186,7 @@ def make_results_df(
     probing_results_current_run["source"] = source
     probing_results_current_run["l2_reg"] = lmbda
     probing_results_current_run["n_folds"] = n_folds
-    probing_results_current_run["transform"] = rearrange(transform, "d p -> (d p)")
+    probing_results_current_run["transform"] = transform.ravel().tolist()
     return probing_results_current_run
 
 
