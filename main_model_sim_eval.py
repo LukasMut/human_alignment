@@ -135,7 +135,10 @@ def evaluate(args) -> None:
     model_features = dict()
     for i, (model_name, source) in tqdm(enumerate(zip(model_cfg.names, model_cfg.sources)), desc="Model"):
         
-        if model_name.startswith('clip'):
+        if model_name.startswith('OpenCLIP'):
+            name, variant, data = model_name.split('_')
+            model_params = dict(variant=variant, dataset=data)
+        elif model_name.startswith('clip'):
             name, variant = model_name.split('_')
             model_params = dict(variant=variant)
         else:
