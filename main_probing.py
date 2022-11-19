@@ -186,7 +186,7 @@ def make_results_df(
     probing_results_current_run["source"] = source
     probing_results_current_run["l2_reg"] = lmbda
     probing_results_current_run["n_folds"] = n_folds
-    probing_results_current_run["transform"] = transform.ravel().tolist()
+    probing_results_current_run["transform"] = [transform.ravel()]
     return probing_results_current_run
 
 
