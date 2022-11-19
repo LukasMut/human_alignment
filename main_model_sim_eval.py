@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-from email.policy import default
 import os
 import random
 import warnings
@@ -13,6 +12,7 @@ import pandas as pd
 import torch
 from ml_collections import config_dict
 from thingsvision import get_extractor
+from thingsvision.core.extraction import center_features
 from thingsvision.core.rsa import compute_rdm, correlate_rdms
 from thingsvision.core.rsa.helpers import correlation_matrix, cosine_matrix
 from thingsvision.utils.data import DataLoader
@@ -166,13 +166,15 @@ def evaluate(args) -> None:
             module_name=model_cfg.modules[i],
             flatten_acts=True,
         )
+        features = center_features(features)
+
         if dataset == 'peterson':
             rdm_dnn = correlation_matrix(features)
             rdm_humans = dataset.get_rsm()
         else:
             rdm_dnn = compute_rdm(features, method="correlation")
             rdm_humans = dataset.get_rdm()
-            
+
         spearman_rho = correlate_rdms(rdm_dnn, rdm_humans, correlation="spearman")
         pearson_corr_coef = correlate_rdms(rdm_dnn, rdm_humans, correlation="pearson")
 
