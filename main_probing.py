@@ -125,7 +125,7 @@ def load_features(probing_root: str, subfolder: str = "embeddings") -> Dict[str,
 
 
 def get_batches(triplets: Tensor, batch_size: int, train: bool) -> Iterator:
-    dl = DataLoader(
+    batches = DataLoader(
         dataset=triplets,
         batch_size=batch_size,
         shuffle=True if train else False,
@@ -133,7 +133,7 @@ def get_batches(triplets: Tensor, batch_size: int, train: bool) -> Iterator:
         drop_last=False,
         pin_memory=True if train else False,
     )
-    return dl
+    return batches
 
 
 def get_callbacks(optim_cfg: FrozenDict, steps: int = 20) -> List[Callable]:
