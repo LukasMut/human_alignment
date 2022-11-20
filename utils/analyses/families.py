@@ -137,7 +137,7 @@ class Families:
 
     @property
     def ssl(self):
-        return r"^r50"
+        return r"(-rn50|swav|vicreg|barlowtwins)$"
 
     @property
     def inception(self):
@@ -177,31 +177,31 @@ class Families:
 
     @property
     def vicreg(self):
-        return f"(?=^{self.ssl})(?=.*vicreg$)"
+        return r"^vicreg$"
 
     @property
     def swav(self):
-        return f"(?=^{self.ssl})(?=.*swav$)"
+        return r"^swav$"
 
     @property
     def barlowtins(self):
-        return f"(?=^{self.ssl})(?=.*barlowtwins$)"
+        return r"^barlowtwins$"
 
     @property
     def simclr(self):
-        return f"(?=^{self.ssl})(?=.*simclr$)"
+        return f"(?=^simclr)(?=.*{self.ssl}$)"
 
     @property
     def movcov(self):
-        return f"(?=^{self.ssl})(?=.*mocov[0-9]+$)"
+        return f"(?=^mocov[0-9]+)(?=.*{self.ssl}$)"
 
     @property
     def jigsaw(self):
-        return f"(?=^{self.ssl})(?=.*jigsaw$)"
+        return f"(?=^jigsaw)(?=.*{self.ssl}$)"
 
     @property
     def rotnet(self):
-        return f"(?=^{self.ssl})(?=.*rotnet$)"
+        return f"(?=^rotnet)(?=.*{self.ssl}$)"
 
     @property
     def cnn(self):
