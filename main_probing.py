@@ -353,6 +353,6 @@ if __name__ == "__main__":
 
     out_path = os.path.join(args.probing_root, 'results', args.source, args.model, args.module, args.n_folds, args.lmbda)
     if not os.path.exists(out_path):
-        os.makedirs(out_path)
+        os.makedirs(out_path, exist_ok=True)
     with open(os.path.join(out_path, 'transform.npy'), 'wb') as f:
         np.save(file=f, arr=transform)
