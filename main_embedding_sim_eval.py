@@ -118,8 +118,11 @@ def evaluate(args) -> None:
     model_features = dict()
     for model_name, features in tqdm(embeddings.items(), desc="Model"):
         family_name = utils.analyses.get_family_name(model_name)
-        features = center_features(features)
         
+        # NOTE: should we center or standardize (i.e., z-transform) feature matrix?
+        # features = utils.probing.standardize(features)
+        features = center_features(features)
+
         if dataset == 'peterson':
             rdm_dnn = correlation_matrix(features)
             rdm_humans = dataset.get_rsm()

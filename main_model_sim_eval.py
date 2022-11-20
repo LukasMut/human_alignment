@@ -169,6 +169,8 @@ def evaluate(args) -> None:
             module_name=model_cfg.modules[i],
             flatten_acts=True,
         )
+        # NOTE: should we center or standardize (i.e., z-transform) feature matrix?
+        # features = utils.probing.standardize(features)
         features = center_features(features)
 
         if dataset == 'peterson':
