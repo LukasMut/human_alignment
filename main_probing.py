@@ -175,7 +175,6 @@ def make_results_df(
     source: str,
     lmbda: float,
     n_folds: int,
-    transform: Array,
 ) -> pd.DataFrame:
     probing_results_current_run = pd.DataFrame(index=range(1), columns=columns)
     probing_results_current_run["model"] = model_name
@@ -186,12 +185,11 @@ def make_results_df(
     probing_results_current_run["source"] = source
     probing_results_current_run["l2_reg"] = lmbda
     probing_results_current_run["n_folds"] = n_folds
-    probing_results_current_run["transform"] = [transform.ravel()]
     return probing_results_current_run
 
 
 def save_results(
-    args, probing_acc: float, ooo_choices: Array, transform: Array
+    args, probing_acc: float, ooo_choices: Array
 ) -> None:
     out_path = os.path.join(args.probing_root, "results")
     if not os.path.exists(out_path):
@@ -214,7 +212,6 @@ def save_results(
             source=args.source,
             lmbda=args.lmbda,
             n_folds=args.n_folds,
-            transform=transform,
         )
         probing_results = pd.concat(
             [probing_results_overall, probing_results_current_run],
@@ -233,7 +230,6 @@ def save_results(
             "source",
             "l2_reg",
             "n_folds",
-            "transform",
         ]
         probing_results = make_results_df(
             columns=columns,
@@ -244,7 +240,6 @@ def save_results(
             source=args.source,
             lmbda=args.lmbda,
             n_folds=args.n_folds,
-            transform=transform,
         )
         probing_results.to_pickle(os.path.join(out_path, "probing_results.pkl"))
 
@@ -353,5 +348,11 @@ if __name__ == "__main__":
     )
     avg_cv_acc = get_mean_cv_acc(cv_results)
     save_results(
-        args, probing_acc=avg_cv_acc, ooo_choices=ooo_choices, transform=transform
+        args, probing_acc=avg_cv_acc, ooo_choices=ooo_choices
     )
+
+    out_path = os.path.join(args.probing_root, 'results', args.source, args.model, args.module, args.n_folds, args.lmbda)
+    if not os.path.exists(out_path):
+        os.makedirs(out_path)
+    with open(os.path.join(out_path, 'transform.npy'), 'wb') as f:
+        np.save(file=f, arr=transform)
