@@ -351,7 +351,7 @@ if __name__ == "__main__":
         args, probing_acc=avg_cv_acc, ooo_choices=ooo_choices
     )
 
-    out_path = os.path.join(args.probing_root, 'results', args.source, args.model, args.module, args.n_folds, args.lmbda)
+    out_path = os.path.join(args.probing_root, 'results', args.source, args.model, args.module, str(args.n_folds), str(args.lmbda))
     if not os.path.exists(out_path):
         os.makedirs(out_path, exist_ok=True)
     with open(os.path.join(out_path, 'transform.npy'), 'wb') as f:
