@@ -45,7 +45,7 @@ def parseargs():
         "--source",
         type=str,
         default="torchvsion",
-        choices=["timm", "torchvision"] + EMBEDDINGS,
+        choices=["timm", "torchvision", "vissl", "custom"] + EMBEDDINGS,
         help="Host of (pretrained) models",
     )
     aa(
@@ -167,7 +167,7 @@ def get_penult_module_name(model: Model):
     is_clip = "clip" in model.model_name
     if is_clip:
         module_name = "visual"
-    elif model.model_name == "r50-vicreg":
+    elif model.model_name in ["r50-vicreg", "vicreg-rn50"]:
         # This is the only SSL architecure w/o fc layer. For the sake of unity, this assures that penult is avgpool.
         module_name = "avgpool"
     else:
@@ -640,6 +640,38 @@ if __name__ == "__main__":
                 "convnext_base",
                 "convnext_large",
             ]
+        elif source == "vissl":
+            model_names = [
+                "simclr-rn50",
+                "mocov2-rn50",
+                "jigsaw-rn50",
+                "rotnet-rn50"
+            ]
+        elif source == "custom":
+            model_names = [
+                'OpenCLIP_RN50_openai',
+                'OpenCLIP_RN101_openai',
+                'OpenCLIP_RN50x4_openai',
+                'OpenCLIP_RN50x16_openai',
+                'OpenCLIP_RN50x64_openai',
+                'OpenCLIP_ViT-B-16_openai',
+                'OpenCLIP_ViT-B-32_openai',
+                'OpenCLIP_ViT-L-14_openai',
+                'OpenCLIP_ViT-H-14_openai',
+                'OpenCLIP_ViT-g-14_openai',
+                "Vicreg",
+                "BarlowTwins",
+                "Swav",
+                'clip_ViT-B/16',
+                'clip_ViT-B/32',
+                'clip_ViT-L/14',
+                'clip_RN50',
+                'clip_RN101',
+                'clip_RN50x4',
+                'clip_RN50x16',
+                'clip_RN50x64'
+            ]
+
     if args_model_names and args_model_names[0] != "None":
         model_names = [
             name
