@@ -17,6 +17,7 @@ from thingsvision.core.rsa import compute_rdm, correlate_rdms
 from thingsvision.core.rsa.helpers import correlation_matrix, cosine_matrix
 from thingsvision.utils.data import DataLoader
 from tqdm import tqdm
+from torchvision.transforms import Lambda, Compose
 
 import utils
 from data import DATASETS, load_dataset
@@ -34,44 +35,93 @@ def parseargs():
 
     aa("--data_root", type=str, help="path/to/things")
     aa("--dataset", type=str, help="Which dataset to use", choices=DATASETS)
-    aa("--category", type=str, default=None,
-        choices=["animals", "automobiles", "fruits", "furniture", "various", "vegetables"],
+    aa(
+        "--category",
+        type=str,
+        default=None,
+        choices=[
+            "animals",
+            "automobiles",
+            "fruits",
+            "furniture",
+            "various",
+            "vegetables",
+        ],
         help="Similarity judgments of the dataset from Peterson et al. (2016) were collected for specific categories",
     )
-    aa("--model_names", type=str, nargs="+",
-        help="models for which we want to extract featues")
-    aa("--module", type=str, choices=["logits", "penultimate"],
-        help="module for which to extract features")
+    aa(
+        "--model_names",
+        type=str,
+        nargs="+",
+        help="models for which we want to extract featues",
+    )
+    aa(
+        "--module",
+        type=str,
+        choices=["logits", "penultimate"],
+        help="module for which to extract features",
+    )
     aa("--overall_source", type=str, default="thingsvision")
-    aa("--sources", type=str, nargs="+",
+    aa(
+        "--sources",
+        type=str,
+        nargs="+",
         choices=[
             "custom",
             "timm",
             "torchvision",
             "vissl",
-            ],
+        ],
         help="Source of (pretrained) models",
-        )
-    aa("--model_dict_path", type=str,
+    )
+    aa(
+        "--model_dict_path",
+        type=str,
         default="/home/space/datasets/things/model_dict.json",
-        help="Path to the model_dict.json"
-        )
+        help="Path to the model_dict.json",
+    )
     aa("--input_dim", type=int, default=224, help="input image dimensionality")
-    aa("--batch_size", metavar="B", type=int, default=118,
-        help="number of images sampled during each step (i.e., mini-batch size)")
-    aa("--out_path", type=str,
+    aa(
+        "--batch_size",
+        metavar="B",
+        type=int,
+        default=118,
+        help="number of images sampled during each step (i.e., mini-batch size)",
+    )
+    aa(
+        "--out_path",
+        type=str,
         default="/home/space/datasets/things/results/",
-        help="path/to/results")
-    aa("--device", type=str, default="cuda",
-        help="whether evaluation should be performed on CPU or GPU (i.e., CUDA).")
-    aa("--num_threads", type=int, default=4,
-        help="number of threads used for intraop parallelism on CPU; use only if device is CPU")
-    aa("--rnd_seed", type=int, default=42,
-        help="random seed for reproducibility of results")
-    aa("--verbose", action="store_true",
-        help="whether to show print statements about model performance during training")
-    aa("--not_pretrained",  action="store_true",
-        help="load random model instead of pretrained")
+        help="path/to/results",
+    )
+    aa(
+        "--device",
+        type=str,
+        default="cuda",
+        help="whether evaluation should be performed on CPU or GPU (i.e., CUDA).",
+    )
+    aa(
+        "--num_threads",
+        type=int,
+        default=4,
+        help="number of threads used for intraop parallelism on CPU; use only if device is CPU",
+    )
+    aa(
+        "--rnd_seed",
+        type=int,
+        default=42,
+        help="random seed for reproducibility of results",
+    )
+    aa(
+        "--verbose",
+        action="store_true",
+        help="whether to show print statements about model performance during training",
+    )
+    aa(
+        "--not_pretrained",
+        action="store_true",
+        help="load random model instead of pretrained",
+    )
     args = parser.parse_args()
     return args
 
@@ -133,18 +183,20 @@ def evaluate(args) -> None:
     model_cfg, data_cfg = create_config_dicts(args)
     results = []
     model_features = dict()
-    for i, (model_name, source) in tqdm(enumerate(zip(model_cfg.names, model_cfg.sources)), desc="Model"):
-        
-        if model_name.startswith('OpenCLIP'):
-            name, variant, data = model_name.split('_')
+    for i, (model_name, source) in tqdm(
+        enumerate(zip(model_cfg.names, model_cfg.sources)), desc="Model"
+    ):
+
+        if model_name.startswith("OpenCLIP"):
+            name, variant, data = model_name.split("_")
             model_params = dict(variant=variant, dataset=data)
-        elif model_name.startswith('clip'):
-            name, variant = model_name.split('_')
+        elif model_name.startswith("clip"):
+            name, variant = model_name.split("_")
             model_params = dict(variant=variant)
         else:
             name = model_name
             model_params = None
-        
+
         family_name = utils.analyses.get_family_name(model_name)
         extractor = get_extractor(
             model_name=name,
@@ -153,11 +205,18 @@ def evaluate(args) -> None:
             pretrained=not args.not_pretrained,
             model_parameters=model_params,
         )
+
+        transformations = extractor.get_transformations()
+        if args.dataset == "peterson":
+            transformations = Compose(
+                [Lambda(lambda img: img.convert("RGB")), transformations]
+            )
+
         dataset = load_dataset(
             name=args.dataset,
             data_dir=data_cfg.root,
             category=data_cfg.category,
-            transform=extractor.get_transformations(),
+            transform=transformations,
         )
         batches = DataLoader(
             dataset=dataset,
@@ -173,7 +232,7 @@ def evaluate(args) -> None:
         # features = utils.probing.standardize(features)
         features = center_features(features)
 
-        if dataset == 'peterson':
+        if args.dataset == "peterson":
             rdm_dnn = correlation_matrix(features)
             rdm_humans = dataset.get_rsm()
         else:
@@ -202,7 +261,9 @@ def evaluate(args) -> None:
     # convert results into Pandas DataFrame
     results = pd.DataFrame(results)
 
-    out_path = os.path.join(args.out_path, args.dataset, args.overall_source, args.module)
+    out_path = os.path.join(
+        args.out_path, args.dataset, args.overall_source, args.module
+    )
     if not os.path.exists(out_path):
         print("\nOutput directory does not exist...")
         print("Creating output directory to save results...\n")
