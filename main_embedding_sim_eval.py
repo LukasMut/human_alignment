@@ -32,17 +32,37 @@ def parseargs():
     aa("--data_root", type=str, help="path/to/things")
     aa("--embeddings_root", type=str, help="path/to/embeddings")
     aa("--dataset", type=str, help="Which dataset to use", choices=DATASETS)
-    aa("--category", type=str, default=None,
-        choices=["animals", "automobiles", "fruits", "furniture", "various", "vegetables"],
+    aa(
+        "--category",
+        type=str,
+        default=None,
+        choices=[
+            "animals",
+            "automobiles",
+            "fruits",
+            "furniture",
+            "various",
+            "vegetables",
+        ],
         help="Similarity judgments of the dataset from Peterson et al. (2016) were collected for specific categories",
     )
-    aa("--module", type=str, default="penultimate",
+    aa(
+        "--module",
+        type=str,
+        default="penultimate",
         choices=["logits", "penultimate"],
-        help="module for which to extract features")
-    aa("--model_dict_path", type=str,
+        help="module for which to extract features",
+    )
+    aa(
+        "--model_dict_path",
+        type=str,
         default="/home/space/datasets/things/model_dict.json",
-        help="Path to the model_dict.json")
-    aa("--distance", type=str, default="cosine",
+        help="Path to the model_dict.json",
+    )
+    aa(
+        "--distance",
+        type=str,
+        default="cosine",
         choices=["cosine", "euclidean"],
         help="distance function used for predicting the odd-one-out")
     aa("--out_path", type=str, help="path/to/results",

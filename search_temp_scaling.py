@@ -1,8 +1,9 @@
 import evaluation
-from thingsvision.model_class import Model
-from models import CustomModel
-from main_model_eval import evaluate
-from main_embedding_eval import evaluate as evaluate_embeddings
+
+from thingsvision import get_extractor
+from thingsvision.core.extraction.base import BaseExtractor
+from main_model_triplet_eval import evaluate
+from main_embedding_triplet_eval import evaluate as evaluate_embeddings
 from typing import List, Optional
 from matplotlib import pyplot as plt
 
@@ -153,32 +154,32 @@ def _is_model_name_accepted(name: str):
     return is_ok
 
 
-def get_logit_module_name(model: Model):
-    is_clip = "clip" in model.model_name
+def get_logit_module_name(extractor: BaseExtractor):
+    is_clip = "clip" in extractor.model_name
     if is_clip:
         module_name = "visual"
     else:
-        module_to_iterate = model.model
+        module_to_iterate = extractor.model
         module_name = [m[0] for m in module_to_iterate.named_modules()][-1]
     return module_name
 
 
-def get_penult_module_name(model: Model):
-    is_clip = "clip" in model.model_name
+def get_penult_module_name(extractor: BaseExtractor):
+    is_clip = "clip" in extractor.model_name
     if is_clip:
         module_name = "visual"
-    elif model.model_name in ["r50-vicreg", "vicreg-rn50"]:
+    elif extractor.model_name in ["r50-vicreg", "vicreg-rn50"]:
         # This is the only SSL architecure w/o fc layer. For the sake of unity, this assures that penult is avgpool.
         module_name = "avgpool"
     else:
-        logit_module_name = get_logit_module_name(model)
+        logit_module_name = get_logit_module_name(extractor)
         module_name = None
         not_permitted = [
             torch.nn.ReLU,
             torch.nn.GELU,
             torch.nn.Dropout,
         ]
-        module_to_iterate = model.model
+        module_to_iterate = extractor.model
         for mod_name, mod in module_to_iterate.named_modules():
             is_leaf = not [c for c in mod.children()]
             is_legal = not any([isinstance(mod, cls) for cls in not_permitted])
@@ -214,20 +215,28 @@ def get_model_dict(
             model_dict[model_name]["logits"]["module_name"] = "logits"
             model_dict[model_name]["penultimate"]["module_name"] = "penultimate"
         else:
-            model = CustomModel(
+            if model_name.startswith("OpenCLIP"):
+                name, variant, data = model_name.split("_")
+                model_params = dict(variant=variant, dataset=data)
+            elif model_name.startswith("clip"):
+                name, variant = model_name.split("_")
+                model_params = dict(variant=variant)
+            else:
+                model_params = None
+
+            extractor = get_extractor(
                 model_name=model_name,
-                pretrained=True,
-                model_path=None,
-                device=device,
-                ssl_models_path=ssl_models_path,
                 source=source,
+                device=device,
+                pretrained=True,
+                model_parameters=model_params,
             )
             model_dict[model_name]["logits"]["module_name"] = get_logit_module_name(
-                model
+                extractor
             )
             model_dict[model_name]["penultimate"][
                 "module_name"
-            ] = get_penult_module_name(model)
+            ] = get_penult_module_name(extractor)
 
     return model_dict
 
@@ -611,20 +620,7 @@ if __name__ == "__main__":
         model_names = [
             name for name in dir(torchvision.models) if _is_model_name_accepted(name)
         ]
-        if source == "torchvision":
-            model_names += [
-                "clip-ViT",
-                "clip-RN",
-                "r50-simclr",
-                "r50-mocov2",
-                "r50-jigsaw",
-                "r50-colorization",
-                "r50-rotnet",
-                "r50-swav",
-                "r50-vicreg",
-                "r50-barlowtwins",
-            ]
-        elif source == "timm":
+        if source == "timm":
             model_names = [
                 mn for mn in model_names if mn in timm.list_models(pretrained=True)
             ]
@@ -641,35 +637,33 @@ if __name__ == "__main__":
                 "convnext_large",
             ]
         elif source == "vissl":
-            model_names = [
-                "simclr-rn50",
-                "mocov2-rn50",
-                "jigsaw-rn50",
-                "rotnet-rn50"
-            ]
+            model_names = ["simclr-rn50", "mocov2-rn50", "jigsaw-rn50", "rotnet-rn50"]
         elif source == "custom":
             model_names = [
-                'OpenCLIP_RN50_openai',
-                'OpenCLIP_RN101_openai',
-                'OpenCLIP_RN50x4_openai',
-                'OpenCLIP_RN50x16_openai',
-                'OpenCLIP_RN50x64_openai',
-                'OpenCLIP_ViT-B-16_openai',
-                'OpenCLIP_ViT-B-32_openai',
-                'OpenCLIP_ViT-L-14_openai',
-                'OpenCLIP_ViT-H-14_openai',
-                'OpenCLIP_ViT-g-14_openai',
+                "OpenCLIP_RN50_openai",
+                "OpenCLIP_RN101_openai",
+                "OpenCLIP_RN50x4_openai",
+                "OpenCLIP_RN50x16_openai",
+                "OpenCLIP_RN50x64_openai",
+                "OpenCLIP_ViT-B-16_openai",
+                "OpenCLIP_ViT-B-32_openai",
+                "OpenCLIP_ViT-L-14_openai",
+                "OpenCLIP_ViT-H-14_openai",
+                "OpenCLIP_ViT-g-14_openai",
                 "Vicreg",
                 "BarlowTwins",
                 "Swav",
-                'clip_ViT-B/16',
-                'clip_ViT-B/32',
-                'clip_ViT-L/14',
-                'clip_RN50',
-                'clip_RN101',
-                'clip_RN50x4',
-                'clip_RN50x16',
-                'clip_RN50x64'
+                "clip_ViT-B/16",
+                "clip_ViT-B/32",
+                "clip_ViT-L/14",
+                "clip_RN50",
+                "clip_RN101",
+                "clip_RN50x4",
+                "clip_RN50x16",
+                "clip_RN50x64",
+                "Alexnet_ecoset",
+                "Resnet50_ecoset",
+                "VGG16_ecoset",
             ]
 
     if args_model_names and args_model_names[0] != "None":
@@ -683,6 +677,8 @@ if __name__ == "__main__":
     model_dict = get_model_dict(
         model_names, dist=distance, ssl_models_path=ssl_models_path, source=source
     )
+
+    print(model_names, model_dict)
 
     search_temperatures(
         model_dict,
