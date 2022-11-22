@@ -1,4 +1,5 @@
 import argparse
+from collections import defaultdict
 import os
 import random
 import warnings
@@ -110,7 +111,7 @@ def evaluate(args) -> None:
     )
     results = []
 
-    model_features = dict()
+    model_features = defaultdict(lambda: defaultdict(dict))
     for i, (model_name, features) in tqdm(enumerate(embeddings.items()), desc="Model"):
         family = utils.analyses.get_family_name(model_name) 
         triplets = dataset.get_triplets()
