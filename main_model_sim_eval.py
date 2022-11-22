@@ -3,9 +3,10 @@
 
 import argparse
 import os
+import pickle
 import random
 import warnings
-from typing import Any, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -33,7 +34,7 @@ def parseargs():
     def aa(*args, **kwargs):
         parser.add_argument(*args, **kwargs)
 
-    aa("--data_root", type=str, help="path/to/things")
+    aa("--data_root", type=str, help="path/to/dataset")
     aa("--dataset", type=str, help="Which dataset to use", choices=DATASETS)
     aa(
         "--category",
@@ -107,6 +108,16 @@ def parseargs():
         help="number of threads used for intraop parallelism on CPU; use only if device is CPU",
     )
     aa(
+        "--use_transforms",
+        action="store_true",
+        help="use transformation matrix obtained from linear probing on the things triplet odd-one-out task",
+    )
+    aa(
+        "--not_pretrained",
+        action="store_true",
+        help="load randomly initialized model instead of a pretrained model",
+    )
+    aa(
         "--rnd_seed",
         type=int,
         default=42,
@@ -116,11 +127,6 @@ def parseargs():
         "--verbose",
         action="store_true",
         help="whether to show print statements about model performance during training",
-    )
-    aa(
-        "--not_pretrained",
-        action="store_true",
-        help="load random model instead of pretrained",
     )
     args = parser.parse_args()
     return args
@@ -177,10 +183,18 @@ def create_config_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
     return model_cfg, data_cfg
 
 
+def load_transforms(root: str) ->  Dict[str, Dict[str, Dict[str, Array]]]:
+    with open(os.path.join(root, 'transforms.pkl'), 'rb') as f:
+        transforms = pickle.load(f)
+    return transforms
+
+
 def evaluate(args) -> None:
     """Perform evaluation with optimal temperature values."""
     device = torch.device(args.device)
     model_cfg, data_cfg = create_config_dicts(args)
+    if args.use_transforms:
+        transforms = load_transforms(args.data_root)
     results = []
     model_features = dict()
     for i, (model_name, source) in tqdm(
@@ -231,32 +245,51 @@ def evaluate(args) -> None:
         # NOTE: should we center or standardize (i.e., z-transform) feature matrix?
         # features = utils.probing.standardize(features)
         features = center_features(features)
+        
+        if args.use_transforms:
+            try:
+                transform = transforms[source][model_name][args.module]
+            except KeyError:
+                warnings.warn(
+                    message=f"\nCould not find transformation matrix for {model_name}.\nSkipping evaluation for {model_name}\n",
+                    category=UserWarning,
+                    )
+                continue
+            features = features @ transform
 
         if args.dataset == "peterson":
-            rdm_dnn = correlation_matrix(features)
+            cosine_rdm_dnn = cosine_matrix(features)
+            corr_rdm_dnn = correlation_matrix(features)
             rdm_humans = dataset.get_rsm()
         else:
-            rdm_dnn = compute_rdm(features, method="correlation")
+            cosine_rdm_dnn = compute_rdm(features, method="cosine")
+            corr_rdm_dnn = compute_rdm(features, method="correlation")
             rdm_humans = dataset.get_rdm()
 
-        spearman_rho = correlate_rdms(rdm_dnn, rdm_humans, correlation="spearman")
-        pearson_corr_coef = correlate_rdms(rdm_dnn, rdm_humans, correlation="pearson")
+        spearman_rho_cosine = correlate_rdms(cosine_rdm_dnn, rdm_humans, correlation="spearman")
+        pearson_corr_coef_cosine = correlate_rdms(cosine_rdm_dnn, rdm_humans, correlation="pearson")
+
+        spearman_rho_corr = correlate_rdms(corr_rdm_dnn, rdm_humans, correlation="spearman")
+        pearson_corr_coef_corr = correlate_rdms(corr_rdm_dnn, rdm_humans, correlation="pearson")
 
         if args.verbose:
             print(
-                f"\nModel: {model_name}, Family: {family_name}, Spearman's rho: {spearman_rho:.4f}, Pearson correlation coefficient: {pearson_corr_coef:.4f}\n"
+                f"\nModel: {model_name}, Family: {family_name}, Spearman's rho: {spearman_rho_corr:.4f}, Pearson correlation coefficient: {pearson_corr_coef_corr:.4f}\n"
             )
         summary = {
             "model": model_name,
-            "zero-shot spearman": spearman_rho,
-            "zero-shot pearson": pearson_corr_coef,
+            "spearman_rho_cosine": spearman_rho_cosine,
+            "pearson_corr_cosine": pearson_corr_coef_cosine,
+            "spearman_rho_correlation": spearman_rho_corr,
+            "pearson_corr_correlation": pearson_corr_coef_corr,
             "source": source,
             "family": family_name,
             "dataset": data_cfg.name,
             "category": data_cfg.category,
+            "transform": args.use_transforms,
         }
         results.append(summary)
-        model_features[model_name] = features
+        model_features[source][model_name][args.module] = features
 
     # convert results into Pandas DataFrame
     results = pd.DataFrame(results)
