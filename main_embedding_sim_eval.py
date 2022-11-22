@@ -1,4 +1,6 @@
 import argparse
+from collections import defaultdict
+from email.policy import default
 import os
 import random
 import warnings
@@ -125,7 +127,7 @@ def evaluate(args) -> None:
         transforms = utils.evaluation.load_transforms(args.data_root)
 
     results = []
-    model_features = dict()
+    model_features = defaultdict(lambda: defaultdict(dict))
     for model_name, features in tqdm(embeddings.items(), desc="Model"):
         family_name = utils.analyses.get_family_name(model_name)
 
