@@ -119,7 +119,7 @@ def find_best_transforms(
         else:
             transforms[row.source][row.model][row.module] = transform
         # delete subdirectory
-        shutil.rmtree(subdir)
+        # shutil.rmtree(subdir)
     return transforms
 
 
@@ -145,5 +145,5 @@ if __name__ == "__main__":
     root = sys.argv[1]
     best_probing_results = get_best_probing_results(root)
     transforms = find_best_transforms(root, best_probing_results)
-    save_transforms(root, transforms)
+    save_transforms(root, dict(transforms))
     save_results(root, best_probing_results)
