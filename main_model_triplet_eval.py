@@ -249,7 +249,7 @@ def evaluate(args) -> None:
     # load back with pd.read_pickle(/path/to/file/pkl)
     results.to_pickle(os.path.join(out_path, "results.pkl"))
     failures.to_pickle(os.path.join(out_path, "failures.pkl"))
-    utils.evaluation.save_features(features=model_features, out_path=out_path)
+    utils.evaluation.save_features(features=dict(model_features), out_path=out_path)
 
 
 if __name__ == "__main__":
