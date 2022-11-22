@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+from collections import defaultdict
 import os
 import random
 import warnings
@@ -170,7 +171,7 @@ def evaluate(args) -> None:
     device = torch.device(args.device)
     model_cfg, data_cfg = create_config_dicts(args)
     results = []
-    model_features = dict()
+    model_features = defaultdict(lambda: defaultdict(dict))
     for i, (model_name, source) in tqdm(
         enumerate(zip(model_cfg.names, model_cfg.sources)), desc="Model"
     ):
