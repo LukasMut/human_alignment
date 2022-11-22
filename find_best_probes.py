@@ -1,5 +1,6 @@
 import os
 import pickle
+import shutil
 import sys
 from collections import defaultdict
 from typing import Dict, List
@@ -98,6 +99,8 @@ def find_best_transforms(
         )
         transform = load_transform(subdir)
         transforms[row.source][row.model][row.module] = transform
+        # delete entire folder tree for current source
+        shutil.rmtree(os.path.join(root, row.source))
     return transforms
 
 
