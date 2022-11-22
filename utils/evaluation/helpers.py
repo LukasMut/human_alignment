@@ -5,7 +5,7 @@ import itertools
 import json
 import os
 import pickle
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -35,12 +35,18 @@ def convert_filenames(filenames: Array) -> Array:
 
 
 def load_embeddings(
-    embeddings_root: str, 
-    object_names: str, 
-    module: str = "embeddings", 
-    things_sorting: bool = True,
+    embeddings_root: str,
+    module: str = "embeddings",
+    sort: str = None,
+    object_names: List[str] = None,
 ) -> Dict[str, Array]:
     """Load Google internal embeddings and sort them according to THINGS object sorting."""
+
+    def get_order(sorted_names: List[str]) -> Array:
+        """Get correct order of file names."""
+        order = np.array([np.where(filenames == n)[0][0] for n in sorted_names])
+        return order
+
     embeddings = {}
     for f in os.scandir(embeddings_root):
         fname = f.name
@@ -48,13 +54,17 @@ def load_embeddings(
         with open(os.path.join(embeddings_root, fname), "rb") as f:
             embedding_file = pickle.load(f)
             embedding = embedding_file[module]
-            if things_sorting:
+            if sort:
                 filenames = embedding_file["filenames"]
                 filenames = convert_filenames(filenames)
-                things_sorting = np.array(
-                    [np.where(filenames == n)[0][0] for n in object_names]
-                )
-                embedding_sorted = embedding[things_sorting]
+                if sort == "things":
+                    assert isinstance(
+                        object_names, Union[list, Array]
+                    ), "\nTo sort features according to things object names, a list (or an array) of object names is required.\n"
+                    order = get_order(object_names)
+                else:
+                    order = get_order(sorted(filenames))
+                embedding_sorted = embedding[order]
                 embeddings[model] = embedding_sorted
             else:
                 embeddings[model] = embedding
@@ -72,7 +82,7 @@ def compute_distances(triplet: Tensor, pairs: List[Tuple[int]], dist: str) -> Te
     elif dist == "euclidean":
         dist_fun = lambda u, v: torch.linalg.norm(u - v, ord=2)
     elif dist == "dot":
-        dist_fun = lambda u, v: - torch.dot(u, v)
+        dist_fun = lambda u, v: -torch.dot(u, v)
     else:
         raise Exception(
             "\nDistance function other than Cosine or Euclidean distance is not yet implemented\n"
@@ -155,3 +165,10 @@ def load_model_config(path: str) -> dict:
     with open(path, "r") as f:
         model_dict = json.load(f)
     return model_dict
+
+
+def load_transforms(root: str) -> Dict[str, Dict[str, Dict[str, Array]]]:
+    """Load transformation matrices obtained from linear probing on things triplet odd-one-out task into memory."""
+    with open(os.path.join(root, "transforms.pkl"), "rb") as f:
+        transforms = pickle.load(f)
+    return transforms

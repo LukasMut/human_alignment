@@ -242,20 +242,21 @@ def evaluate(args) -> None:
             module_name=model_cfg.modules[i],
             flatten_acts=True,
         )
-        # NOTE: should we center or standardize (i.e., z-transform) feature matrix?
-        # features = utils.probing.standardize(features)
-        features = center_features(features)
-        
         if args.use_transforms:
             try:
-                transform = transforms[source][model_name][args.module]
+                transform = transforms[model_cfg.source][model_name][args.module]
             except KeyError:
                 warnings.warn(
                     message=f"\nCould not find transformation matrix for {model_name}.\nSkipping evaluation for {model_name}\n",
                     category=UserWarning,
                     )
                 continue
+            features = utils.probing.standardize(features)
             features = features @ transform
+        else:
+            # NOTE: should we center or standardize (i.e., z-transform) feature matrix for zero-shot eval?
+            # features = utils.probing.standardize(features)
+            features = center_features(features)
 
         if args.dataset == "peterson":
             cosine_rdm_dnn = cosine_matrix(features)
