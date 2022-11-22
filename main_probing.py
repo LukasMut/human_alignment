@@ -190,8 +190,8 @@ def make_results_df(
     n_folds: int,
 ) -> pd.DataFrame:
     if model_name in MODEL_MAP:
-        model_name = MODEL_MAP[model_name]["name"]
         source = MODEL_MAP[model_name]["source"]
+        model_name = MODEL_MAP[model_name]["name"]
     probing_results_current_run = pd.DataFrame(index=range(1), columns=columns)
     probing_results_current_run["model"] = model_name
     probing_results_current_run["probing"] = probing_acc
