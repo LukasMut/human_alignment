@@ -124,8 +124,8 @@ def evaluate(args) -> None:
     )
     if args.use_transforms:
         transforms = utils.evaluation.load_transforms(args.data_root)
-    results = []
 
+    results = []
     model_features = dict()
     for model_name, features in tqdm(embeddings.items(), desc="Model"):
         family_name = utils.analyses.get_family_name(model_name)
