@@ -104,9 +104,8 @@ def evaluate(args) -> None:
         sort = None
         object_names = None
     elif args.dataset == "things":
-        sort = "things"
+        sort = args.dataset
         object_names = utils.evaluation.get_things_objects(args.data_root)
-        
     else:
         sort = "alphanumeric"
         object_names = None
