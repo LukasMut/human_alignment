@@ -88,14 +88,20 @@ def create_hyperparam_dicts(args, model_names) -> Tuple[FrozenDict, FrozenDict]:
 def evaluate(args) -> None:
     """Perform evaluation of embeddings with optimal temperature values."""
     if args.cifar100:
+        sort = None
         object_names = None
-    else:
+    elif args.dataset == "things":
+        sort = args.dataset
         object_names = utils.evaluation.get_things_objects(args.data_root)
+    else:
+        sort = "alphanumeric"
+        object_names = None
+        
     embeddings = utils.evaluation.load_embeddings(
         embeddings_root=args.embeddings_root,
-        object_names=object_names,
         module="embeddings" if args.module == "penultimate" else "logits",
-        thing_sort=not args.cifar100
+        sort=sort,
+        object_names=object_names,
     )
     model_cfg, data_cfg = create_hyperparam_dicts(args, embeddings.keys())
     dataset = load_dataset(
@@ -132,7 +138,7 @@ def evaluate(args) -> None:
             "family" : family,
         }
         results.append(summary)
-        model_features[model_name] = features
+        model_features[model_cfg.source][model_name][args.module] = features
 
     # convert results into Pandas DataFrame
     results = pd.DataFrame(results)
