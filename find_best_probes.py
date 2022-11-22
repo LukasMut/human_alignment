@@ -71,7 +71,7 @@ def filter_best_results(probing_results: pd.DataFrame, k: int = 3) -> pd.DataFra
         best_results[row.model]["probing"] = row.probing
     indices = np.asarray([vals["index"] for vals in best_results.values()])
     best_results = kfold_subset.filter(indices, axis=0)
-    best_results.drop("choices", axis="columns", inplace=True)
+    best_results.drop("choices", axis=1, inplace=True)
     return best_results
 
 
