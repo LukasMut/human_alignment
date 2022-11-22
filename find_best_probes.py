@@ -14,6 +14,19 @@ from utils.analyses import Mapper
 Array = np.ndarray
 
 
+MODEL_MAP = {
+    "clip-ViT": {"name": "clip_ViT-B/32", "source": "custom"},
+    "clip-RN": {"name": "clip_RN50", "source": "custom"},
+    "r50-barlowtwins": {"name": "BarlowTwins", "source": "custom"},
+    "r50-swav": {"name": "Swav", "source": "custom"},
+    "r50-vicreg": {"name": "Vicreg", "source": "custom"},
+    "r50-jigsaw": {"name": "jigsaw-rn50", "source": "vissl"},
+    "r50-mocov2": {"name": "mocov2-rn50", "source": "vissl"},
+    "r50-rotnet": {"name": "rotnet-rn50", "source": "vissl"},
+    "r50-simclr": {"name": "simclr-rn50", "source": "vissl"},
+}
+
+
 def load_probing_results(root: str) -> pd.DataFrame:
     """Load linear probing results into memory."""
     return pd.read_pickle(os.path.join(root, "probing_results.pkl"))
@@ -98,7 +111,13 @@ def find_best_transforms(
             root, row.source, row.model, row.module, str(row.n_folds), str(row.l2_reg)
         )
         transform = load_transform(subdir)
-        transforms[row.source][row.model][row.module] = transform
+        if row.model in MODEL_MAP:
+            model_meta_data = MODEL_MAP[row.model]
+            transforms[model_meta_data["source"]][model_meta_data["name"]][
+                row.module
+            ] = transform
+        else:
+            transforms[row.source][row.model][row.module] = transform
         # delete entire folder tree for current source
         shutil.rmtree(os.path.join(root, row.source))
     return transforms
