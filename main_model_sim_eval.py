@@ -183,18 +183,12 @@ def create_config_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
     return model_cfg, data_cfg
 
 
-def load_transforms(root: str) ->  Dict[str, Dict[str, Dict[str, Array]]]:
-    with open(os.path.join(root, 'transforms.pkl'), 'rb') as f:
-        transforms = pickle.load(f)
-    return transforms
-
-
 def evaluate(args) -> None:
     """Perform evaluation with optimal temperature values."""
     device = torch.device(args.device)
     model_cfg, data_cfg = create_config_dicts(args)
     if args.use_transforms:
-        transforms = load_transforms(args.data_root)
+        transforms = utils.evaluation.load_transforms(args.data_root)
     results = []
     model_features = dict()
     for i, (model_name, source) in tqdm(
