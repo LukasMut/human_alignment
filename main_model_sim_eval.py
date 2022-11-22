@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+from collections import defaultdict
 import os
 import pickle
 import random
@@ -190,7 +191,7 @@ def evaluate(args) -> None:
     if args.use_transforms:
         transforms = utils.evaluation.load_transforms(args.data_root)
     results = []
-    model_features = dict()
+    model_features = defaultdict(lambda: defaultdict(dict))
     for i, (model_name, source) in tqdm(
         enumerate(zip(model_cfg.names, model_cfg.sources)), desc="Model"
     ):
