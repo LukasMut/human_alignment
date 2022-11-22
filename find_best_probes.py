@@ -118,8 +118,8 @@ def find_best_transforms(
             ] = transform
         else:
             transforms[row.source][row.model][row.module] = transform
-        # delete entire folder tree for current source
-        shutil.rmtree(os.path.join(root, row.source))
+        # delete subdirectory
+        shutil.rmtree(subdir)
     return transforms
 
 
