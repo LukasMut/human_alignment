@@ -150,7 +150,7 @@ def find_best_transforms(
             missing_transforms += 1
             continue
         # delete subdirectory for current model
-        shutil.rmtree(os.path.join(root, source, name, module))
+        # shutil.rmtree(os.path.join(root, source, name, module))
     print(
         f"\n{missing_transforms} transformation matrices are missing.\nPlease run grid search again for models with missing transformation matrices.\n"
     )
@@ -171,7 +171,7 @@ def save_transforms(
 
 
 def save_results(root: str, best_probing_results: pd.DataFrame) -> None:
-    best_probing_results.drop(["l2_reg", "n_folds"], axis=1, inplace=True)
+    best_probing_results.drop("n_folds", axis=1, inplace=True)
     best_probing_results.to_pickle(os.path.join(root, "best_probing_results.pkl"))
 
 
