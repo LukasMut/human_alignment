@@ -4,10 +4,10 @@ import shutil
 import sys
 from collections import defaultdict
 from typing import Dict, List
-from tqdm import tqdm
 
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 import utils
 from utils.analyses import Mapper
@@ -120,7 +120,7 @@ def find_best_transforms(
     transforms = defaultdict(lambda: defaultdict(dict))
     missing_transforms = 0
     for _, row in tqdm(best_probing_results.iterrows(), desc="Model"):
-        
+
         if row.model in MODEL_MAP_OLD:
             source = MODEL_MAP_OLD[row.model]["source"]
             name = MODEL_MAP_OLD[row.model]["name"]
@@ -141,12 +141,16 @@ def find_best_transforms(
             else:
                 transforms[row.source][row.model][row.module] = transform
         except FileNotFoundError:
-            print(f'\nCannot find transformation matrix in subdirectory: {subdir}\nContinuing with next entry...\n')
+            print(
+                f"\nCannot find transformation matrix in subdirectory: {subdir}\nContinuing with next entry...\n"
+            )
             missing_transforms += 1
             continue
         # delete subdirectory
-        # shutil.rmtree(subdir)
-    print(f'\n{missing_transforms} transformation matrices are missing.\nPlease run grid search again for models with missing transformation matrices.\n')
+        shutil.rmtree(os.path.join(root, source, name, row.module))
+    print(
+        f"\n{missing_transforms} transformation matrices are missing.\nPlease run grid search again for models with missing transformation matrices.\n"
+    )
     return transforms
 
 
