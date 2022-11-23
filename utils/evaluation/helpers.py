@@ -169,6 +169,6 @@ def load_model_config(path: str) -> dict:
 
 def load_transforms(root: str) -> Dict[str, Dict[str, Dict[str, Array]]]:
     """Load transformation matrices obtained from linear probing on things triplet odd-one-out task into memory."""
-    with open(os.path.join(root, "transforms.pkl"), "rb") as f:
+    with open(os.path.join(root, "transforms", "transforms.pkl"), "rb") as f:
         transforms = pickle.load(f)
     return transforms
