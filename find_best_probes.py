@@ -118,7 +118,7 @@ def find_best_transforms(
     root: str, best_probing_results: pd.DataFrame
 ) -> Dict[str, Dict[str, Dict[str, Array]]]:
     transforms = defaultdict(lambda: defaultdict(dict))
-    count = 0
+    missing_transforms = 0
     for _, row in tqdm(best_probing_results.iterrows(), desc="Model"):
         
         if row.model in MODEL_MAP_OLD:
@@ -141,12 +141,12 @@ def find_best_transforms(
             else:
                 transforms[row.source][row.model][row.module] = transform
         except FileNotFoundError:
-            print(f'\nCannot find transformation matrix in {subdir}\nSkipping entry...\n')
-            count += 1
+            print(f'\nCannot find transformation matrix in subdirectory: {subdir}\nContinuing with next entry...\n')
+            missing_transforms += 1
             continue
         # delete subdirectory
         # shutil.rmtree(subdir)
-    print(f'\n{count} transformation matrices are missing.\nPlease run grid search again for missings models.\n')
+    print(f'\n{missing_transforms} transformation matrices are missing.\nPlease run grid search again for models with missing transformation matrices.\n')
     return transforms
 
 
