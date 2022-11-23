@@ -14,8 +14,9 @@ from utils.analyses import Mapper
 
 Array = np.ndarray
 
+KFOLDS = [3, 4]
 
-MODEL_MAP = {
+MODEL_MAP_NEW = {
     "clip-ViT": {"name": "clip_ViT-B/32", "source": "custom"},
     "clip-RN": {"name": "clip_RN50", "source": "custom"},
     "r50-barlowtwins": {"name": "BarlowTwins", "source": "custom"},
@@ -27,7 +28,16 @@ MODEL_MAP = {
     "r50-simclr": {"name": "simclr-rn50", "source": "vissl"},
 }
 
-KFOLDS = [3, 4]
+
+MODEL_MAP_OLD = {
+    "BarlowTwins": {"name": "r50-barlowtwins", "source": "torchvision"},
+    "Swav": {"name": "r50-swav", "source": "torchvision"},
+    "Vicreg": {"name": "r50-vicreg", "source": "torchvision"},
+    "jigsaw-rn50": {"name": "r50-jigsaw", "source": "torchvision"},
+    "mocov2-rn50": {"name": "r50-mocov2", "source": "torchvision"},
+    "rotnet-rn50": {"name": "r50-rotnet", "source": "torchvision"},
+    "simclr-rn50": {"name": "r50-simclr", "source": "torchvision"},
+}
 
 
 def load_probing_results(root: str) -> pd.DataFrame:
@@ -110,13 +120,21 @@ def find_best_transforms(
     transforms = defaultdict(lambda: defaultdict(dict))
     count = 0
     for _, row in tqdm(best_probing_results.iterrows(), desc="Model"):
+        
+        if row.model in MODEL_MAP_OLD:
+            source = MODEL_MAP_OLD[row.model]["source"]
+            name = MODEL_MAP_OLD[row.model]["name"]
+        else:
+            source = row.source
+            name = row.model
+
         subdir = os.path.join(
-            root, row.source, row.model, row.module, str(row.n_folds), str(row.l2_reg)
+            root, source, name, row.module, str(row.n_folds), str(row.l2_reg)
         )
         try:
             transform = load_transform(subdir)
-            if row.model in MODEL_MAP:
-                model_meta_data = MODEL_MAP[row.model]
+            if row.model in MODEL_MAP_NEW:
+                model_meta_data = MODEL_MAP_NEW[row.model]
                 transforms[model_meta_data["source"]][model_meta_data["name"]][
                     row.module
                 ] = transform
