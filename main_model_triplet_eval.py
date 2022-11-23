@@ -204,11 +204,20 @@ def evaluate(args) -> None:
             batch_size=args.batch_size,
             backend=extractor.get_backend(),
         )
-        features = extractor.extract_features(
-            batches=batches,
-            module_name=model_cfg.modules[i],
-            flatten_acts=True,
-        )
+        if (source == "torchvision" and args.module == "penultimate" and model_name.startswith("vit")):
+            features = extractor.extract_features(
+                batches=batches,
+                module_name=model_cfg.modules[i],
+                flatten_acts=False,
+            )
+            features = features[:, 0]  # select classifier token
+            features = features.reshape((features.shape[0], -1))
+        else:
+            features = extractor.extract_features(
+                batches=batches,
+                module_name=model_cfg.modules[i],
+                flatten_acts=True,
+            )
         triplets = dataset.get_triplets()
         choices, probas = utils.evaluation.get_predictions(
             features, triplets, model_cfg.temperatures[i], args.distance
