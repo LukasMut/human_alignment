@@ -1,10 +1,9 @@
 import argparse
-from collections import defaultdict
-from email.policy import default
 import os
 import random
 import warnings
-from typing import Any, List, Tuple
+from collections import defaultdict
+from typing import Any, Tuple
 
 import numpy as np
 import pandas as pd
@@ -64,53 +63,44 @@ def parseargs():
         type=str,
         default="cosine",
         choices=["cosine", "euclidean"],
-        help="distance function used for predicting the odd-one-out")
-    aa("--out_path", type=str, help="path/to/results",
-        default="/home/space/datasets/things/results")
-    aa("--num_threads", type=int, default=4,
-        help="number of threads used for intraop parallelism on CPU; use only if device is CPU")
-    aa("--use_transforms", action="store_true",
-        help="use transformation matrix obtained from linear probing on the things triplet odd-one-out task")
-    aa("--rnd_seed", type=int, default=42,
-        help="random seed for reproducibility of results")
-    aa("--verbose", action="store_true",
-        help="show print statements about model performance during training")
+        help="distance function used for predicting the odd-one-out",
+    )
+    aa(
+        "--out_path",
+        type=str,
+        help="path/to/results",
+        default="/home/space/datasets/things/results",
+    )
+    aa(
+        "--num_threads",
+        type=int,
+        default=4,
+        help="number of threads used for intraop parallelism on CPU; use only if device is CPU",
+    )
+    aa(
+        "--use_transforms",
+        action="store_true",
+        help="use transformation matrix obtained from linear probing on the things triplet odd-one-out task",
+    )
+    aa(
+        "--rnd_seed",
+        type=int,
+        default=42,
+        help="random seed for reproducibility of results",
+    )
+    aa(
+        "--verbose",
+        action="store_true",
+        help="show print statements about model performance during training",
+    )
     aa("--cifar100", action="store_true")
     args = parser.parse_args()
     return args
 
 
-def get_temperatures(
-    model_config, models: List[str], module: str, objective: str = "cosine"
-) -> List[str]:
-    """Get optimal temperature values for all embeddings."""
-    temperatures = []
-    for model in models:
-        try:
-            t = model_config[model][module]["temperature"][objective]
-        except KeyError:
-            t = 1.0
-            warnings.warn(
-                f"\nMissing temperature value for {model} and {module} layer.\nSetting temperature value to 1.\n"
-            )
-        temperatures.append(t)
-    return temperatures
-
-
-def create_hyperparam_dicts(args, model_names) -> Tuple[FrozenDict, FrozenDict]:
+def create_hyperparam_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
     model_cfg = config_dict.ConfigDict()
     data_cfg = config_dict.ConfigDict()
-
-    try:
-        model_config = utils.evaluation.load_model_config(args.model_dict_path)
-        model_cfg.temperatures = get_temperatures(
-            model_config, model_names, args.module
-        )
-    except FileNotFoundError:
-        model_cfg.temperatures = np.ones(len(model_names), dtype=np.float64)
-        warnings.warn(
-            f"\nCould not find model config dict in {args.model_dict_path}.\nSetting temperature values to 1.0.\n"
-        )
     model_cfg.source = args.embeddings_root.split("/")[-1]
     model_cfg = config_dict.FrozenConfigDict(model_cfg)
     data_cfg.root = args.data_root
@@ -121,7 +111,7 @@ def create_hyperparam_dicts(args, model_names) -> Tuple[FrozenDict, FrozenDict]:
 
 
 def evaluate(args) -> None:
-    """Perform evaluation of embeddings with optimal temperature values."""
+    """Evaluate the alignment of neural nets with human (pairwise) similarity judgments."""
     if args.cifar100:
         sort = None
         object_names = None
@@ -131,14 +121,14 @@ def evaluate(args) -> None:
     else:
         sort = "alphanumeric"
         object_names = None
-        
+
     embeddings = utils.evaluation.load_embeddings(
         embeddings_root=args.embeddings_root,
         module="embeddings" if args.module == "penultimate" else "logits",
         sort=sort,
         object_names=object_names,
     )
-    model_cfg, data_cfg = create_hyperparam_dicts(args, embeddings.keys())
+    model_cfg, data_cfg = create_hyperparam_dicts(args)
     dataset = load_dataset(
         name=args.dataset,
         data_dir=data_cfg.root,
@@ -158,7 +148,7 @@ def evaluate(args) -> None:
                 warnings.warn(
                     message=f"\nCould not find transformation matrix for {model_name}.\nSkipping evaluation for {model_name}\n",
                     category=UserWarning,
-                    )
+                )
                 continue
             features = utils.probing.standardize(features)
             features = features @ transform
@@ -176,11 +166,19 @@ def evaluate(args) -> None:
             corr_rdm_dnn = compute_rdm(features, method="correlation")
             rdm_humans = dataset.get_rdm()
 
-        spearman_rho_cosine = correlate_rdms(cosine_rdm_dnn, rdm_humans, correlation="spearman")
-        pearson_corr_coef_cosine = correlate_rdms(cosine_rdm_dnn, rdm_humans, correlation="pearson")
+        spearman_rho_cosine = correlate_rdms(
+            cosine_rdm_dnn, rdm_humans, correlation="spearman"
+        )
+        pearson_corr_coef_cosine = correlate_rdms(
+            cosine_rdm_dnn, rdm_humans, correlation="pearson"
+        )
 
-        spearman_rho_corr = correlate_rdms(corr_rdm_dnn, rdm_humans, correlation="spearman")
-        pearson_corr_coef_corr = correlate_rdms(corr_rdm_dnn, rdm_humans, correlation="pearson")
+        spearman_rho_corr = correlate_rdms(
+            corr_rdm_dnn, rdm_humans, correlation="spearman"
+        )
+        pearson_corr_coef_corr = correlate_rdms(
+            corr_rdm_dnn, rdm_humans, correlation="pearson"
+        )
 
         if args.verbose:
             print(
