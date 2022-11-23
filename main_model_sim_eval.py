@@ -235,7 +235,7 @@ def evaluate(args) -> None:
                 transform = transforms[source][model_name][args.module]
             except KeyError:
                 warnings.warn(
-                    message=f"\nCould not find transformation matrix for {model_name}.\nSkipping evaluation for {model_name}\n",
+                    message=f"\nCould not find transformation matrix for {model_name}.\nSkipping evaluation for {model_name} and continuing with next model...\n",
                     category=UserWarning,
                 )
                 continue
