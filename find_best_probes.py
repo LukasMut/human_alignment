@@ -127,19 +127,20 @@ def find_best_transforms(
         else:
             source = row.source
             name = row.model
+        module = row.module
 
         subdir = os.path.join(
-            root, source, name, row.module, str(row.n_folds), str(row.l2_reg)
+            root, source, name, module, str(row.n_folds), str(row.l2_reg)
         )
         try:
             transform = load_transform(subdir)
             if row.model in MODEL_MAP_NEW:
                 model_meta_data = MODEL_MAP_NEW[row.model]
                 transforms[model_meta_data["source"]][model_meta_data["name"]][
-                    row.module
+                    module
                 ] = transform
             else:
-                transforms[row.source][row.model][row.module] = transform
+                transforms[source][name][module] = transform
         except FileNotFoundError:
             print(
                 f"\nCannot find transformation matrix in subdirectory: {subdir}\nContinuing with next entry...\n"
@@ -147,7 +148,7 @@ def find_best_transforms(
             missing_transforms += 1
             continue
         # delete subdirectory
-        shutil.rmtree(os.path.join(root, source, name, row.module))
+        shutil.rmtree(os.path.join(root, source, name, module))
     print(
         f"\n{missing_transforms} transformation matrices are missing.\nPlease run grid search again for models with missing transformation matrices.\n"
     )
