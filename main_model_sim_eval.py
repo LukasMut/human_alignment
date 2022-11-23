@@ -253,7 +253,7 @@ def evaluate(args) -> None:
         
         if args.use_transforms:
             try:
-                transform = transforms[model_cfg.source][model_name][args.module]
+                transform = transforms[source][model_name][args.module]
             except KeyError:
                 warnings.warn(
                     message=f"\nCould not find transformation matrix for {model_name}.\nSkipping evaluation for {model_name}\n",
