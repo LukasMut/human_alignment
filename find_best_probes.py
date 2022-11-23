@@ -4,6 +4,7 @@ import shutil
 import sys
 from collections import defaultdict
 from typing import Dict, List
+from tqdm import tqdm
 
 import numpy as np
 import pandas as pd
@@ -58,8 +59,11 @@ def partition_into_modules(results: pd.DataFrame) -> List[pd.DataFrame]:
 def filter_best_results(probing_results: pd.DataFrame, k: int = 3) -> pd.DataFrame:
     kfolds = [3, 4]
     kfold_subset = probing_results[probing_results.n_folds.isin(kfolds)]
+    print(probing_results.shape)
+    print(kfold_subset.shape)
+    print()
     best_results = defaultdict(dict)
-    for i, row in kfold_subset.iterrows():
+    for i, row in tqdm(kfold_subset.iterrows(), desc="Entry"):
         # skip entry if probing odd-one-out accuracy is 1.0
         if row.probing == float(1):
             continue
@@ -106,7 +110,7 @@ def find_best_transforms(
     root: str, best_probing_results: pd.DataFrame
 ) -> Dict[str, Dict[str, Dict[str, Array]]]:
     transforms = defaultdict(lambda: defaultdict(dict))
-    for _, row in best_probing_results.iterrows():
+    for _, row in tqdm(best_probing_results.iterrows(), desc="Model"):
         subdir = os.path.join(
             root, row.source, row.model, row.module, str(row.n_folds), str(row.l2_reg)
         )
