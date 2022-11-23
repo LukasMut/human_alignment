@@ -27,6 +27,8 @@ MODEL_MAP = {
     "r50-simclr": {"name": "simclr-rn50", "source": "vissl"},
 }
 
+KFOLDS = [3, 4]
+
 
 def load_probing_results(root: str) -> pd.DataFrame:
     """Load linear probing results into memory."""
@@ -57,11 +59,7 @@ def partition_into_modules(results: pd.DataFrame) -> List[pd.DataFrame]:
 
 
 def filter_best_results(probing_results: pd.DataFrame, k: int = 3) -> pd.DataFrame:
-    kfolds = [3, 4]
-    kfold_subset = probing_results[probing_results.n_folds.isin(kfolds)]
-    print(probing_results.shape)
-    print(kfold_subset.shape)
-    print()
+    kfold_subset = probing_results[probing_results.n_folds.isin(KFOLDS)]
     best_results = defaultdict(dict)
     for i, row in tqdm(kfold_subset.iterrows(), desc="Entry"):
         # skip entry if probing odd-one-out accuracy is 1.0
@@ -110,20 +108,27 @@ def find_best_transforms(
     root: str, best_probing_results: pd.DataFrame
 ) -> Dict[str, Dict[str, Dict[str, Array]]]:
     transforms = defaultdict(lambda: defaultdict(dict))
+    count = 0
     for _, row in tqdm(best_probing_results.iterrows(), desc="Model"):
         subdir = os.path.join(
             root, row.source, row.model, row.module, str(row.n_folds), str(row.l2_reg)
         )
-        transform = load_transform(subdir)
-        if row.model in MODEL_MAP:
-            model_meta_data = MODEL_MAP[row.model]
-            transforms[model_meta_data["source"]][model_meta_data["name"]][
-                row.module
-            ] = transform
-        else:
-            transforms[row.source][row.model][row.module] = transform
+        try:
+            transform = load_transform(subdir)
+            if row.model in MODEL_MAP:
+                model_meta_data = MODEL_MAP[row.model]
+                transforms[model_meta_data["source"]][model_meta_data["name"]][
+                    row.module
+                ] = transform
+            else:
+                transforms[row.source][row.model][row.module] = transform
+        except FileNotFoundError:
+            print(f'\nCannot find transformation matrix in {subdir}\nSkipping entry...\n')
+            count += 1
+            continue
         # delete subdirectory
         # shutil.rmtree(subdir)
+    print(f'\n{count} transformation matrices are missing.\nPlease run grid search again for missings models.\n')
     return transforms
 
 
