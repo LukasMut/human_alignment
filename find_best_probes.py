@@ -2,6 +2,7 @@ import os
 import pickle
 import shutil
 import sys
+import warnings
 from collections import defaultdict
 from typing import Dict, List
 
@@ -142,12 +143,13 @@ def find_best_transforms(
             else:
                 transforms[source][name][module] = transform
         except FileNotFoundError:
-            print(
-                f"\nCannot find transformation matrix in subdirectory: {subdir}\nContinuing with next entry...\n"
-            )
+            warnings.warn(
+                message=f"\nCannot find transformation matrix in subdirectory: {subdir}\nContinuing with next entry in results dataframe...\n",
+                category=UserWarning,
+                )
             missing_transforms += 1
             continue
-        # delete subdirectory
+        # delete subdirectory for current model
         shutil.rmtree(os.path.join(root, source, name, module))
     print(
         f"\n{missing_transforms} transformation matrices are missing.\nPlease run grid search again for models with missing transformation matrices.\n"
