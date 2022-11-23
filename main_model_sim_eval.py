@@ -211,15 +211,14 @@ def evaluate(args) -> None:
             batch_size=args.batch_size,
             backend=extractor.get_backend(),
         )
-        if args.module == "penultimate":
-            if source == "torchvision" and model_name.startswith("vit"):
-                features = extractor.extract_features(
-                    batches=batches,
-                    module_name=model_cfg.modules[i],
-                    flatten_acts=False,
-                )
-                features = features[:, 0]  # Select classifier token
-                features = features.reshape((features.shape[0], -1))
+        if (source == "torchvision" and args.module == "penultimate" and model_name.startswith("vit")):
+            features = extractor.extract_features(
+                batches=batches,
+                module_name=model_cfg.modules[i],
+                flatten_acts=False,
+            )
+            features = features[:, 0]  # Select classifier token
+            features = features.reshape((features.shape[0], -1))
         else:
             features = extractor.extract_features(
                 batches=batches,
