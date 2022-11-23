@@ -2,12 +2,11 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-from collections import defaultdict
 import os
-import pickle
 import random
 import warnings
-from typing import Any, Dict, List, Tuple
+from collections import defaultdict
+from typing import Any, List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -18,8 +17,8 @@ from thingsvision.core.extraction import center_features
 from thingsvision.core.rsa import compute_rdm, correlate_rdms
 from thingsvision.core.rsa.helpers import correlation_matrix, cosine_matrix
 from thingsvision.utils.data import DataLoader
+from torchvision.transforms import Compose, Lambda
 from tqdm import tqdm
-from torchvision.transforms import Lambda, Compose
 
 import utils
 from data import DATASETS, load_dataset
@@ -147,23 +146,6 @@ def get_module_names(model_config, models: List[str], module: str) -> List[str]:
     return module_names
 
 
-def get_temperatures(
-    model_config, models: List[str], module: str, objective: str = "cosine"
-) -> List[str]:
-    """Get optimal temperature values for all models."""
-    temperatures = []
-    for model in models:
-        try:
-            t = model_config[model][module]["temperature"][objective]
-        except KeyError:
-            t = 1.0
-            warnings.warn(
-                f"\nMissing temperature value for {model} and {module} layer.\nSetting temperature value to 1.\n"
-            )
-        temperatures.append(t)
-    return temperatures
-
-
 def create_config_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
     """Create data and model config dictionaries."""
     model_config = utils.evaluation.load_model_config(args.model_dict_path)
@@ -171,9 +153,6 @@ def create_config_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
     data_cfg = config_dict.ConfigDict()
     model_cfg.names = args.model_names
     model_cfg.modules = get_module_names(model_config, model_cfg.names, args.module)
-    model_cfg.temperatures = get_temperatures(
-        model_config, model_cfg.names, args.module
-    )
     model_cfg.sources = args.sources
     model_cfg.input_dim = args.input_dim
     model_cfg = config_dict.FrozenConfigDict(model_cfg)
@@ -185,7 +164,7 @@ def create_config_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
 
 
 def evaluate(args) -> None:
-    """Perform evaluation with optimal temperature values."""
+    """Evaluate the alignment of neural nets with human (pairwise) similarity judgments."""
     device = torch.device(args.device)
     model_cfg, data_cfg = create_config_dicts(args)
     if args.use_transforms:
@@ -233,7 +212,7 @@ def evaluate(args) -> None:
             backend=extractor.get_backend(),
         )
         if args.module == "penultimate":
-            if source == "torchvision" and model_name.startswith('vit'):
+            if source == "torchvision" and model_name.startswith("vit"):
                 features = extractor.extract_features(
                     batches=batches,
                     module_name=model_cfg.modules[i],
@@ -250,7 +229,7 @@ def evaluate(args) -> None:
         # NOTE: should we center or standardize (i.e., z-transform) feature matrix?
         # features = utils.probing.standardize(features)
         features = center_features(features)
-        
+
         if args.use_transforms:
             try:
                 transform = transforms[source][model_name][args.module]
@@ -258,7 +237,7 @@ def evaluate(args) -> None:
                 warnings.warn(
                     message=f"\nCould not find transformation matrix for {model_name}.\nSkipping evaluation for {model_name}\n",
                     category=UserWarning,
-                    )
+                )
                 continue
             features = utils.probing.standardize(features)
             features = features @ transform
@@ -276,11 +255,19 @@ def evaluate(args) -> None:
             corr_rdm_dnn = compute_rdm(features, method="correlation")
             rdm_humans = dataset.get_rdm()
 
-        spearman_rho_cosine = correlate_rdms(cosine_rdm_dnn, rdm_humans, correlation="spearman")
-        pearson_corr_coef_cosine = correlate_rdms(cosine_rdm_dnn, rdm_humans, correlation="pearson")
+        spearman_rho_cosine = correlate_rdms(
+            cosine_rdm_dnn, rdm_humans, correlation="spearman"
+        )
+        pearson_corr_coef_cosine = correlate_rdms(
+            cosine_rdm_dnn, rdm_humans, correlation="pearson"
+        )
 
-        spearman_rho_corr = correlate_rdms(corr_rdm_dnn, rdm_humans, correlation="spearman")
-        pearson_corr_coef_corr = correlate_rdms(corr_rdm_dnn, rdm_humans, correlation="pearson")
+        spearman_rho_corr = correlate_rdms(
+            corr_rdm_dnn, rdm_humans, correlation="spearman"
+        )
+        pearson_corr_coef_corr = correlate_rdms(
+            corr_rdm_dnn, rdm_humans, correlation="pearson"
+        )
 
         if args.verbose:
             print(
