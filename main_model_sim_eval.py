@@ -232,11 +232,25 @@ def evaluate(args) -> None:
             batch_size=args.batch_size,
             backend=extractor.get_backend(),
         )
-        features = extractor.extract_features(
-            batches=batches,
-            module_name=model_cfg.modules[i],
-            flatten_acts=True,
-        )
+        if args.module == "penultimate":
+            if source == "torchvision" and model_name.startswith('vit'):
+                features = extractor.extract_features(
+                    batches=batches,
+                    module_name=model_cfg.modules[i],
+                    flatten_acts=False,
+                )
+                features = features[:, 0]  # Select classifier token
+                features = features.reshape((features.shape[0], -1))
+        else:
+            features = extractor.extract_features(
+                batches=batches,
+                module_name=model_cfg.modules[i],
+                flatten_acts=True,
+            )
+        # NOTE: should we center or standardize (i.e., z-transform) feature matrix?
+        # features = utils.probing.standardize(features)
+        features = center_features(features)
+        
         if args.use_transforms:
             try:
                 transform = transforms[model_cfg.source][model_name][args.module]
