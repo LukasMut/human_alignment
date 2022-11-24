@@ -11,6 +11,7 @@ from typing import Any, List, Tuple
 import numpy as np
 import pandas as pd
 import torch
+import torch.nn.functional as F
 from ml_collections import config_dict
 from thingsvision import get_extractor
 from thingsvision.core.extraction import center_features
@@ -225,10 +226,7 @@ def evaluate(args) -> None:
                 module_name=model_cfg.modules[i],
                 flatten_acts=True,
             )
-        # NOTE: should we center or standardize (i.e., z-transform) feature matrix?
-        # features = utils.probing.standardize(features)
-        features = center_features(features)
-
+        
         if args.use_transforms:
             try:
                 transform = transforms[source][model_name][args.module]
@@ -240,6 +238,8 @@ def evaluate(args) -> None:
                 continue
             features = utils.probing.standardize(features)
             features = features @ transform
+            features = torch.from_numpy(features)
+            features = F.normalize(features,dim=1).cpu().numpy()
         else:
             # NOTE: should we center or standardize (i.e., z-transform) feature matrix for zero-shot eval?
             # features = utils.probing.standardize(features)

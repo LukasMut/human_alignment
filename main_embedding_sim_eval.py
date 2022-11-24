@@ -8,6 +8,7 @@ from typing import Any, Tuple
 import numpy as np
 import pandas as pd
 import torch
+import torch.nn.functional as F
 from ml_collections import config_dict
 from thingsvision.core.extraction import center_features
 from thingsvision.core.rsa import compute_rdm, correlate_rdms
@@ -152,6 +153,8 @@ def evaluate(args) -> None:
                 continue
             features = utils.probing.standardize(features)
             features = features @ transform
+            features = torch.from_numpy(features)
+            features = F.normalize(features,dim=1).cpu().numpy()
         else:
             # NOTE: should we center or standardize (i.e., z-transform) feature matrix for zero-shot eval?
             # features = utils.probing.standardize(features)
