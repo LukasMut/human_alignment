@@ -31,6 +31,8 @@ MODEL_MAP_NEW = {
 
 
 MODEL_MAP_OLD = {
+    "clip_ViT-B/32": {"name": "clip-ViT", "source": "torchvision"},
+    "clip_RN50": {"name": "clip-RN", "source": "torchvision"},
     "BarlowTwins": {"name": "r50-barlowtwins", "source": "torchvision"},
     "Swav": {"name": "r50-swav", "source": "torchvision"},
     "Vicreg": {"name": "r50-vicreg", "source": "torchvision"},
