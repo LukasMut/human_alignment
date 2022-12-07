@@ -37,7 +37,7 @@ class Linear(pl.LightningModule):
     def forward(self, one_hots: Tensor) -> Tensor:
         embedding = self.features @ self.transform
         # normalize object embeddings to lie on the unit-sphere
-        embedding = F.normalize(embedding, dim=1)
+        # embedding = F.normalize(embedding, dim=1)
         batch_embeddings = one_hots @ embedding
         return batch_embeddings
 
