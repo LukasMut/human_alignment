@@ -28,7 +28,7 @@ class Linear(pl.LightningModule):
             # data=torch.eye(self.feature_dim) * optim_cfg["temperature"],
             data=torch.normal(
                 mean=torch.zeros(self.feature_dim, self.feature_dim),
-                std=torch.ones(self.feature_dim, self.feature_dim) * 1e-2,
+                std=torch.ones(self.feature_dim, self.feature_dim) * 1e-3,
             ),
             requires_grad=True,
         )
