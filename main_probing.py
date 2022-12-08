@@ -74,7 +74,7 @@ def parseargs():
         type=float,
         default=1e-3,
         help="Relative contribution of the regularization term",
-        choices=[1e-2, 1e-3, 1e-4, 1e-5],
+        choices=[1e-1, 1e-2, 1e-3, 1e-4, 1e-5],
     )
     aa(
         "--batch_size",
@@ -187,6 +187,7 @@ def make_results_df(
     module_name: str,
     source: str,
     lmbda: float,
+    lr: float,
     n_folds: int,
 ) -> pd.DataFrame:
     if model_name in MODEL_MAP:
@@ -200,6 +201,7 @@ def make_results_df(
     probing_results_current_run["family"] = utils.analyses.get_family_name(model_name)
     probing_results_current_run["source"] = source
     probing_results_current_run["l2_reg"] = lmbda
+    probing_results_current_run["lr"] = lr
     probing_results_current_run["n_folds"] = n_folds
     return probing_results_current_run
 
@@ -227,6 +229,7 @@ def save_results(
             module_name=args.module,
             source=args.source,
             lmbda=args.lmbda,
+            lr=args.learning_rate,
             n_folds=args.n_folds,
         )
         probing_results = pd.concat(
@@ -245,6 +248,7 @@ def save_results(
             "family",
             "source",
             "l2_reg",
+            "lr",
             "n_folds",
         ]
         probing_results = make_results_df(
@@ -255,6 +259,7 @@ def save_results(
             module_name=args.module,
             source=args.source,
             lmbda=args.lmbda,
+            lr=args.learning_rate,
             n_folds=args.n_folds,
         )
         probing_results.to_pickle(os.path.join(out_path, "probing_results.pkl"))
@@ -275,7 +280,8 @@ def run(
     """Run optimization process."""
     callbacks = get_callbacks(optim_cfg)
     triplets = utils.probing.load_triplets(data_root)
-    features = utils.probing.standardize(features)
+    # features -= features.mean(axis=0) # center input features
+    features = utils.probing.standardize(features) # z-transform / standardize input features
     model_config = utils.probing.load_model_config(data_root, source)
     temperature = utils.probing.get_temperature(
         model_config=model_config,
@@ -327,8 +333,11 @@ def run(
             min_epochs=optim_cfg["min_epochs"],
             devices=num_processes if device == "cpu" else "auto",
             enable_progress_bar=True,
+            gradient_clip_val=1.,
+            gradient_clip_algorithm="norm",
         )
-        trainer.fit(linear_probe, train_batches, val_batches)
+        trainer.fit(
+            linear_probe, train_batches, val_batches)
         val_performance = trainer.test(
             linear_probe,
             dataloaders=val_batches,
