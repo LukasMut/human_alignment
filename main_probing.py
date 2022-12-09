@@ -281,7 +281,8 @@ def run(
     callbacks = get_callbacks(optim_cfg)
     triplets = utils.probing.load_triplets(data_root)
     # features -= features.mean(axis=0) # center input features
-    features = utils.probing.standardize(features) # z-transform / standardize input features
+    # features = utils.probing.standardize(features) # z-transform / standardize input features
+    features = (features - features.mean()) / features.std()
     model_config = utils.probing.load_model_config(data_root, source)
     temperature = utils.probing.get_temperature(
         model_config=model_config,
