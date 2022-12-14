@@ -54,6 +54,7 @@ def parseargs():
             "timm",
             "torchvision",
             "vissl",
+            "ssl",
         ],
         help="Source of (pretrained) models",
     )
