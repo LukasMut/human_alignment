@@ -38,6 +38,13 @@ def parseargs():
     aa("--data_root", type=str, help="path/to/dataset")
     aa("--dataset", type=str, help="Which dataset to use", choices=DATASETS)
     aa(
+        "--stimulus_set",
+        type=str,
+        default=None,
+        choices=["set1","set2"],
+        help="Similarity judgments of the dataset from Groen et al. (2019) were collected for two stimulus sets",
+    )
+    aa(
         "--category",
         type=str,
         default=None,
@@ -168,6 +175,7 @@ def create_config_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
     data_cfg.root = args.data_root
     data_cfg.name = args.dataset
     data_cfg.category = args.category
+    data_cfg.stimulus_set = args.stimulus_set
     data_cfg = config_dict.FrozenConfigDict(data_cfg)
     return model_cfg, data_cfg
 
@@ -214,6 +222,7 @@ def evaluate(args) -> None:
         dataset = load_dataset(
             name=args.dataset,
             data_dir=data_cfg.root,
+            stimulus_set=data_cfg.stimulus_set,
             category=data_cfg.category,
             transform=transformations,
         )
