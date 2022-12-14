@@ -167,8 +167,15 @@ def load_model_config(path: str) -> dict:
     return model_dict
 
 
-def load_transforms(root: str) -> Dict[str, Dict[str, Dict[str, Array]]]:
+def load_transforms(root: str, type: str, format: str = "pkl") -> Dict[str, Dict[str, Dict[str, Array]]]:
     """Load transformation matrices obtained from linear probing on things triplet odd-one-out task into memory."""
-    with open(os.path.join(root, "transforms", "transforms.pkl"), "rb") as f:
-        transforms = pickle.load(f)
+    transforms_subdir = os.path.join(root, "transforms")
+    for f in os.scandir(transforms_subdir):
+        if f.is_file():
+            f_name = f.name
+            if f_name.endswith(format):
+                if type in f_name:
+                    with open(os.path.join(transforms_subdir, f_name), "rb") as f:
+                        transforms = pickle.load(f)
+                        break
     return transforms
