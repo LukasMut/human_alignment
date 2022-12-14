@@ -73,6 +73,7 @@ def parseargs():
             "timm",
             "torchvision",
             "vissl",
+            "ssl",
         ],
         help="Source of (pretrained) models",
     )
@@ -236,7 +237,7 @@ def evaluate(args) -> None:
                     category=UserWarning,
                 )
                 continue
-            features = utils.probing.standardize(features)
+            features = center_features(features)
             features = features @ transform
             features = torch.from_numpy(features)
             features = F.normalize(features,dim=1).cpu().numpy()
