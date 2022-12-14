@@ -84,12 +84,12 @@ def get_predictions(
         triplet = torch.stack([features[i], features[j], features[k]])
         distances = compute_distances(triplet, pairs, dist)
         dots = compute_dots(triplet, pairs)
-        most_sim_pair = pairs[torch.argmin(distances).item()]
-        ooo_idx = indices.difference(most_sim_pair).pop()
-        if distances[0] == distances[1] and distances[1] == distances[2]:
-            # If all distances are the same, we set the index to -1 to highlight this
+        if torch.unique(distances).shape[0] == 1:
+            # If all distances are the same, we set the index to -1 (i.e., incorrect choice)
             choices[s] += -1
         else:
+            most_sim_pair = pairs[torch.argmin(distances).item()]
+            ooo_idx = indices.difference(most_sim_pair).pop()
             choices[s] += ooo_idx
         probas[s] += F.softmax(dots * temperature, dim=0)
     return choices, probas
