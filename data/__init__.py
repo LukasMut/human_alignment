@@ -13,6 +13,7 @@ DATASETS = [
     "things",
     "things-aligned",
     "multi-arrangement",
+    "free-arrangement",
     "peterson",
 ]
 
