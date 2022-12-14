@@ -63,6 +63,3 @@ class FreeArrangement(torch.utils.data.Dataset):
 
     def __len__(self) -> int:
         return len(self.order)
-
-    def get_pairwise_dists(self) -> Array:
-        return self.pairwise_dists
