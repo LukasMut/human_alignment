@@ -81,7 +81,7 @@ def add_vice(
             "choices": vice_choices,
             "entropies": vice_entropies,
             "probas": vice_probas,
-            "source": "PyTorch",
+            "source": "torch",
             "family": "VICE",
         }
     ]
