@@ -2,15 +2,14 @@
 # -*- coding: utf-8 -*-
 
 
-import torch
 import os
 import urllib
+from typing import Tuple
 
 import numpy as np
 import pandas as pd
-
+import torch
 from PIL import Image
-from typing import Tuple
 
 Array = np.ndarray
 Tensor = torch.Tensor
