@@ -276,7 +276,7 @@ def evaluate(args) -> None:
             triu_inds = np.triu_indices(corr_rdm_dnn.shape[0], k=1)
             pairwise_dists_cosine = cosine_rdm_dnn[triu_inds]
             pairwise_dists_corr = corr_rdm_dnn[triu_inds]
-            pairwise_dists_human = dataset.pairwise_dists 
+            pairwise_dists_human = dataset.pairwise_dists
             spearman_rho_cosine = scipy.stats.spearmanr(pairwise_dists_cosine, pairwise_dists_human)[0]
             pearson_corr_coef_cosine = scipy.stats.pearsonr(pairwise_dists_cosine, pairwise_dists_human)[0]
             spearman_rho_corr = scipy.stats.spearmanr(pairwise_dists_corr, pairwise_dists_human)[0]
