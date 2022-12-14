@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-from collections import defaultdict
 import os
 import random
 import warnings
+from collections import defaultdict
 from typing import Any, List, Tuple
 
 import numpy as np
@@ -205,7 +205,11 @@ def evaluate(args) -> None:
             batch_size=args.batch_size,
             backend=extractor.get_backend(),
         )
-        if (source == "torchvision" and args.module == "penultimate" and model_name.startswith("vit")):
+        if (
+            source == "torchvision"
+            and args.module == "penultimate"
+            and model_name.startswith("vit")
+        ):
             features = extractor.extract_features(
                 batches=batches,
                 module_name=model_cfg.modules[i],

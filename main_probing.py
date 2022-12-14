@@ -206,9 +206,7 @@ def make_results_df(
     return probing_results_current_run
 
 
-def save_results(
-    args, probing_acc: float, ooo_choices: Array
-) -> None:
+def save_results(args, probing_acc: float, ooo_choices: Array) -> None:
     out_path = os.path.join(args.probing_root, "results")
     if not os.path.exists(out_path):
         print("\nCreating results directory...\n")
@@ -334,11 +332,10 @@ def run(
             min_epochs=optim_cfg["min_epochs"],
             devices=num_processes if device == "cpu" else "auto",
             enable_progress_bar=True,
-            gradient_clip_val=1.,
+            gradient_clip_val=1.0,
             gradient_clip_algorithm="norm",
         )
-        trainer.fit(
-            linear_probe, train_batches, val_batches)
+        trainer.fit(linear_probe, train_batches, val_batches)
         val_performance = trainer.test(
             linear_probe,
             dataloaders=val_batches,
@@ -373,12 +370,18 @@ if __name__ == "__main__":
         num_processes=args.num_processes,
     )
     avg_cv_acc = get_mean_cv_acc(cv_results)
-    save_results(
-        args, probing_acc=avg_cv_acc, ooo_choices=ooo_choices
-    )
+    save_results(args, probing_acc=avg_cv_acc, ooo_choices=ooo_choices)
 
-    out_path = os.path.join(args.probing_root, 'results', args.source, args.model, args.module, str(args.n_folds), str(args.lmbda))
+    out_path = os.path.join(
+        args.probing_root,
+        "results",
+        args.source,
+        args.model,
+        args.module,
+        str(args.n_folds),
+        str(args.lmbda),
+    )
     if not os.path.exists(out_path):
         os.makedirs(out_path, exist_ok=True)
-    with open(os.path.join(out_path, 'transform.npy'), 'wb') as f:
+    with open(os.path.join(out_path, "transform.npy"), "wb") as f:
         np.save(file=f, arr=transform)

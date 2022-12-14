@@ -114,9 +114,12 @@ def parseargs():
         action="store_true",
         help="use transformation matrix obtained from linear probing on the things triplet odd-one-out task",
     )
-    aa("--transform", type=str, default="without_norm",
+    aa(
+        "--transform",
+        type=str,
+        default="without_norm",
         choices=["without_norm", "with_norm"],
-        help="type of transformation matrix being used"
+        help="type of transformation matrix being used",
     )
     aa(
         "--not_pretrained",
@@ -174,7 +177,9 @@ def evaluate(args) -> None:
     device = torch.device(args.device)
     model_cfg, data_cfg = create_config_dicts(args)
     if args.use_transforms:
-        transforms = utils.evaluation.load_transforms(root=args.data_root, type=args.transform)
+        transforms = utils.evaluation.load_transforms(
+            root=args.data_root, type=args.transform
+        )
     results = []
     model_features = defaultdict(lambda: defaultdict(dict))
     for i, (model_name, source) in tqdm(
@@ -217,7 +222,11 @@ def evaluate(args) -> None:
             batch_size=args.batch_size,
             backend=extractor.get_backend(),
         )
-        if (source == "torchvision" and args.module == "penultimate" and model_name.startswith("vit")):
+        if (
+            source == "torchvision"
+            and args.module == "penultimate"
+            and model_name.startswith("vit")
+        ):
             features = extractor.extract_features(
                 batches=batches,
                 module_name=model_cfg.modules[i],
@@ -231,7 +240,7 @@ def evaluate(args) -> None:
                 module_name=model_cfg.modules[i],
                 flatten_acts=True,
             )
-        
+
         if args.use_transforms:
             try:
                 transform = transforms[source][model_name][args.module]
@@ -245,7 +254,7 @@ def evaluate(args) -> None:
             features = features @ transform
             features = torch.from_numpy(features)
             if args.transform == "with_norm":
-                features = F.normalize(features,dim=1).cpu().numpy()
+                features = F.normalize(features, dim=1).cpu().numpy()
         else:
             # NOTE: should we center or standardize (i.e., z-transform) feature matrix for zero-shot eval?
             # features = utils.probing.standardize(features)

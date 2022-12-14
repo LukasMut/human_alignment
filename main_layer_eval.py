@@ -30,31 +30,69 @@ def parseargs():
     aa("--data_root", type=str, help="path/to/things")
     aa("--dataset", type=str, help="Which dataset to use", choices=DATASETS)
     aa("--model", type=str, help="model for which we want to extract features")
-    aa("--layers", type=str, nargs='+', help="module for which to extract features")
-    aa("--source", type=str, default="torchvision",
-       choices=["timm", "torchvision", "custom", "vissl"],
-       help="Source of (pretrained) models")
-    aa("--model_dict_path", type=str,
-       default="/home/space/datasets/things/model_dict.json",
-       help="Path to the model_dict.json")
-    aa("--distance", type=str, default="cosine",
-       choices=["cosine", "euclidean"],
-       help="distance function used to predict the odd-one-out")
+    aa("--layers", type=str, nargs="+", help="module for which to extract features")
+    aa(
+        "--source",
+        type=str,
+        default="torchvision",
+        choices=["timm", "torchvision", "custom", "vissl"],
+        help="Source of (pretrained) models",
+    )
+    aa(
+        "--model_dict_path",
+        type=str,
+        default="/home/space/datasets/things/model_dict.json",
+        help="Path to the model_dict.json",
+    )
+    aa(
+        "--distance",
+        type=str,
+        default="cosine",
+        choices=["cosine", "euclidean"],
+        help="distance function used to predict the odd-one-out",
+    )
     aa("--input_dim", type=int, default=224, help="input image dimensionality")
-    aa("--batch_size", metavar="B", type=int, default=128,
-       help="number of triplets sampled during each step (i.e., mini-batch size)")
-    aa("--out_path", type=str, default="/home/space/datasets/things/results/",
-       help="path/to/results")
-    aa("--device", type=str, default="cuda",
-       help="whether evaluation should be performed on CPU or GPU (i.e., CUDA).")
-    aa("--num_threads", type=int, default=4,
-       help="number of threads used for intraop parallelism on CPU; use only if device is CPU")
-    aa("--rnd_seed", type=int, default=42,
-       help="random seed for reproducibility of results")
-    aa("--verbose", action="store_true",
-       help="whether to show print statements about model performance during training")
-    aa("--not_pretrained", action="store_true",
-       help="load random model instead of pretrained")
+    aa(
+        "--batch_size",
+        metavar="B",
+        type=int,
+        default=128,
+        help="number of triplets sampled during each step (i.e., mini-batch size)",
+    )
+    aa(
+        "--out_path",
+        type=str,
+        default="/home/space/datasets/things/results/",
+        help="path/to/results",
+    )
+    aa(
+        "--device",
+        type=str,
+        default="cuda",
+        help="whether evaluation should be performed on CPU or GPU (i.e., CUDA).",
+    )
+    aa(
+        "--num_threads",
+        type=int,
+        default=4,
+        help="number of threads used for intraop parallelism on CPU; use only if device is CPU",
+    )
+    aa(
+        "--rnd_seed",
+        type=int,
+        default=42,
+        help="random seed for reproducibility of results",
+    )
+    aa(
+        "--verbose",
+        action="store_true",
+        help="whether to show print statements about model performance during training",
+    )
+    aa(
+        "--not_pretrained",
+        action="store_true",
+        help="load random model instead of pretrained",
+    )
     args = parser.parse_args()
     return args
 
@@ -65,20 +103,20 @@ def evaluate(args) -> None:
     model_features = {}
     family_name = utils.analyses.get_family_name(args.model)
     extractor = get_extractor(
-            model_name=args.model,
-            source=args.source,
-            device=device,
-            pretrained=not args.not_pretrained,
-        )
+        model_name=args.model,
+        source=args.source,
+        device=device,
+        pretrained=not args.not_pretrained,
+    )
     dataset = load_dataset(
-            name=args.dataset,
-            data_dir=args.data_root,
-            transform=extractor.get_transformations(),
-        )
+        name=args.dataset,
+        data_dir=args.data_root,
+        transform=extractor.get_transformations(),
+    )
     batches = DataLoader(
-            dataset=dataset,
-            batch_size=args.batch_size,
-            backend=extractor.get_backend(),
+        dataset=dataset,
+        batch_size=args.batch_size,
+        backend=extractor.get_backend(),
     )
     for module_name in tqdm(args.layers, desc="Layer"):
         features = extractor.extract_features(
@@ -91,8 +129,10 @@ def evaluate(args) -> None:
             features = features.mean(axis=-1).mean(axis=-1)
         triplets = dataset.get_triplets()
         choices, probas = utils.evaluation.get_predictions(
-            features=features, triplets=triplets, 
-            temperature=float(1), dist=args.distance,
+            features=features,
+            triplets=triplets,
+            temperature=float(1),
+            dist=args.distance,
         )
         acc = utils.evaluation.accuracy(choices)
         entropies = utils.evaluation.ventropy(probas)

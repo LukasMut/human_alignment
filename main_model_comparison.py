@@ -152,7 +152,7 @@ if __name__ == "__main__":
     vice_probas = get_vice_probas(args.data_root)
     # add vice to results
     results = add_vice(results, vice_entropies, vice_probas)
-    # compute triplet agreements and CKA 
+    # compute triplet agreements and CKA
     agreements = compare_model_choices(results)
     alignments = compare_model_representations(
         results=results, features=features, module=args.module

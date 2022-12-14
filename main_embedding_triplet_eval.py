@@ -1,8 +1,8 @@
 import argparse
-from collections import defaultdict
 import os
 import random
 import warnings
+from collections import defaultdict
 from typing import Any, List, Tuple
 
 import numpy as np
@@ -28,22 +28,50 @@ def parseargs():
     aa("--data_root", type=str, help="path/to/things")
     aa("--embeddings_root", type=str, help="path/to/embeddings")
     aa("--dataset", type=str, help="Which dataset to use", choices=DATASETS)
-    aa("--module", type=str, default="penultimate",
+    aa(
+        "--module",
+        type=str,
+        default="penultimate",
         choices=["logits", "penultimate"],
-        help="module for which to extract features")
-    aa("--model_dict_path", type=str, default="/home/space/datasets/things/model_dict.json",
-        help="Path to the model_dict.json")
-    aa("--distance", type=str, default="cosine",
+        help="module for which to extract features",
+    )
+    aa(
+        "--model_dict_path",
+        type=str,
+        default="/home/space/datasets/things/model_dict.json",
+        help="Path to the model_dict.json",
+    )
+    aa(
+        "--distance",
+        type=str,
+        default="cosine",
         choices=["cosine", "euclidean"],
-        help="distance function used for predicting the odd-one-out")
-    aa("--out_path", type=str, help="path/to/results", default='/home/space/datasets/things/results')
-    aa("--num_threads", type=int, default=4,
-        help="number of threads used for intraop parallelism on CPU; use only if device is CPU")
-    aa("--rnd_seed", type=int, default=42,
-        help="random seed for reproducibility of results")
-    aa("--verbose", action="store_true",
-        help="show print statements about model performance during training")
-    aa("--cifar100", action='store_true')
+        help="distance function used for predicting the odd-one-out",
+    )
+    aa(
+        "--out_path",
+        type=str,
+        help="path/to/results",
+        default="/home/space/datasets/things/results",
+    )
+    aa(
+        "--num_threads",
+        type=int,
+        default=4,
+        help="number of threads used for intraop parallelism on CPU; use only if device is CPU",
+    )
+    aa(
+        "--rnd_seed",
+        type=int,
+        default=42,
+        help="random seed for reproducibility of results",
+    )
+    aa(
+        "--verbose",
+        action="store_true",
+        help="show print statements about model performance during training",
+    )
+    aa("--cifar100", action="store_true")
     args = parser.parse_args()
     return args
 
@@ -79,7 +107,7 @@ def create_hyperparam_dicts(args, model_names) -> Tuple[FrozenDict, FrozenDict]:
         warnings.warn(
             f"\nCould not find model config dict in {args.model_dict_path}.\nSetting temperature values to 1.0.\n"
         )
-    model_cfg.source = args.embeddings_root.split("/")[-1] 
+    model_cfg.source = args.embeddings_root.split("/")[-1]
     model_cfg = config_dict.FrozenConfigDict(model_cfg)
     data_cfg.root = args.data_root
     data_cfg = config_dict.FrozenConfigDict(data_cfg)
@@ -97,7 +125,7 @@ def evaluate(args) -> None:
     else:
         sort = "alphanumeric"
         object_names = None
-        
+
     embeddings = utils.evaluation.load_embeddings(
         embeddings_root=args.embeddings_root,
         module="embeddings" if args.module == "penultimate" else "logits",
@@ -113,7 +141,7 @@ def evaluate(args) -> None:
 
     model_features = defaultdict(lambda: defaultdict(dict))
     for i, (model_name, features) in tqdm(enumerate(embeddings.items()), desc="Model"):
-        family = utils.analyses.get_family_name(model_name) 
+        family = utils.analyses.get_family_name(model_name)
         triplets = dataset.get_triplets()
         choices, probas = utils.evaluation.get_predictions(
             features=features,
@@ -130,13 +158,13 @@ def evaluate(args) -> None:
                 f"\nModel: {model_name}, Family: {family}, Zero-shot accuracy: {acc:.4f}, Average triplet entropy: {mean_entropy:.3f}\n"
             )
         summary = {
-            "model" : model_name,
-            "zero-shot" : acc,
-            "choices" : choices.cpu().numpy(),
-            "entropies" : entropies.cpu().numpy(),
-            "probas" : probas.cpu().numpy(),
-            "source" : model_cfg.source,
-            "family" : family,
+            "model": model_name,
+            "zero-shot": acc,
+            "choices": choices.cpu().numpy(),
+            "entropies": entropies.cpu().numpy(),
+            "probas": probas.cpu().numpy(),
+            "source": model_cfg.source,
+            "family": family,
         }
         results.append(summary)
         model_features[model_cfg.source][model_name][args.module] = features
@@ -145,9 +173,7 @@ def evaluate(args) -> None:
     results = pd.DataFrame(results)
     failures = utils.evaluation.get_failures(results)
 
-    out_path = os.path.join(
-        args.out_path, args.dataset, model_cfg.source, args.module
-    )
+    out_path = os.path.join(args.out_path, args.dataset, model_cfg.source, args.module)
     if not os.path.exists(out_path):
         print("\nCreating output directory...\n")
         os.makedirs(out_path)

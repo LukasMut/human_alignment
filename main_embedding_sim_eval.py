@@ -83,9 +83,12 @@ def parseargs():
         action="store_true",
         help="use transformation matrix obtained from linear probing on the things triplet odd-one-out task",
     )
-    aa("--transform", type=str, default="without_norm",
+    aa(
+        "--transform",
+        type=str,
+        default="without_norm",
         choices=["without_norm", "with_norm"],
-        help="type of transformation matrix being used"
+        help="type of transformation matrix being used",
     )
     aa(
         "--rnd_seed",
@@ -139,7 +142,9 @@ def evaluate(args) -> None:
         data_dir=data_cfg.root,
     )
     if args.use_transforms:
-        transforms = utils.evaluation.load_transforms(root=args.data_root, type=args.transform)
+        transforms = utils.evaluation.load_transforms(
+            root=args.data_root, type=args.transform
+        )
 
     results = []
     model_features = defaultdict(lambda: defaultdict(dict))
@@ -159,7 +164,7 @@ def evaluate(args) -> None:
             features = features @ transform
             features = torch.from_numpy(features)
             if args.transform == "with_norm":
-                features = F.normalize(features,dim=1).cpu().numpy()
+                features = F.normalize(features, dim=1).cpu().numpy()
         else:
             # NOTE: should we center or standardize (i.e., z-transform) feature matrix for zero-shot eval?
             # features = utils.probing.standardize(features)
