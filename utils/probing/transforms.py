@@ -25,11 +25,11 @@ class Linear(pl.LightningModule):
         self.feature_dim = self.features.shape[1]
         # initialize transformation matrix with \tau I (temperature-scaled identity matrix)
         self.transform = torch.nn.Parameter(
-            # data=torch.eye(self.feature_dim) * optim_cfg["temperature"],
-            data=torch.normal(
-                mean=torch.zeros(self.feature_dim, self.feature_dim),
-                std=torch.ones(self.feature_dim, self.feature_dim) * 1e-3,
-            ),
+            data=torch.eye(self.feature_dim) * optim_cfg["temperature"],
+            # data=torch.normal(
+            #     mean=torch.zeros(self.feature_dim, self.feature_dim),
+            #    std=torch.ones(self.feature_dim, self.feature_dim) * 1e-3,
+            #),
             requires_grad=True,
         )
         self.optim = optim_cfg["optim"]
@@ -40,6 +40,8 @@ class Linear(pl.LightningModule):
 
     def forward(self, one_hots: Tensor) -> Tensor:
         embedding = self.features @ self.transform
+        # normalize object embeddings to lie on the unit-sphere
+        embedding = F.normalize(embedding, dim=1)
         batch_embeddings = one_hots @ embedding
         return batch_embeddings
 
