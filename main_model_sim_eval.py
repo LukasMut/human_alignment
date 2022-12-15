@@ -271,11 +271,11 @@ def evaluate(args) -> None:
             features = center_features(features)
 
         if args.dataset == "free-arrangement":
-            cosine_rdm_dnn = cosine_matrix(features)
-            corr_rdm_dnn = correlation_matrix(features)
-            triu_inds = np.triu_indices(corr_rdm_dnn.shape[0], k=1)
-            pairwise_dists_cosine = cosine_rdm_dnn[triu_inds]
-            pairwise_dists_corr = corr_rdm_dnn[triu_inds]
+            cosine_rdm_dnn = compute_rdm(features, method="cosine")
+            corr_rdm_dnn = compute_rdm(features, method="correlation")
+            tril_inds = np.tril_indices(corr_rdm_dnn.shape[0], k=-1)
+            pairwise_dists_cosine = cosine_rdm_dnn[tril_inds]
+            pairwise_dists_corr = corr_rdm_dnn[tril_inds]
             pairwise_dists_human = dataset.pairwise_dists
             spearman_rho_cosine = scipy.stats.spearmanr(pairwise_dists_cosine, pairwise_dists_human)[0]
             pearson_corr_coef_cosine = scipy.stats.pearsonr(pairwise_dists_cosine, pairwise_dists_human)[0]
