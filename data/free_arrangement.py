@@ -42,12 +42,14 @@ class FreeArrangement(torch.utils.data.Dataset):
         self.pairwise_dists = self.get_pairwise_distances(sim_judgments)
 
     def load_sim_judgments(self) -> Any:
+        """Load human similarity judgments into memory."""
         sim_judgements = loadmat(
             os.path.join(self.root, self.sim_subfolder, "BEHAVIOR.mat")
         )
         return sim_judgements
 
-    def get_pairwise_distances(self, sim_judgments: Any):
+    def get_pairwise_distances(self, sim_judgments: Any) -> Array:
+        """Get the flattened lower-triangle of the human RDM."""
         pairwise_distances = sim_judgments["BEHAVIOR"][self.stimulus_set][0, 0][
             "pairwisedistances"
         ][0, 0]

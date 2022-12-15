@@ -43,7 +43,7 @@ def parseargs():
         type=str,
         default=None,
         choices=["set1", "set2"],
-        help="Similarity judgments of the dataset from Groen et al. (2019) were collected for two stimulus sets",
+        help="Similarity judgments of the dataset from King et al. (2019) were collected for two stimulus sets",
     )
     aa(
         "--category",
