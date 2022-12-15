@@ -42,7 +42,7 @@ def parseargs():
         "--stimulus_set",
         type=str,
         default=None,
-        choices=["set1","set2"],
+        choices=["set1", "set2"],
         help="Similarity judgments of the dataset from Groen et al. (2019) were collected for two stimulus sets",
     )
     aa(
@@ -277,10 +277,18 @@ def evaluate(args) -> None:
             pairwise_dists_cosine = cosine_rdm_dnn[tril_inds]
             pairwise_dists_corr = corr_rdm_dnn[tril_inds]
             pairwise_dists_human = dataset.pairwise_dists
-            spearman_rho_cosine = scipy.stats.spearmanr(pairwise_dists_cosine, pairwise_dists_human)[0]
-            pearson_corr_coef_cosine = scipy.stats.pearsonr(pairwise_dists_cosine, pairwise_dists_human)[0]
-            spearman_rho_corr = scipy.stats.spearmanr(pairwise_dists_corr, pairwise_dists_human)[0]
-            pearson_corr_coef_corr = scipy.stats.pearsonr(pairwise_dists_corr, pairwise_dists_human)[0]
+            spearman_rho_cosine = scipy.stats.spearmanr(
+                pairwise_dists_cosine, pairwise_dists_human
+            )[0]
+            pearson_corr_coef_cosine = scipy.stats.pearsonr(
+                pairwise_dists_cosine, pairwise_dists_human
+            )[0]
+            spearman_rho_corr = scipy.stats.spearmanr(
+                pairwise_dists_corr, pairwise_dists_human
+            )[0]
+            pearson_corr_coef_corr = scipy.stats.pearsonr(
+                pairwise_dists_corr, pairwise_dists_human
+            )[0]
         else:
             if args.dataset == "peterson":
                 cosine_rdm_dnn = cosine_matrix(features)

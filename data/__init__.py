@@ -40,7 +40,7 @@ def load_dataset(name: str, data_dir: str, category=None, stimulus_set=None, tra
     elif name == "free-arrangement":
         assert isinstance(
             stimulus_set, str
-        ), "\nSimilarity judgments for the data from Groen et al. (2019) were collected for two differen stimulus sets.\nPlease provide the stimulus set.\n"
+        ), "\nSimilarity judgments for the data from Groen et al. (2019) were collected for two differen stimulus sets.\nPlease provide the stimulus set for which you want to extract features.\n"
         dataset = FreeArrangement(
             root=data_dir,
             stimulus_set=stimulus_set,
