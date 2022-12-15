@@ -7,6 +7,7 @@ from typing import Any, Tuple
 
 import numpy as np
 import pandas as pd
+import scipy
 import torch
 import torch.nn.functional as F
 from ml_collections import config_dict
@@ -32,6 +33,13 @@ def parseargs():
     aa("--data_root", type=str, help="path/to/things")
     aa("--embeddings_root", type=str, help="path/to/embeddings")
     aa("--dataset", type=str, help="Which dataset to use", choices=DATASETS)
+    aa(
+        "--stimulus_set",
+        type=str,
+        default=None,
+        choices=["set1", "set2"],
+        help="Similarity judgments of the dataset from Groen et al. (2019) were collected for two stimulus sets",
+    )
     aa(
         "--category",
         type=str,
@@ -114,6 +122,7 @@ def create_hyperparam_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
     data_cfg.root = args.data_root
     data_cfg.name = args.dataset
     data_cfg.category = args.category
+    data_cfg.stimulus_set = args.stimulus_set
     data_cfg = config_dict.FrozenConfigDict(data_cfg)
     return model_cfg, data_cfg
 
@@ -140,6 +149,7 @@ def evaluate(args) -> None:
     dataset = load_dataset(
         name=args.dataset,
         data_dir=data_cfg.root,
+        stimulus_set=data_cfg.stimulus_set,
     )
     if args.use_transforms:
         transforms = utils.evaluation.load_transforms(
@@ -170,29 +180,46 @@ def evaluate(args) -> None:
             # features = utils.probing.standardize(features)
             features = center_features(features)
 
-        if args.dataset == "peterson":
-            cosine_rdm_dnn = cosine_matrix(features)
-            corr_rdm_dnn = correlation_matrix(features)
-            rdm_humans = dataset.get_rsm()
-        else:
+        if args.dataset == "free-arrangement":
             cosine_rdm_dnn = compute_rdm(features, method="cosine")
             corr_rdm_dnn = compute_rdm(features, method="correlation")
-            rdm_humans = dataset.get_rdm()
-
-        spearman_rho_cosine = correlate_rdms(
-            cosine_rdm_dnn, rdm_humans, correlation="spearman"
-        )
-        pearson_corr_coef_cosine = correlate_rdms(
-            cosine_rdm_dnn, rdm_humans, correlation="pearson"
-        )
-
-        spearman_rho_corr = correlate_rdms(
-            corr_rdm_dnn, rdm_humans, correlation="spearman"
-        )
-        pearson_corr_coef_corr = correlate_rdms(
-            corr_rdm_dnn, rdm_humans, correlation="pearson"
-        )
-
+            tril_inds = np.tril_indices(corr_rdm_dnn.shape[0], k=-1)
+            pairwise_dists_cosine = cosine_rdm_dnn[tril_inds]
+            pairwise_dists_corr = corr_rdm_dnn[tril_inds]
+            pairwise_dists_human = dataset.pairwise_dists
+            spearman_rho_cosine = scipy.stats.spearmanr(
+                pairwise_dists_cosine, pairwise_dists_human
+            )[0]
+            pearson_corr_coef_cosine = scipy.stats.pearsonr(
+                pairwise_dists_cosine, pairwise_dists_human
+            )[0]
+            spearman_rho_corr = scipy.stats.spearmanr(
+                pairwise_dists_corr, pairwise_dists_human
+            )[0]
+            pearson_corr_coef_corr = scipy.stats.pearsonr(
+                pairwise_dists_corr, pairwise_dists_human
+            )[0]
+        else:
+            if args.dataset == "peterson":
+                cosine_rdm_dnn = cosine_matrix(features)
+                corr_rdm_dnn = correlation_matrix(features)
+                rdm_humans = dataset.get_rsm()
+            else:
+                cosine_rdm_dnn = compute_rdm(features, method="cosine")
+                corr_rdm_dnn = compute_rdm(features, method="correlation")
+                rdm_humans = dataset.get_rdm()
+            spearman_rho_cosine = correlate_rdms(
+                cosine_rdm_dnn, rdm_humans, correlation="spearman"
+            )
+            pearson_corr_coef_cosine = correlate_rdms(
+                cosine_rdm_dnn, rdm_humans, correlation="pearson"
+            )
+            spearman_rho_corr = correlate_rdms(
+                corr_rdm_dnn, rdm_humans, correlation="spearman"
+            )
+            pearson_corr_coef_corr = correlate_rdms(
+                corr_rdm_dnn, rdm_humans, correlation="pearson"
+            )
         if args.verbose:
             print(
                 f"\nModel: {model_name}, Family: {family_name}, Spearman's rho: {spearman_rho_corr:.4f}, Pearson correlation coefficient: {pearson_corr_coef_corr:.4f}\n"
