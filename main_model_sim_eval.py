@@ -283,7 +283,7 @@ def evaluate(args) -> None:
 
         rsa_stats = utils.evaluation.perform_rsa(
             dataset=dataset,
-            data_source=args.datasets,
+            data_source=args.dataset,
             features=features,
         )
         spearman_rho_cosine = rsa_stats["spearman_rho_cosine_kernel"]
