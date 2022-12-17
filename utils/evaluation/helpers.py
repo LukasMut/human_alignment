@@ -5,13 +5,16 @@ import itertools
 import json
 import os
 import pickle
-from typing import Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
+import scipy
 import torch
 import torch.nn.functional as F
 from functorch import vmap
+from thingsvision.core.rsa import compute_rdm, correlate_rdms
+from thingsvision.core.rsa.helpers import correlation_matrix, cosine_matrix
 
 Array = np.ndarray
 Tensor = torch.Tensor
@@ -171,6 +174,15 @@ def load_model_config(path: str) -> dict:
     return model_dict
 
 
+def load_features(path: str) -> Dict[str, Dict[str, Dict[str, Array]]]:
+    assert os.path.isfile(path) and path.endswith(
+        ".pkl"
+    ), "\nThe provided path to features for THINGS is not a valid path.\nPlease provide a valid path.\n"
+    with open(path, "rb") as f:
+        features = pickle.load(f)
+    return features
+
+
 def load_transforms(
     root: str, type: str, format: str = "pkl"
 ) -> Dict[str, Dict[str, Dict[str, Array]]]:
@@ -185,3 +197,52 @@ def load_transforms(
                         transforms = pickle.load(f)
                         break
     return transforms
+
+
+def perform_rsa(dataset: Any, data_source: str, features: Array) -> Dict[str, float]:
+    if data_source == "free-arrangement":
+        cosine_rdm_dnn = compute_rdm(features, method="cosine")
+        corr_rdm_dnn = compute_rdm(features, method="correlation")
+        tril_inds = np.tril_indices(corr_rdm_dnn.shape[0], k=-1)
+        pairwise_dists_cosine = cosine_rdm_dnn[tril_inds]
+        pairwise_dists_corr = corr_rdm_dnn[tril_inds]
+        pairwise_dists_human = dataset.pairwise_dists
+        spearman_rho_cosine = scipy.stats.spearmanr(
+            pairwise_dists_cosine, pairwise_dists_human
+        )[0]
+        pearson_corr_coef_cosine = scipy.stats.pearsonr(
+            pairwise_dists_cosine, pairwise_dists_human
+        )[0]
+        spearman_rho_corr = scipy.stats.spearmanr(
+            pairwise_dists_corr, pairwise_dists_human
+        )[0]
+        pearson_corr_coef_corr = scipy.stats.pearsonr(
+            pairwise_dists_corr, pairwise_dists_human
+        )[0]
+    else:
+        if data_source == "peterson":
+            cosine_rdm_dnn = cosine_matrix(features)
+            corr_rdm_dnn = correlation_matrix(features)
+            rdm_humans = dataset.get_rsm()
+        else:
+            cosine_rdm_dnn = compute_rdm(features, method="cosine")
+            corr_rdm_dnn = compute_rdm(features, method="correlation")
+            rdm_humans = dataset.get_rdm()
+        spearman_rho_cosine = correlate_rdms(
+            cosine_rdm_dnn, rdm_humans, correlation="spearman"
+        )
+        pearson_corr_coef_cosine = correlate_rdms(
+            cosine_rdm_dnn, rdm_humans, correlation="pearson"
+        )
+        spearman_rho_corr = correlate_rdms(
+            corr_rdm_dnn, rdm_humans, correlation="spearman"
+        )
+        pearson_corr_coef_corr = correlate_rdms(
+            corr_rdm_dnn, rdm_humans, correlation="pearson"
+        )
+    rsa_stats = {}
+    rsa_stats["spearman_rho_cosine_kernel"] = spearman_rho_cosine
+    rsa_stats["spearman_rho_corr_kernel"] = spearman_rho_corr
+    rsa_stats["pearson_corr_coef_cosine_kernel"] = pearson_corr_coef_cosine
+    rsa_stats["pearson_corr_coef_corr_kernel"] = pearson_corr_coef_corr
+    return rsa_stats

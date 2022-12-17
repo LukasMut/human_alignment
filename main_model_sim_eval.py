@@ -10,14 +10,10 @@ from typing import Any, List, Tuple
 
 import numpy as np
 import pandas as pd
-import scipy
 import torch
 import torch.nn.functional as F
 from ml_collections import config_dict
 from thingsvision import get_extractor
-from thingsvision.core.extraction import center_features
-from thingsvision.core.rsa import compute_rdm, correlate_rdms
-from thingsvision.core.rsa.helpers import correlation_matrix, cosine_matrix
 from thingsvision.utils.data import DataLoader
 from torchvision.transforms import Compose, Lambda
 from tqdm import tqdm
@@ -37,6 +33,12 @@ def parseargs():
         parser.add_argument(*args, **kwargs)
 
     aa("--data_root", type=str, help="path/to/dataset")
+    aa(
+        "--features_path",
+        type=str,
+        default="/home/space/datasets/things/embeddings/model_features_per_source.pkl",
+        help="path/to/things/features; necessary if you use transforms",
+    )
     aa("--dataset", type=str, help="Which dataset to use", choices=DATASETS)
     aa(
         "--stimulus_set",
@@ -186,6 +188,7 @@ def evaluate(args) -> None:
     device = torch.device(args.device)
     model_cfg, data_cfg = create_config_dicts(args)
     if args.use_transforms:
+        things_features = utils.evaluation.load_features(path=args.features_path)
         transforms = utils.evaluation.load_transforms(
             root=args.data_root, type=args.transform
         )
@@ -260,56 +263,33 @@ def evaluate(args) -> None:
                     category=UserWarning,
                 )
                 continue
-            features = center_features(features)
+            try:
+                things_features_current_model = things_features[source][model_name][
+                    args.module
+                ]
+            except KeyError:
+                warnings.warn(
+                    message=f"\nCould not find embedding matrix of {model_name} for the THINGS dataset.\nSkipping evaluation for {model_name} and continuing with next model...\n",
+                    category=UserWarning,
+                )
+                continue
+            features = (
+                features - things_features_current_model.mean()
+            ) / things_features_current_model.std()
             features = features @ transform
-            features = torch.from_numpy(features)
             if args.transform == "with_norm":
+                features = torch.from_numpy(features)
                 features = F.normalize(features, dim=1).cpu().numpy()
-        else:
-            # NOTE: should we center or standardize (i.e., z-transform) feature matrix for zero-shot eval?
-            # features = utils.probing.standardize(features)
-            features = center_features(features)
 
-        if args.dataset == "free-arrangement":
-            cosine_rdm_dnn = compute_rdm(features, method="cosine")
-            corr_rdm_dnn = compute_rdm(features, method="correlation")
-            tril_inds = np.tril_indices(corr_rdm_dnn.shape[0], k=-1)
-            pairwise_dists_cosine = cosine_rdm_dnn[tril_inds]
-            pairwise_dists_corr = corr_rdm_dnn[tril_inds]
-            pairwise_dists_human = dataset.pairwise_dists
-            spearman_rho_cosine = scipy.stats.spearmanr(
-                pairwise_dists_cosine, pairwise_dists_human
-            )[0]
-            pearson_corr_coef_cosine = scipy.stats.pearsonr(
-                pairwise_dists_cosine, pairwise_dists_human
-            )[0]
-            spearman_rho_corr = scipy.stats.spearmanr(
-                pairwise_dists_corr, pairwise_dists_human
-            )[0]
-            pearson_corr_coef_corr = scipy.stats.pearsonr(
-                pairwise_dists_corr, pairwise_dists_human
-            )[0]
-        else:
-            if args.dataset == "peterson":
-                cosine_rdm_dnn = cosine_matrix(features)
-                corr_rdm_dnn = correlation_matrix(features)
-                rdm_humans = dataset.get_rsm()
-            else:
-                cosine_rdm_dnn = compute_rdm(features, method="cosine")
-                corr_rdm_dnn = compute_rdm(features, method="correlation")
-                rdm_humans = dataset.get_rdm()
-            spearman_rho_cosine = correlate_rdms(
-                cosine_rdm_dnn, rdm_humans, correlation="spearman"
-            )
-            pearson_corr_coef_cosine = correlate_rdms(
-                cosine_rdm_dnn, rdm_humans, correlation="pearson"
-            )
-            spearman_rho_corr = correlate_rdms(
-                corr_rdm_dnn, rdm_humans, correlation="spearman"
-            )
-            pearson_corr_coef_corr = correlate_rdms(
-                corr_rdm_dnn, rdm_humans, correlation="pearson"
-            )
+        rsa_stats = utils.evaluation.perform_rsa(
+            dataset=dataset,
+            data_source=args.datasets,
+            features=features,
+        )
+        spearman_rho_cosine = rsa_stats["spearman_rho_cosine_kernel"]
+        spearman_rho_corr = rsa_stats["spearman_rho_corr_kernel"]
+        pearson_corr_coef_cosine = rsa_stats["pearson_corr_coef_cosine_kernel"]
+        pearson_corr_coef_corr = rsa_stats["pearson_corr_coef_corr_kernel"]
 
         if args.verbose:
             print(
