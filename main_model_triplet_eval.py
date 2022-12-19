@@ -195,7 +195,6 @@ def evaluate(args) -> None:
             model_parameters=model_params,
         )
         if model_name.endswith("ecoset"):
-            print("Resizing")
             dataset = load_dataset(
                 name=args.dataset,
                 data_dir=data_cfg.root,
