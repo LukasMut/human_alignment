@@ -255,7 +255,7 @@ def evaluate(args) -> None:
         failures = utils.evaluation.get_failures(results)
 
         out_path = os.path.join(
-            args.out_path, args.dataset, args.overall_source, args.module, model_name
+            args.out_path, args.dataset, args.overall_source, source, model_name, args.module
         )
         if not os.path.exists(out_path):
             print("\nOutput directory does not exist...")
