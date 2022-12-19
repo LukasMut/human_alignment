@@ -219,7 +219,10 @@ def evaluate(args) -> None:
             model_parameters=model_params,
         )
 
-        transformations = extractor.get_transformations()
+        if model_name.endswith("ecoset"):
+            transformations = extractor.get_transformations(resize_dim=128, crop_dim=128)
+        else:
+            transformations = extractor.get_transformations()
         if args.dataset == "peterson":
             transformations = Compose(
                 [Lambda(lambda img: img.convert("RGB")), transformations]

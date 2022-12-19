@@ -209,12 +209,19 @@ def get_features_targets(
         pretrained=True,
         model_parameters=model_params,
     )
-    dataset = load_dataset(
-        name=data_cfg.name,
-        data_dir=data_cfg.root,
-        train=train,
-        transform=extractor.get_transformations(),
-    )
+    if model_name.endswith("ecoset"):
+        dataset = load_dataset(
+                name=args.dataset,
+                data_dir=data_cfg.root,
+                transform=extractor.get_transformations(resize_dim=128, crop_dim=128),
+        )
+    else:
+        dataset = load_dataset(
+            name=data_cfg.name,
+            data_dir=data_cfg.root,
+            train=train,
+            transform=extractor.get_transformations(),
+        )
 
     features_all = []
     Y_all = []
