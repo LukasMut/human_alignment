@@ -61,9 +61,12 @@ def load_embeddings(
                 filenames = embedding_file["filenames"]
                 filenames = convert_filenames(filenames)
                 if sort == "things":
-                    assert isinstance(
-                        object_names, Union[list, Array]
-                    ), "\nTo sort features according to things object names, a list (or an array) of object names is required.\n"
+                    try:
+                        assert isinstance(
+                            object_names, Union[list, Array]
+                        ), "\nTo sort features according to things object names, a list (or an array) of object names is required.\n"
+                    except TypeError:
+                        print("Could not check type of object names.")
                     order = get_order(object_names)
                 else:
                     order = get_order(sorted(filenames))
