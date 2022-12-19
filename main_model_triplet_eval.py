@@ -171,11 +171,10 @@ def evaluate(args) -> None:
     """Perform evaluation with optimal temperature values."""
     device = torch.device(args.device)
     model_cfg, data_cfg = create_config_dicts(args)
-    results = []
-    model_features = defaultdict(lambda: defaultdict(dict))
     for i, (model_name, source) in tqdm(
         enumerate(zip(model_cfg.names, model_cfg.sources)), desc="Model"
     ):
+        model_features = defaultdict(lambda: defaultdict(dict))
 
         if model_name.startswith("OpenCLIP"):
             name, variant, data = model_name.split("_")
@@ -224,6 +223,11 @@ def evaluate(args) -> None:
                 flatten_acts=True,
             )
         triplets = dataset.get_triplets()
+
+        if features[0].dtype == np.float16:
+            print("Converting to normal precision.")
+            features = np.array([ft.astype(float) for ft in features])
+
         choices, probas = utils.evaluation.get_predictions(
             features, triplets, model_cfg.temperatures[i], args.distance
         )
@@ -244,26 +248,25 @@ def evaluate(args) -> None:
             "family": family_name,
             "dataset": data_cfg.name,
         }
-        results.append(summary)
         model_features[source][model_name][args.module] = features
 
-    # convert results into Pandas DataFrame
-    results = pd.DataFrame(results)
-    failures = utils.evaluation.get_failures(results)
+        # convert results into Pandas DataFrame
+        results = pd.DataFrame([summary])
+        failures = utils.evaluation.get_failures(results)
 
-    out_path = os.path.join(
-        args.out_path, args.dataset, args.overall_source, args.module
-    )
-    if not os.path.exists(out_path):
-        print("\nOutput directory does not exist...")
-        print("Creating output directory to save results...\n")
-        os.makedirs(out_path)
+        out_path = os.path.join(
+            args.out_path, args.dataset, args.overall_source, source, model_name, args.module
+        )
+        if not os.path.exists(out_path):
+            print("\nOutput directory does not exist...")
+            print("Creating output directory to save results...\n")
+            os.makedirs(out_path)
 
-    # save dataframe to pickle to preserve data types after loading
-    # load back with pd.read_pickle(/path/to/file/pkl)
-    results.to_pickle(os.path.join(out_path, "results.pkl"))
-    failures.to_pickle(os.path.join(out_path, "failures.pkl"))
-    utils.evaluation.save_features(features=dict(model_features), out_path=out_path)
+        # save dataframe to pickle to preserve data types after loading
+        # load back with pd.read_pickle(/path/to/file/pkl)
+        results.to_pickle(os.path.join(out_path, "results.pkl"))
+        failures.to_pickle(os.path.join(out_path, "failures.pkl"))
+        utils.evaluation.save_features(features=dict(model_features), out_path=out_path)
 
 
 if __name__ == "__main__":

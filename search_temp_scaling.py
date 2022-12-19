@@ -147,7 +147,7 @@ def jensenshannon(p: torch.Tensor, q: torch.Tensor, base=None, *, dim=0) -> floa
 
 
 def _is_model_name_accepted(name: str):
-    name_starts = ["alexnet", "vgg", "res", "vit", "efficient", "clip", "r50"]
+    name_starts = ["alexnet", "vgg", "res", "vit", "efficient", "clip", "r50", "inception_v3"]
     is_ok = any([name.startswith(start) for start in name_starts])
     is_ok &= not name.endswith("_bn")
     is_ok &= name == "alexnet" or any(c.isdigit() for c in name)
@@ -342,11 +342,12 @@ def search_temperatures(
                             "distance": distance,
                             "out_path": model_results_path,
                             "device": device,
-                            "batch_size": 8,
+                            "batch_size": 32,
                             "num_threads": 4,
                             "ssl_models_path": ssl_models_path,
                             "model_dict_path": get_dict_path(out_path, one_hot),
-                            "source": source,
+                            "sources": [source],
+                            "overall_source": "thingsvision"
                         }
                     )
                     print("Evaluating:", model_name, module_name, temp)
@@ -664,6 +665,7 @@ if __name__ == "__main__":
                 "Alexnet_ecoset",
                 "Resnet50_ecoset",
                 "VGG16_ecoset",
+                "Inception_ecoset",
             ]
 
     if args_model_names and args_model_names[0] != "None":
