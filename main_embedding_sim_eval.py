@@ -30,7 +30,7 @@ def parseargs():
     aa("--embeddings_root", type=str, help="path/to/embeddings")
     aa("--dataset", type=str, help="Which dataset to use", choices=DATASETS)
     aa(
-        "--features_path",
+        "--things_embeddings_path",
         type=str,
         default="/home/space/datasets/things/embeddings/model_features_per_source.pkl",
         help="path/to/things/features; necessary if you use transforms",
@@ -94,7 +94,7 @@ def parseargs():
         help="use transformation matrix obtained from linear probing on the things triplet odd-one-out task",
     )
     aa(
-        "--transform",
+        "--transform_type",
         type=str,
         default="without_norm",
         choices=["without_norm", "with_norm"],
@@ -154,9 +154,11 @@ def evaluate(args) -> None:
         stimulus_set=data_cfg.stimulus_set,
     )
     if args.use_transforms:
-        things_features = utils.evaluation.load_features(path=args.features_path)
+        things_features = utils.evaluation.load_features(
+            path=args.things_embeddings_path
+        )
         transforms = utils.evaluation.load_transforms(
-            root=args.data_root, type=args.transform
+            root=args.data_root, type=args.transform_type
         )
     results = []
     model_features = defaultdict(lambda: defaultdict(dict))
@@ -186,7 +188,7 @@ def evaluate(args) -> None:
                 features - things_features_current_model.mean()
             ) / things_features_current_model.std()
             features = features @ transform
-            if args.transform == "with_norm":
+            if args.transform_type == "with_norm":
                 features = torch.from_numpy(features)
                 features = F.normalize(features, dim=1).cpu().numpy()
 
@@ -214,6 +216,7 @@ def evaluate(args) -> None:
             "dataset": data_cfg.name,
             "category": data_cfg.category,
             "transform": args.use_transforms,
+            "transform_type": args.transform_type if args.use_transforms else None,
         }
         results.append(summary)
         model_features[model_cfg.source][model_name][args.module] = features

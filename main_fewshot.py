@@ -95,16 +95,23 @@ def parseargs():
     )
     aa("--device", type=str, default="cpu", choices=["cpu", "gpu"])
     aa(
-        "--things_embeddings_root",
+        "--things_embeddings_path",
         type=str,
-        default="/home/space/datasets/things/embeddings",
-        help="path/to/embeddings",
+        default="/home/space/datasets/things/embeddings/model_features_per_source.pkl",
+        help="path/to/things/embeddings/file",
     )
     aa(
         "--transforms_root",
         type=str,
         default="/home/space/datasets/things",
         help="path/to/embeddings",
+    )
+    aa(
+        "--transform_type",
+        type=str,
+        default="without_norm",
+        choices=["without_norm", "with_norm"],
+        help="type of transformation matrix being used",
     )
     aa("--out_dir", type=str, help="directory to save the results to")
     aa("--rnd_seed", type=int, default=42, help="random seed for reproducibility")
@@ -300,6 +307,7 @@ def run(
     data_cfg: FrozenDict,
     features_things: Array,
     transforms: Array,
+    transform_type: str = None,
 ):
     transform_options = [False, True]
 
@@ -437,6 +445,7 @@ def run(
                         "classes": class_id_set,
                         "n_train": n_shot,
                         "repetition": i_rep,
+                        "transform_type": transform_type if use_transforms else None,
                     }
                     results.append(summary)
 
@@ -455,12 +464,10 @@ if __name__ == "__main__":
     device = torch.device(args.device)
     model_cfg, data_cfg = create_config_dicts(args)
 
-    with open(
-        os.path.join(args.things_embeddings_root, "model_features_per_source.pkl"), "rb"
-    ) as f:
-        features_things = pickle.load(f)
-
-    transforms = utils.evaluation.helpers.load_transforms(args.transforms_root)
+    features_things = utils.evaluation.load_features(path=args.things_embeddings_path)
+    transforms = utils.evaluation.helpers.load_transforms(
+        root=args.transforms_root, type=args.transform_type
+    )
 
     results = run(
         n_shot=args.n_shot,
@@ -472,6 +479,7 @@ if __name__ == "__main__":
         data_cfg=data_cfg,
         features_things=features_things,
         transforms=transforms,
+        transforms_type=args.transform_type,
     )
 
     if not os.path.exists(args.out_dir):
