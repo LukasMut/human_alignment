@@ -54,6 +54,7 @@ def parseargs():
             "timm",
             "torchvision",
             "vissl",
+            "ssl",
             "google",
             "loss",
             "imagenet",
@@ -178,7 +179,7 @@ def load_dataset(name: str, data_dir: str, train: bool, transform=None):
     return dataset
 
 
-def get_features_tartgets(
+def get_features_targets(
     class_ids,
     model_name,
     model_params,
@@ -320,7 +321,7 @@ def run(
             family_name = utils.analyses.get_family_name(model_name)
 
             # Extract train features
-            train_features_original_all, train_targets_all = get_features_tartgets(
+            train_features_original_all, train_targets_all = get_features_targets(
                 class_id_set,
                 name,
                 model_params,
@@ -378,7 +379,7 @@ def run(
             for i_rep in range(n_reps):
                 accuracies = {a: [] for a in transform_options}
                 for cls_id in [class_id_set]:
-                    test_features_original, test_targets = get_features_tartgets(
+                    test_features_original, test_targets = get_features_targets(
                         class_id_set,
                         name,
                         model_params,
