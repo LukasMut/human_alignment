@@ -19,7 +19,7 @@ class Linear(pl.LightningModule):
     ):
         super().__init__()
         self.features = torch.nn.Parameter(
-            torch.from_numpy(features),
+            torch.from_numpy(features).to(torch.float),
             requires_grad=False,
         )
         self.feature_dim = self.features.shape[1]
