@@ -32,7 +32,7 @@ def parseargs():
     aa(
         "--model_dict_path",
         type=str,
-        default="~/human_alignment/datasets/things/model_dict.json",
+        default="./datasets/things/model_dict.json",
         help="Path to the model_dict.json",
     )
     aa(
