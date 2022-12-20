@@ -13,6 +13,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 import utils
+import warnings
 
 Array = np.ndarray
 Tensor = torch.Tensor
@@ -28,6 +29,12 @@ def parseargs():
     aa("--data_root", type=str, help="path/to/things")
     aa("--dataset", type=str, help="Which dataset to use", default="things")
     aa("--model", type=str)
+    aa(
+        "--model_dict_path",
+        type=str,
+        default="~/human_alignment/datasets/things/model_dict.json",
+        help="Path to the model_dict.json",
+    )
     aa(
         "--module",
         type=str,
@@ -122,6 +129,20 @@ def load_features(probing_root: str, subfolder: str = "embeddings") -> Dict[str,
     with open(os.path.join(probing_root, subfolder, "features.pkl"), "rb") as f:
         features = pickle.load(f)
     return features
+
+
+def get_temperature(
+    model_config, model: List[str], module: str, objective: str = "cosine"
+) -> List[str]:
+    """Get optimal temperature values for all models."""
+    try:
+        temp = model_config[model][module]["temperature"][objective]
+    except KeyError:
+        temp = 1.0
+        warnings.warn(
+            f"\nMissing temperature value for {model} and {module} layer.\nSetting temperature value to 1.\n"
+        )
+    return temp
 
 
 def get_batches(triplets: Tensor, batch_size: int, train: bool) -> Iterator:
@@ -253,6 +274,7 @@ def run(
     module: str,
     source: str,
     data_root: str,
+    config_path: str,
     n_objects: int,
     device: str,
     optim_cfg: FrozenDict,
@@ -265,8 +287,8 @@ def run(
     # features -= features.mean(axis=0) # center input features
     # features = utils.probing.standardize(features) # z-transform / standardize input features
     features = (features - features.mean()) / features.std()
-    model_config = utils.probing.load_model_config(data_root, source)
-    temperature = utils.probing.get_temperature(
+    model_config = utils.evaluation.load_model_config(config_path)
+    temperature = get_temperature(
         model_config=model_config,
         model=model,
         module=module,
@@ -347,6 +369,7 @@ if __name__ == "__main__":
         module=args.module,
         source=args.source,
         data_root=args.data_root,
+        config_path=args.model_dict_path,
         n_objects=args.n_objects,
         device=args.device,
         optim_cfg=optim_cfg,
