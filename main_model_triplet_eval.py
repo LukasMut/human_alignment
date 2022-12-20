@@ -194,11 +194,18 @@ def evaluate(args) -> None:
             pretrained=not args.not_pretrained,
             model_parameters=model_params,
         )
-        dataset = load_dataset(
-            name=args.dataset,
-            data_dir=data_cfg.root,
-            transform=extractor.get_transformations(),
-        )
+        if model_name.endswith("ecoset"):
+            dataset = load_dataset(
+                name=args.dataset,
+                data_dir=data_cfg.root,
+                transform=extractor.get_transformations(resize_dim=128, crop_dim=128),
+            )
+        else:
+            dataset = load_dataset(
+                name=args.dataset,
+                data_dir=data_cfg.root,
+                transform=extractor.get_transformations(),
+            )
         batches = DataLoader(
             dataset=dataset,
             batch_size=args.batch_size,
@@ -226,7 +233,7 @@ def evaluate(args) -> None:
 
         if features[0].dtype == np.float16:
             print("Converting to normal precision.")
-            features = np.array([ft.astype(float) for ft in features])
+            features = np.array([np.float32(ft) for ft in features])
 
         choices, probas = utils.evaluation.get_predictions(
             features, triplets, model_cfg.temperatures[i], args.distance
