@@ -26,6 +26,7 @@ class FreeArrangement(torch.utils.data.Dataset):
         self.root = root
         self.img_subfolder = "images"
         self.sim_subfolder = "sim_judgements"
+        self.compression = ".jpg"
         self.stimulus_set = stimulus_set
         self.transform = transform
         self.target_transform = target_transform
@@ -35,10 +36,10 @@ class FreeArrangement(torch.utils.data.Dataset):
                 for f in os.scandir(
                     os.path.join(self.root, self.img_subfolder, self.stimulus_set)
                 )
-                if f.name.endswith("jpg")
+                if f.name.endswith(self.compression)
             ]
         )
-        self.order = self.get_order()
+        self.order = self.get_stimulus_order()
         sim_judgments = self.load_sim_judgments()
         self.pairwise_dists = self.get_pairwise_distances(sim_judgments)
 
@@ -48,7 +49,7 @@ class FreeArrangement(torch.utils.data.Dataset):
             "r",
         ) as f:
             order = list(
-                map(lambda x: int(x.rstrip().split(",")[-1]), f.readlines()[1:])
+                map(lambda x: f"{int(x.rstrip().split(',')[-1]):04d}"+self.compression, f.readlines()[1:])
             )
         return order
 
