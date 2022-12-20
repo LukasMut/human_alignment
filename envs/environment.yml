@@ -10,12 +10,12 @@ dependencies:
  - matplotlib=3.5.*
  - seaborn=0.11.* 
  - tqdm=4.64.*
- - pytorch=1.12.*
+ - pytorch=1.13.*
  - torchvision=0.13.*
  - Pillow=9.1.* 
  - pip
  - pip:
-   - thingsvision==2.2.10
+   - thingsvision==2.2.14
    - functorch==0.2.*
    - pytorch_lightning==1.7.*
    - einops 
