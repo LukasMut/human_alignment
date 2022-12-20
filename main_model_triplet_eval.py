@@ -233,7 +233,7 @@ def evaluate(args) -> None:
 
         if features[0].dtype == np.float16:
             print("Converting to normal precision.")
-            features = np.array([ft.astype(float) for ft in features])
+            features = np.array([np.float32(ft) for ft in features])
 
         choices, probas = utils.evaluation.get_predictions(
             features, triplets, model_cfg.temperatures[i], args.distance
