@@ -49,7 +49,11 @@ class FreeArrangement(torch.utils.data.Dataset):
             "r",
         ) as f:
             order = list(
-                map(lambda x: f"{int(x.rstrip().split(',')[-1]):04d}"+self.compression, f.readlines()[1:])
+                map(
+                    lambda x: f"{int(x.rstrip().split(',')[-1]):04d}"
+                    + self.compression,
+                    f.readlines()[1:],
+                )
             )
         return order
 
