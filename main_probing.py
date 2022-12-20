@@ -19,19 +19,6 @@ Tensor = torch.Tensor
 FrozenDict = Any
 
 
-MODEL_MAP = {
-    "clip-ViT": {"name": "clip_ViT-B/32", "source": "custom"},
-    "clip-RN": {"name": "clip_RN50", "source": "custom"},
-    "r50-barlowtwins": {"name": "BarlowTwins", "source": "custom"},
-    "r50-swav": {"name": "Swav", "source": "custom"},
-    "r50-vicreg": {"name": "Vicreg", "source": "custom"},
-    "r50-jigsaw": {"name": "jigsaw-rn50", "source": "vissl"},
-    "r50-mocov2": {"name": "mocov2-rn50", "source": "vissl"},
-    "r50-rotnet": {"name": "rotnet-rn50", "source": "vissl"},
-    "r50-simclr": {"name": "simclr-rn50", "source": "vissl"},
-}
-
-
 def parseargs():
     parser = argparse.ArgumentParser()
 
@@ -190,9 +177,6 @@ def make_results_df(
     lr: float,
     n_folds: int,
 ) -> pd.DataFrame:
-    if model_name in MODEL_MAP:
-        source = MODEL_MAP[model_name]["source"]
-        model_name = MODEL_MAP[model_name]["name"]
     probing_results_current_run = pd.DataFrame(index=range(1), columns=columns)
     probing_results_current_run["model"] = model_name
     probing_results_current_run["probing"] = probing_acc
