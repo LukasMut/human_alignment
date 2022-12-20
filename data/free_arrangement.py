@@ -39,11 +39,11 @@ class FreeArrangement(torch.utils.data.Dataset):
                 if f.name.endswith(self.compression)
             ]
         )
-        self.order = self.get_stimulus_order()
+        self.alphabetic_order = self.get_stimulus_order()
         sim_judgments = self.load_sim_judgments()
         self.pairwise_dists = self.get_pairwise_distances(sim_judgments)
 
-    def get_stimulus_order(self) -> List[int]:
+    def get_stimulus_order(self) -> List[str]:
         with open(
             os.path.join(self.root, self.img_subfolder, "stimulus_category_labels.txt"),
             "r",
