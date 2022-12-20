@@ -206,8 +206,6 @@ def perform_rsa(dataset: Any, data_source: str, features: Array) -> Dict[str, fl
     if data_source == "free-arrangement":
         cosine_rdm_dnn = compute_rdm(features, method="cosine")
         corr_rdm_dnn = compute_rdm(features, method="correlation")
-        # cosine_rdm_dnn = cosine_matrix(features)
-        # corr_rdm_dnn = correlation_matrix(features)
         triu_inds = np.triu_indices(corr_rdm_dnn.shape[0], k=1)
         pairwise_dists_cosine = cosine_rdm_dnn[triu_inds]
         pairwise_dists_corr = corr_rdm_dnn[triu_inds]
