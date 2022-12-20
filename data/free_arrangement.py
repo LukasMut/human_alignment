@@ -3,7 +3,7 @@
 
 
 import os
-from typing import Any
+from typing import Any, List
 
 import numpy as np
 import torch
@@ -38,8 +38,19 @@ class FreeArrangement(torch.utils.data.Dataset):
                 if f.name.endswith("jpg")
             ]
         )
+        self.order = self.get_order()
         sim_judgments = self.load_sim_judgments()
         self.pairwise_dists = self.get_pairwise_distances(sim_judgments)
+
+    def get_stimulus_order(self) -> List[int]:
+        with open(
+            os.path.join(self.root, self.img_subfolder, "stimulus_category_labels.txt"),
+            "r",
+        ) as f:
+            order = list(
+                map(lambda x: int(x.rstrip().split(",")[-1]), f.readlines()[1:])
+            )
+        return order
 
     def load_sim_judgments(self) -> Any:
         """Load human similarity judgments into memory."""
@@ -57,7 +68,9 @@ class FreeArrangement(torch.utils.data.Dataset):
         return pairwise_distances
 
     def __getitem__(self, idx: int) -> Tensor:
-        img = os.path.join(self.root, self.img_subfolder, self.stimulus_set, self.order[idx])
+        img = os.path.join(
+            self.root, self.img_subfolder, self.stimulus_set, self.order[idx]
+        )
         img = Image.open(img)
         if self.transform is not None:
             img = self.transform(img)
