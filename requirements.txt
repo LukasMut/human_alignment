@@ -5,7 +5,7 @@ Pillow==9.1.*
 torch==1.13.*
 pandas==1.4.*
 functorch==0.2.*
-thingsvision==2.2.14
+thingsvision==2.2.15
 tqdm==4.64.0
 pytorch_lightning==1.7.*
 einops
