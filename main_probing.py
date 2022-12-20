@@ -46,7 +46,7 @@ def parseargs():
         "--source",
         type=str,
         default="torchvision",
-        choices=["google", "loss", "imagenet", "torchvision", "vit_same", "vit_best"],
+        choices=["google", "loss", "custom", "ssl", "imagenet", "torchvision", "vit_same", "vit_best"],
     )
     aa(
         "--n_objects",
