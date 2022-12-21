@@ -1,6 +1,7 @@
 import argparse
 import os
 import pickle
+import warnings
 from typing import Any, Callable, Dict, Iterator, List, Tuple
 
 import numpy as np
@@ -13,7 +14,6 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 import utils
-import warnings
 
 Array = np.ndarray
 Tensor = torch.Tensor
@@ -46,7 +46,16 @@ def parseargs():
         "--source",
         type=str,
         default="torchvision",
-        choices=["google", "loss", "custom", "ssl", "imagenet", "torchvision", "vit_same", "vit_best"],
+        choices=[
+            "google",
+            "loss",
+            "custom",
+            "ssl",
+            "imagenet",
+            "torchvision",
+            "vit_same",
+            "vit_best",
+        ],
     )
     aa(
         "--n_objects",
@@ -102,6 +111,11 @@ def parseargs():
         default=4,
         help="Number of devices to use for performing distributed training on CPU",
     )
+    aa(
+        "--apply_normalization",
+        action="store_true",
+        help="whether to normalize embeddings during the optimization process",
+    )
     aa("--probing_root", type=str, help="path/to/probing")
     aa("--log_dir", type=str, help="directory to checkpoint transformations")
     aa("--rnd_seed", type=int, default=42, help="random seed for reproducibility")
@@ -120,6 +134,7 @@ def create_optimization_config(args) -> Tuple[FrozenDict, FrozenDict]:
     optim_cfg["max_epochs"] = args.epochs
     optim_cfg["min_epochs"] = args.burnin
     optim_cfg["patience"] = args.patience
+    optim_cfg["apply_normalization"] = args.apply_normalization
     optim_cfg["ckptdir"] = os.path.join(args.log_dir, args.model, args.module)
     return optim_cfg
 
@@ -197,6 +212,7 @@ def make_results_df(
     lmbda: float,
     lr: float,
     n_folds: int,
+    normalization: bool,
 ) -> pd.DataFrame:
     probing_results_current_run = pd.DataFrame(index=range(1), columns=columns)
     probing_results_current_run["model"] = model_name
@@ -208,6 +224,7 @@ def make_results_df(
     probing_results_current_run["l2_reg"] = lmbda
     probing_results_current_run["lr"] = lr
     probing_results_current_run["n_folds"] = n_folds
+    probing_results_current_run["normalization"] = normalization
     return probing_results_current_run
 
 
@@ -253,6 +270,7 @@ def save_results(args, probing_acc: float, ooo_choices: Array) -> None:
             "l2_reg",
             "lr",
             "n_folds",
+            "normalization",
         ]
         probing_results = make_results_df(
             columns=columns,
@@ -264,6 +282,7 @@ def save_results(args, probing_acc: float, ooo_choices: Array) -> None:
             lmbda=args.lmbda,
             lr=args.learning_rate,
             n_folds=args.n_folds,
+            normalization=args.apply_normalization,
         )
         probing_results.to_pickle(os.path.join(out_path, "probing_results.pkl"))
 
@@ -286,7 +305,9 @@ def run(
     triplets = utils.probing.load_triplets(data_root)
     # features -= features.mean(axis=0) # center input features
     # features = utils.probing.standardize(features) # z-transform / standardize input features
-    features = (features - features.mean()) / features.std()
+    features = (
+        features - features.mean()
+    ) / features.std()  # subtract mean and normalize by standard deviation
     model_config = utils.evaluation.load_model_config(config_path)
     temperature = get_temperature(
         model_config=model_config,

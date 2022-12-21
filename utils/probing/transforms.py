@@ -23,25 +23,37 @@ class Linear(pl.LightningModule):
             requires_grad=False,
         )
         self.feature_dim = self.features.shape[1]
-        # initialize transformation matrix with \tau I (temperature-scaled identity matrix)
-        self.transform = torch.nn.Parameter(
-            data=torch.eye(self.feature_dim) * optim_cfg["temperature"],
-            # data=torch.normal(
-            #     mean=torch.zeros(self.feature_dim, self.feature_dim),
-            #    std=torch.ones(self.feature_dim, self.feature_dim) * 1e-3,
-            #),
-            requires_grad=True,
-        )
         self.optim = optim_cfg["optim"]
         self.lr = optim_cfg["lr"]
         self.lmbda = optim_cfg["lmbda"]
-
+        self.tau = optim_cfg["temperature"]
+        self.apply_normalization = optim_cfg["apply_normalization"]
         self.loss_fun = TripletLoss(temperature=1.0)
+        initialization = self.get_initialization()
+        self.transform = torch.nn.Parameter(
+            data=initialization,
+            requires_grad=True,
+        )
+
+    def get_initialization(self) -> Tensor:
+        """Initialize the transformation matrix."""
+        if self.apply_normalization:
+            # initialize the transformation matrix with \tau I (temperature-scaled identity matrix)
+            initialization = torch.eye(self.feature_dim) * self.tau
+        else:
+            # initialize the transformation matrix with values drawn from a tight Gaussian with very small width
+            sigma = 1e-3
+            initialization = torch.normal(
+                mean=torch.zeros(self.feature_dim, self.feature_dim),
+                std=torch.ones(self.feature_dim, self.feature_dim) * sigma,
+            )
+        return initialization
 
     def forward(self, one_hots: Tensor) -> Tensor:
         embedding = self.features @ self.transform
         # normalize object embeddings to lie on the unit-sphere
-        embedding = F.normalize(embedding, dim=1)
+        if self.apply_normalization:
+            embedding = F.normalize(embedding, dim=1)
         batch_embeddings = one_hots @ embedding
         return batch_embeddings
 
