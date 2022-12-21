@@ -17,32 +17,6 @@ Array = np.ndarray
 
 KFOLDS = [3, 4]
 
-MODEL_MAP_NEW = {
-    "clip-ViT": {"name": "clip_ViT-B/32", "source": "custom"},
-    "clip-RN": {"name": "clip_RN50", "source": "custom"},
-    "r50-barlowtwins": {"name": "BarlowTwins", "source": "custom"},
-    "r50-swav": {"name": "Swav", "source": "custom"},
-    "r50-vicreg": {"name": "Vicreg", "source": "custom"},
-    "r50-jigsaw": {"name": "jigsaw-rn50", "source": "vissl"},
-    "r50-mocov2": {"name": "mocov2-rn50", "source": "vissl"},
-    "r50-rotnet": {"name": "rotnet-rn50", "source": "vissl"},
-    "r50-simclr": {"name": "simclr-rn50", "source": "vissl"},
-}
-
-
-MODEL_MAP_OLD = {
-    "clip_ViT-B/32": {"name": "clip-ViT", "source": "torchvision"},
-    "clip_RN50": {"name": "clip-RN", "source": "torchvision"},
-    "BarlowTwins": {"name": "r50-barlowtwins", "source": "torchvision"},
-    "Swav": {"name": "r50-swav", "source": "torchvision"},
-    "Vicreg": {"name": "r50-vicreg", "source": "torchvision"},
-    "jigsaw-rn50": {"name": "r50-jigsaw", "source": "torchvision"},
-    "mocov2-rn50": {"name": "r50-mocov2", "source": "torchvision"},
-    "rotnet-rn50": {"name": "r50-rotnet", "source": "torchvision"},
-    "simclr-rn50": {"name": "r50-simclr", "source": "torchvision"},
-}
-
-
 def load_probing_results(root: str) -> pd.DataFrame:
     """Load linear probing results into memory."""
     return pd.read_pickle(os.path.join(root, "probing_results.pkl"))
@@ -123,27 +97,15 @@ def find_best_transforms(
     transforms = defaultdict(lambda: defaultdict(dict))
     missing_transforms = 0
     for _, row in tqdm(best_probing_results.iterrows(), desc="Model"):
-
-        if row.model in MODEL_MAP_OLD:
-            source = MODEL_MAP_OLD[row.model]["source"]
-            name = MODEL_MAP_OLD[row.model]["name"]
-        else:
-            source = row.source
-            name = row.model
+        source = row.source
+        name = row.model
         module = row.module
-
         subdir = os.path.join(
             root, source, name, module, str(row.n_folds), str(row.l2_reg)
         )
         try:
             transform = load_transform(subdir)
-            if row.model in MODEL_MAP_NEW:
-                model_meta_data = MODEL_MAP_NEW[row.model]
-                transforms[model_meta_data["source"]][model_meta_data["name"]][
-                    module
-                ] = transform
-            else:
-                transforms[source][name][module] = transform
+            transforms[source][name][module] = transform
         except FileNotFoundError:
             warnings.warn(
                 message=f"\nCannot find transformation matrix in subdirectory: {subdir}\nContinuing with next entry in results dataframe...\n",
