@@ -137,7 +137,7 @@ class Families:
 
     @property
     def ssl(self):
-        return r"(-rn50|swav|vicreg|barlowtwins)$"
+        return r"(-rn50)$"
 
     @property
     def inception(self):
@@ -177,15 +177,15 @@ class Families:
 
     @property
     def vicreg(self):
-        return r"^vicreg$"
+        return f"(?=^vicreg)(?=.*{self.ssl}$)"
 
     @property
     def swav(self):
-        return r"^swav$"
+        return f"(?=^swav)(?=.*{self.ssl}$)"
 
     @property
     def barlowtins(self):
-        return r"^barlowtwins$"
+        return f"(?=^barlowtins)(?=.*{self.ssl}$)"
 
     @property
     def simclr(self):
