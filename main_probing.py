@@ -251,7 +251,7 @@ def save_results(args, probing_acc: float, ooo_choices: Array) -> None:
             lmbda=args.lmbda,
             lr=args.learning_rate,
             n_folds=args.n_folds,
-            normalization=args.normalization,
+            normalization=args.apply_normalization,
         )
         probing_results = pd.concat(
             [probing_results_overall, probing_results_current_run],
