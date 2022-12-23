@@ -292,7 +292,6 @@ def run(
     features: Array,
     model: str,
     module: str,
-    source: str,
     data_root: str,
     config_path: str,
     n_objects: int,
@@ -382,7 +381,7 @@ def run(
 if __name__ == "__main__":
     # parse arguments
     args = parseargs()
-    # seed everything for reproducibility
+    # seed everything for reproducibility of results
     seed_everything(args.rnd_seed, workers=True)
     features = load_features(args.probing_root)
     model_features = features[args.source][args.model][args.module]
@@ -391,7 +390,6 @@ if __name__ == "__main__":
         features=model_features,
         model=args.model,
         module=args.module,
-        source=args.source,
         data_root=args.data_root,
         config_path=args.model_dict_path,
         n_objects=args.n_objects,
