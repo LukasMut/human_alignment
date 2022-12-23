@@ -309,16 +309,18 @@ def run(
     features = (
         features - features.mean()
     ) / features.std()  # subtract mean and normalize by standard deviation
-    model_config = utils.evaluation.load_model_config(config_path)
-    temperature = get_temperature(
-        model_config=model_config,
-        model=model,
-        module=module,
-    )
-    optim_cfg["temperature"] = temperature
+    if optim_cfg["apply_normalization"]:
+        model_config = utils.evaluation.load_model_config(config_path)
+        temperature = get_temperature(
+            model_config=model_config,
+            model=model,
+            module=module,
+        )
+        optim_cfg["temperature"] = temperature
+    else:
+        optim_cfg["sigma"] = 1e-3
     objects = np.arange(n_objects)
-    # Perform k-fold cross-validation with k = 3
-    # NOTE: we can try k = 5, but k = 10 doesn't work
+    # Perform k-fold cross-validation with k = 3 or k = 4
     kf = KFold(n_splits=optim_cfg["n_folds"], random_state=rnd_seed, shuffle=True)
     cv_results = {}
     ooo_choices = []
