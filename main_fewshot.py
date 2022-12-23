@@ -1,23 +1,20 @@
 import argparse
 import os
-import warnings
-
-import torch
-import numpy as np
-import pandas as pd
 import pickle
+import warnings
 from typing import Any, List, Tuple
 
+import numpy as np
+import pandas as pd
+import torch
 from ml_collections import config_dict
-from thingsvision import get_extractor
-
 from sklearn.linear_model import LogisticRegressionCV
 from sklearn.metrics import accuracy_score, make_scorer
+from thingsvision import get_extractor
 from torchvision.datasets import CIFAR100, DTD
 
-from main_model_sim_eval import get_module_names
-
 import utils
+from main_model_sim_eval import get_module_names
 
 Array = np.ndarray
 Tensor = torch.Tensor
@@ -211,9 +208,9 @@ def get_features_targets(
     )
     if model_name.endswith("ecoset"):
         dataset = load_dataset(
-                name=args.dataset,
-                data_dir=data_cfg.root,
-                transform=extractor.get_transformations(resize_dim=128, crop_dim=128),
+            name=args.dataset,
+            data_dir=data_cfg.root,
+            transform=extractor.get_transformations(resize_dim=128, crop_dim=128),
         )
     else:
         dataset = load_dataset(

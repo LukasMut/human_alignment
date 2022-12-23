@@ -220,7 +220,9 @@ def evaluate(args) -> None:
         )
 
         if model_name.endswith("ecoset"):
-            transformations = extractor.get_transformations(resize_dim=128, crop_dim=128)
+            transformations = extractor.get_transformations(
+                resize_dim=128, crop_dim=128
+            )
         else:
             transformations = extractor.get_transformations()
         if args.dataset == "peterson":

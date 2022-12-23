@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 import pytorch_lightning as pl
@@ -26,26 +26,24 @@ class Linear(pl.LightningModule):
         self.optim = optim_cfg["optim"]
         self.lr = optim_cfg["lr"]
         self.lmbda = optim_cfg["lmbda"]
-        self.tau = optim_cfg["temperature"]
         self.apply_normalization = optim_cfg["apply_normalization"]
         self.loss_fun = TripletLoss(temperature=1.0)
-        initialization = self.get_initialization()
+        initialization = self.get_initialization(optim_cfg)
         self.transform = torch.nn.Parameter(
             data=initialization,
             requires_grad=True,
         )
 
-    def get_initialization(self) -> Tensor:
+    def get_initialization(self, optim_cfg: Dict[str, Any]) -> Tensor:
         """Initialize the transformation matrix."""
         if self.apply_normalization:
             # initialize the transformation matrix with \tau I (temperature-scaled identity matrix)
-            initialization = torch.eye(self.feature_dim) * self.tau
+            initialization = torch.eye(self.feature_dim) * optim_cfg["temperature"]
         else:
             # initialize the transformation matrix with values drawn from a tight Gaussian with very small width
-            sigma = 1e-3
             initialization = torch.normal(
                 mean=torch.zeros(self.feature_dim, self.feature_dim),
-                std=torch.ones(self.feature_dim, self.feature_dim) * sigma,
+                std=torch.ones(self.feature_dim, self.feature_dim) * optim_cfg["sigma"],
             )
         return initialization
 
