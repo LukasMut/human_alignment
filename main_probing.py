@@ -217,7 +217,7 @@ def make_results_df(
     probing_results_current_run = pd.DataFrame(index=range(1), columns=columns)
     probing_results_current_run["model"] = model_name
     probing_results_current_run["probing"] = probing_acc
-    probing_results_current_run["choices"] = [ooo_choices]
+    # probing_results_current_run["choices"] = [ooo_choices]
     probing_results_current_run["module"] = module_name
     probing_results_current_run["family"] = utils.analyses.get_family_name(model_name)
     probing_results_current_run["source"] = source
@@ -264,7 +264,7 @@ def save_results(args, probing_acc: float, ooo_choices: Array) -> None:
         columns = [
             "model",
             "probing",
-            "choices",
+            # "choices",
             "module",
             "family",
             "source",
@@ -409,6 +409,7 @@ if __name__ == "__main__":
         args.module,
         str(args.n_folds),
         str(args.lmbda),
+        str(args.learning_rate),
     )
     if not os.path.exists(out_path):
         os.makedirs(out_path, exist_ok=True)

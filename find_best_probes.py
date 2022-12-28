@@ -101,7 +101,7 @@ def find_best_transforms(
         name = row.model
         module = row.module
         subdir = os.path.join(
-            root, source, name, module, str(row.n_folds), str(row.l2_reg)
+            root, source, name, module, str(row.n_folds), str(row.l2_reg), str(row.lr),
         )
         try:
             transform = load_transform(subdir)
