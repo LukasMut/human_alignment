@@ -17,6 +17,7 @@ Array = np.ndarray
 
 KFOLDS = [3, 4]
 
+
 def load_probing_results(root: str) -> pd.DataFrame:
     """Load linear probing results into memory."""
     return pd.read_pickle(os.path.join(root, "probing_results.pkl"))
@@ -101,7 +102,13 @@ def find_best_transforms(
         name = row.model
         module = row.module
         subdir = os.path.join(
-            root, source, name, module, str(row.n_folds), str(row.l2_reg), str(row.lr),
+            root,
+            source,
+            name,
+            module,
+            str(row.n_folds),
+            str(row.l2_reg),
+            str(row.lr),
         )
         try:
             transform = load_transform(subdir)
@@ -110,7 +117,7 @@ def find_best_transforms(
             warnings.warn(
                 message=f"\nCannot find transformation matrix in subdirectory: {subdir}\nContinuing with next entry in results dataframe...\n",
                 category=UserWarning,
-                )
+            )
             missing_transforms += 1
             continue
         # delete subdirectory for current model
