@@ -287,12 +287,18 @@ def evaluate(args) -> None:
             if args.transform_type == "with_norm":
                 features = torch.from_numpy(features)
                 features = F.normalize(features, dim=1).cpu().numpy()
-
-        rsa_stats = utils.evaluation.perform_rsa(
-            dataset=dataset,
-            data_source=args.dataset,
-            features=features,
-        )
+        try:
+            rsa_stats = utils.evaluation.perform_rsa(
+                dataset=dataset,
+                data_source=args.dataset,
+                features=features,
+            )
+        except:
+            warnings.warn(
+                message=f"\nFound Infs or NaNs in transformation matrix for {model_name}.\nSkipping evaluation for {model_name} and continuing with next model...\n",
+                category=UserWarning,
+            )
+            continue
         spearman_rho_cosine = rsa_stats["spearman_rho_cosine_kernel"]
         spearman_rho_corr = rsa_stats["spearman_rho_corr_kernel"]
         pearson_corr_coef_cosine = rsa_stats["pearson_corr_coef_cosine_kernel"]
