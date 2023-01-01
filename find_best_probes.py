@@ -108,6 +108,7 @@ def find_best_transforms(
             module,
             str(row.n_folds),
             str(row.l2_reg),
+            row.optim,
             str(row.lr),
         )
         try:
@@ -121,7 +122,7 @@ def find_best_transforms(
             missing_transforms += 1
             continue
         # delete subdirectory for current model
-        # shutil.rmtree(os.path.join(root, source, name, module))
+        # shutil.rmtree(os.path.join(root, source, name, module, str(row.n_folds), str(row.l2_reg)))
     print(
         f"\n{missing_transforms} transformation matrices are missing.\nPlease run grid search again for models with missing transformation matrices.\n"
     )

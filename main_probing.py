@@ -210,6 +210,7 @@ def make_results_df(
     module_name: str,
     source: str,
     lmbda: float,
+    optim: str,
     lr: float,
     n_folds: int,
     normalization: bool,
@@ -222,6 +223,7 @@ def make_results_df(
     probing_results_current_run["family"] = utils.analyses.get_family_name(model_name)
     probing_results_current_run["source"] = source
     probing_results_current_run["l2_reg"] = lmbda
+    probing_results_current_run["optim"] = optim.lower()
     probing_results_current_run["lr"] = lr
     probing_results_current_run["n_folds"] = n_folds
     probing_results_current_run["normalization"] = normalization
@@ -249,6 +251,7 @@ def save_results(args, probing_acc: float, ooo_choices: Array) -> None:
             module_name=args.module,
             source=args.source,
             lmbda=args.lmbda,
+            optim=args.optim,
             lr=args.learning_rate,
             n_folds=args.n_folds,
             normalization=args.apply_normalization,
@@ -269,6 +272,7 @@ def save_results(args, probing_acc: float, ooo_choices: Array) -> None:
             "family",
             "source",
             "l2_reg",
+            "optim",
             "lr",
             "n_folds",
             "normalization",
@@ -281,6 +285,7 @@ def save_results(args, probing_acc: float, ooo_choices: Array) -> None:
             module_name=args.module,
             source=args.source,
             lmbda=args.lmbda,
+            optim=args.optim,
             lr=args.learning_rate,
             n_folds=args.n_folds,
             normalization=args.apply_normalization,
@@ -409,6 +414,7 @@ if __name__ == "__main__":
         args.module,
         str(args.n_folds),
         str(args.lmbda),
+        args.optim.lower(),
         str(args.learning_rate),
     )
     if not os.path.exists(out_path):
