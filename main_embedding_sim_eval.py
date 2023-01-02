@@ -145,6 +145,7 @@ def evaluate(args) -> None:
         embeddings_root=args.embeddings_root,
         module="embeddings" if args.module == "penultimate" else "logits",
         sort=sort,
+        stimulus_set=args.stimulus_set if args.dataset == "free-arrangement" else None,
         object_names=object_names,
     )
     model_cfg, data_cfg = create_hyperparam_dicts(args)

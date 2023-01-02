@@ -41,11 +41,12 @@ def load_embeddings(
     embeddings_root: str,
     module: str = "embeddings",
     sort: str = None,
+    stimulus_set: str = None,
     object_names: List[str] = None,
 ) -> Dict[str, Array]:
     """Load Google internal embeddings and sort them according to THINGS object sorting."""
 
-    def get_order(sorted_names: List[str]) -> Array:
+    def get_order(filenames: List[str], sorted_names: List[str]) -> Array:
         """Get correct order of file names."""
         order = np.array([np.where(filenames == n)[0][0] for n in sorted_names])
         return order
@@ -68,8 +69,16 @@ def load_embeddings(
                     except TypeError:
                         print("\nChecking type of object names failed.\n")
                     order = get_order(object_names)
-                else:
-                    order = get_order(sorted(filenames))
+                else:  # alphanumeric sorting for multi-arrangement data
+                    if stimulus_set:
+                        sorted_names = sorted(
+                            list(
+                                filter(lambda x: x.startswith(stimulus_set), filenames)
+                            )
+                        )
+                    else:
+                        sorted_names = sorted(filenames)
+                    order = get_order(filenames, sorted_names)
                 embedding_sorted = embedding[order]
                 embeddings[model] = embedding_sorted
             else:
