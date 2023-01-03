@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import copy
 import itertools
 import json
 import os
@@ -77,7 +78,7 @@ def load_embeddings(
                             )
                         )
                     else:
-                        sorted_names = sorted(filenames)
+                        sorted_names = sorted(copy.deepcopy(filenames))
                     order = get_order(filenames, sorted_names)
                 embedding_sorted = embedding[order]
                 embeddings[model] = embedding_sorted
@@ -87,8 +88,7 @@ def load_embeddings(
 
 
 def compute_dots(triplet: Tensor, pairs: List[Tuple[int]]) -> Tensor:
-    dots = torch.tensor([triplet[i] @ triplet[j] for i, j in pairs])
-    return dots
+    return torch.tensor([triplet[i] @ triplet[j] for i, j in pairs])
 
 
 def compute_distances(triplet: Tensor, pairs: List[Tuple[int]], dist: str) -> Tensor:
