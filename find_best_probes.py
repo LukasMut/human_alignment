@@ -51,14 +51,15 @@ def filter_best_results(probing_results: pd.DataFrame, k: int = 3) -> pd.DataFra
     best_results = defaultdict(dict)
     for i, row in tqdm(kfold_subset.iterrows(), desc="Entry"):
         # skip entry if probing odd-one-out accuracy is 1.0
-        if row.probing == float(1):
+        if (row["cross-entropy"] == np.log(3) or row.probing == float(1)):
             continue
         if row.model in best_results:
             # skip entry if probing odd-one-out accuarcy is worse than previous
-            if row.probing < best_results[row.model]["probing"]:
+            if row["cross-entropy"] > best_results[row.model]["cross-entropy"]:
                 continue
         best_results[row.model]["index"] = i
         best_results[row.model]["probing"] = row.probing
+        best_results[row.model]["cross-entropy"] = row["cross-entropy"]
     indices = np.asarray([vals["index"] for vals in best_results.values()])
     best_results = kfold_subset.filter(indices, axis=0)
     best_results.drop("choices", axis=1, inplace=True)
