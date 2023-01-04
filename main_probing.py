@@ -202,9 +202,17 @@ def get_mean_cv_acc(
     return avg_val_acc
 
 
+def get_mean_cv_loss(
+    cv_results: Dict[str, List[float]], metric: str = "test_loss"
+) -> float:
+    avg_val_loss = np.mean([vals[0][metric] for vals in cv_results.values()])
+    return avg_val_loss
+
+
 def make_results_df(
     columns: List[str],
     probing_acc: float,
+    probing_loss: float,
     ooo_choices: Array,
     model_name: str,
     module_name: str,
@@ -218,6 +226,7 @@ def make_results_df(
     probing_results_current_run = pd.DataFrame(index=range(1), columns=columns)
     probing_results_current_run["model"] = model_name
     probing_results_current_run["probing"] = probing_acc
+    probing_results_current_run["cross-entropy"] = probing_loss
     # probing_results_current_run["choices"] = [ooo_choices]
     probing_results_current_run["module"] = module_name
     probing_results_current_run["family"] = utils.analyses.get_family_name(model_name)
@@ -230,7 +239,7 @@ def make_results_df(
     return probing_results_current_run
 
 
-def save_results(args, probing_acc: float, ooo_choices: Array) -> None:
+def save_results(args, probing_acc: float, probing_loss: float, ooo_choices: Array) -> None:
     out_path = os.path.join(args.probing_root, "results")
     if not os.path.exists(out_path):
         print("\nCreating results directory...\n")
@@ -246,6 +255,7 @@ def save_results(args, probing_acc: float, ooo_choices: Array) -> None:
         probing_results_current_run = make_results_df(
             columns=probing_results_overall.columns.values,
             probing_acc=probing_acc,
+            probing_loss=probing_loss,
             ooo_choices=ooo_choices,
             model_name=args.model,
             module_name=args.module,
@@ -267,6 +277,7 @@ def save_results(args, probing_acc: float, ooo_choices: Array) -> None:
         columns = [
             "model",
             "probing",
+            "cross-entropy",
             # "choices",
             "module",
             "family",
@@ -280,6 +291,7 @@ def save_results(args, probing_acc: float, ooo_choices: Array) -> None:
         probing_results = make_results_df(
             columns=columns,
             probing_acc=probing_acc,
+            probing_loss=probing_loss,
             ooo_choices=ooo_choices,
             model_name=args.model,
             module_name=args.module,
@@ -404,7 +416,8 @@ if __name__ == "__main__":
         num_processes=args.num_processes,
     )
     avg_cv_acc = get_mean_cv_acc(cv_results)
-    save_results(args, probing_acc=avg_cv_acc, ooo_choices=ooo_choices)
+    avg_cv_loss = get_mean_cv_loss(cv_results)
+    save_results(args, probing_acc=avg_cv_acc, probing_loss=avg_cv_loss, ooo_choices=ooo_choices)
 
     out_path = os.path.join(
         args.probing_root,

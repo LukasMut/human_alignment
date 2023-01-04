@@ -80,7 +80,7 @@ class Linear(pl.LightningModule):
     def break_ties(probas: Tensor) -> Tensor:
         return torch.tensor(
             [
-                -1 if torch.unique(pmf).shape[0] != pmf.shape[0] else torch.argmax(pmf)
+                -1 if torch.unique(pmf.round(decimals=2)).shape[0] != pmf.shape[0] else torch.argmax(pmf)
                 for pmf in probas
             ]
         )
