@@ -12,7 +12,7 @@ class Mapper:
         self.models = self.results.model.values
         self.families = self.results.family.values
         self.sources = self.results.source.values
-        self.objectives = ["imagenet1k", "imagenet21k", "jft30k", "imagetext"]
+        self.objectives = ["ecoset", "imagenet1k", "imagenet21k", "jft30k", "imagetext"]
 
     def get_training_objectives(self) -> List[str]:
         training_objectives = [
@@ -27,8 +27,13 @@ class Mapper:
             and not self._is_source_google(meta_info)
             and not self._is_ssl_model(meta_info)
             and not self._is_imagenet21k_model(meta_info)
+            and not self._is_ecoset_model(meta_info)
         ):
             return self.imagenet1k_objective
+
+    def ecoset_condition(self, meta_info: Dict[str, str]) -> str:
+        if self._is_ecoset_model(meta_info):
+            return self.ecoset_objective
 
     def imagenet21k_condition(self, meta_info: Dict[str, str]) -> str:
         if self._is_imagenet21k_model(meta_info):
@@ -55,6 +60,10 @@ class Mapper:
         return training
 
     @property
+    def ecoset_objective(self) -> str:
+        return "Supervised (Ecoset)"
+
+    @property
     def imagenet1k_objective(self) -> str:
         return "Supervised (ImageNet-1k)"
 
@@ -69,6 +78,10 @@ class Mapper:
     @property
     def imagetext_objective(self) -> str:
         return "Image/Text"
+
+    @staticmethod
+    def _is_ecoset_model(meta_info: Dict[str, str]) -> bool:
+        return meta_info["model"].endswith("ecoset")
 
     @staticmethod
     def _is_imagenet21k_model(meta_info: Dict[str, str]) -> bool:
