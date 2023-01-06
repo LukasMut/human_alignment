@@ -9,9 +9,11 @@ import pandas as pd
 import torch
 from ml_collections import config_dict
 from sklearn.linear_model import LogisticRegressionCV
+from sklearn.neighbors import KNeighborsRegressor
 from sklearn.metrics import accuracy_score, make_scorer
 from thingsvision import get_extractor
 from torchvision.datasets import CIFAR100, DTD
+import torch.nn.functional as F
 
 import utils
 from main_model_sim_eval import get_module_names
@@ -124,10 +126,25 @@ def train_regression(train_targets: Array, train_features: Array, k: int = None)
         Cs=(1e-4, 1e-3, 1e-2, 1e-1, 1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6),
         fit_intercept=True,
         penalty="l2",
-        scoring=make_scorer(accuracy_score),
+        #scoring=make_scorer(accuracy_score),
         cv=k,
-        max_iter=1000,
+        max_iter=500,
         solver="sag",
+    )
+
+    reg.fit(train_features, train_targets)
+
+    return reg
+
+
+def train_knn(train_targets: Array, train_features: Array, k: int = 1):
+    n_train = train_features.shape[0]
+    print("N. train:", n_train)
+
+    reg = KNeighborsRegressor(
+        n_neighbors=k,
+        algorithm="ball_tree",
+        #scoring=make_scorer(accuracy_score),
     )
 
     reg.fit(train_features, train_targets)
@@ -143,10 +160,14 @@ def test_regression(
     n_test = test_features.shape[0]
     print("N. test:", n_test)
 
-    acc = regressor.score(test_features, test_targets)
+    #acc = regressor.score(test_features, test_targets)
     preds = regressor.predict(test_features)
-    regularization_strength = regressor.C_
-    print("Accuracy: %.3f, Regularization:" % acc, regularization_strength)
+    acc = np.sum([p==t for p,t in zip(preds, test_targets)]) / len(preds)
+    try:
+        regularization_strength = regressor.C_
+        print("Accuracy: %.3f, Regularization:" % acc, regularization_strength)
+    except AttributeError:
+        print("Accuracy: %.3f" % acc)
 
     return acc, preds
 
@@ -157,8 +178,14 @@ def regress(
     test_targets: Array,
     test_features: Array,
     k: int = None,
+    regressor: str = "ridge"
 ):
-    reg = train_regression(train_targets, train_features, k)
+    if regressor == "ridge":
+        reg = train_regression(train_targets, train_features, k)
+    if regressor == "knn":
+        reg = train_knn(train_targets, train_features)
+    else:
+        raise ValueError(f"Unknown regressor: {regressor}")
     acc, preds = test_regression(reg, test_targets, test_features)
     return acc, preds
 
@@ -312,6 +339,7 @@ def run(
     features_things: Array,
     transforms: Array,
     transform_type: str = None,
+    regressor_type: str = "ridge"
 ):
     transform_options = [False, True]
 
@@ -379,12 +407,23 @@ def run(
                         ) / things_std
                         # train_features = train_features_original
                         train_features = train_features @ transform
+                        if transform_type == "with_norm":
+                            train_features = torch.from_numpy(train_features)
+                            train_features = F.normalize(train_features, dim=1).cpu().numpy()
+                            
                     else:
                         train_features = train_features_original - things_mean
 
-                    regressor = train_regression(
-                        train_targets, train_features, k=n_shot
-                    )
+                    if regressor_type == "ridge":
+                        regressor = train_regression(
+                            train_targets, train_features, k=n_shot
+                        )
+                    elif regressor_type == "knn":
+                        regressor = train_knn(
+                            train_targets, train_features
+                        )
+                    else:
+                        raise ValueError(f"Unknown regressor: {args.regressor}")
                     regressors[use_transforms].append(regressor)
 
             # Extract and evaluate features w and w/o transform. Due to memory constraints, for each class individually.
@@ -425,7 +464,9 @@ def run(
                             ) / things_std
                             # test_features = test_features_original
                             test_features = test_features @ transform
-
+                            if transform_type == "with_norm":
+                                test_features = torch.from_numpy(test_features)
+                                test_features = F.normalize(test_features, dim=1).cpu().numpy()
                         else:
                             test_features = test_features_original - things_mean
 
@@ -450,6 +491,7 @@ def run(
                         "n_train": n_shot,
                         "repetition": i_rep,
                         "transform_type": transform_type if use_transforms else None,
+                        "regressor": regressor_type
                     }
                     results.append(summary)
 
@@ -483,7 +525,8 @@ if __name__ == "__main__":
         data_cfg=data_cfg,
         features_things=features_things,
         transforms=transforms,
-        transforms_type=args.transform_type,
+        transform_type=args.transform_type,
+        regressor_type=args.regressor_type,
     )
 
     if not os.path.exists(args.out_dir):
