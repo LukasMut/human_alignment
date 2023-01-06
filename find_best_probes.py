@@ -50,6 +50,9 @@ def filter_best_results(probing_results: pd.DataFrame, k: int = 3) -> pd.DataFra
     kfold_subset = probing_results[probing_results.n_folds.isin(KFOLDS)]
     best_results = defaultdict(dict)
     for i, row in tqdm(kfold_subset.iterrows(), desc="Entry"):
+        # skip entry if cross-entropy error is NaN or Inf
+        if (np.isnan(row["cross-entropy"]) or np.isinf(row["cross-entropy"])):
+            continue
         # skip entry if probing odd-one-out accuracy is 1.0
         if (row["cross-entropy"] == np.log(3) or row.probing == float(1)):
             continue
