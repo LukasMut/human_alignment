@@ -59,14 +59,14 @@ def filter_best_results(probing_results: pd.DataFrame, k: int = 3) -> pd.DataFra
         if row.model in best_results:
             # skip entry if probing odd-one-out accuarcy is worse than previous
             # if row["cross-entropy"] > best_results[row.model]["cross-entropy"]:
-            if row.porbing < best_results[row.model]["probing"]:
+            if row.probing < best_results[row.model]["probing"]:
                 continue
         best_results[row.model]["index"] = i
         best_results[row.model]["probing"] = row.probing
         best_results[row.model]["cross-entropy"] = row["cross-entropy"]
     indices = np.asarray([vals["index"] for vals in best_results.values()])
     best_results = kfold_subset.filter(indices, axis=0)
-    best_results.drop("choices", axis=1, inplace=True)
+    # best_results.drop("choices", axis=1, inplace=True)
     return best_results
 
 
