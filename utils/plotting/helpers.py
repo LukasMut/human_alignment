@@ -12,6 +12,7 @@ Array = np.ndarray
 PALETTE = {
     "Image/Text": "darkmagenta",
     "Supervised (ImageNet-1K)": "coral",
+    "Supervised (Ecoset)": "brown",
     "Supervised (ImageNet-21K)": "darkcyan",
     "Supervised (JFT-3B)": "black",
     "Self-Supervised": "darkgreen",

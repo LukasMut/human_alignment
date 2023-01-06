@@ -149,6 +149,8 @@ def map_model_name(name: str) -> str:
         for k, v in capitalize.items():
             name = name.replace(k, v)
 
+        name = name.replace("ecoset", " (Ecoset)")
+        name = name.replace(" openai", "")
         name = name.replace("Net_", "Net")
         name = name.replace("_", " ")
 
