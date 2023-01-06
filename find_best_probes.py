@@ -58,8 +58,8 @@ def filter_best_results(probing_results: pd.DataFrame, k: int = 3) -> pd.DataFra
             continue
         if row.model in best_results:
             # skip entry if probing odd-one-out accuarcy is worse than previous
-            # if row["cross-entropy"] > best_results[row.model]["cross-entropy"]:
-            if row.probing < best_results[row.model]["probing"]:
+            if row["cross-entropy"] > best_results[row.model]["cross-entropy"]:
+            # if row.probing < best_results[row.model]["probing"]:
                 continue
         best_results[row.model]["index"] = i
         best_results[row.model]["probing"] = row.probing
