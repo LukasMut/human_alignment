@@ -7,7 +7,7 @@ from utils.plotting import overview_plot, loss_imagenet_plot, ssl_scaling_plot, 
 
 
 def generate_plot(results, plot_type, y_metric, output_dir, export_format='.pdf', prefix=''):
-    networks = pd.read_csv('networks_ma.csv')
+    networks = pd.read_csv('networks.csv')
     if plot_type == 'overview':
         fig = overview_plot(results=results, network_metadata=networks, y_metric=y_metric)
         fig.savefig(join(output_dir, prefix + 'overview' + export_format), bbox_inches='tight')
