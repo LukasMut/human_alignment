@@ -2,7 +2,7 @@ import argparse
 import os
 from os.path import join
 import pandas as pd
-from utils.plotting import overview_plot, loss_imagenet_plot, ssl_scaling_plot
+from utils.plotting import overview_plot, loss_imagenet_plot, ssl_scaling_plot, zero_shot_vs_transform_plot
 
 
 def generate_plot(results, plot_type, y_metric, output_dir, export_format='.pdf', prefix=''):
@@ -29,6 +29,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', choices=DATASETS + ['all'], default='free-arrangement/set1')
     parser.add_argument('--type', choices=PLOT_TYPES + ['all'], default='all')
+    parser.add_argument('--export-format', choices=['.png', '.pdf'], default='.pdf')
     args = parser.parse_args()
 
     datasets = DATASETS if args.dataset == 'all' else [args.dataset]
@@ -48,9 +49,13 @@ if __name__ == '__main__':
 
             zero_shot_results = pd.read_csv(join(input_dir, 'zero-shot.csv'))
             generate_plot(zero_shot_results, plot_type=plot_type, y_metric=y_metric,
-                          output_dir=output_dir)
+                          output_dir=output_dir, export_format=args.export_format)
 
             if dataset != 'things':
                 transform_results = pd.read_csv(join(input_dir, 'transform.csv'))
                 generate_plot(transform_results, plot_type=plot_type, y_metric=y_metric,
-                              output_dir=output_dir, prefix='transform_')
+                              output_dir=output_dir, prefix='transform_', export_format=args.export_format)
+                fig = zero_shot_vs_transform_plot(zero_shot=zero_shot_results,
+                                                  transform=transform_results, y_metric=y_metric)
+                fig.savefig(join(output_dir, 'zshot_vs_transform' + args.export_format),
+                            bbox_inches='tight')
