@@ -2,7 +2,8 @@ import argparse
 import os
 from os.path import join
 import pandas as pd
-from utils.plotting import overview_plot, loss_imagenet_plot, ssl_scaling_plot, zero_shot_vs_transform_plot
+from utils.plotting import overview_plot, loss_imagenet_plot, ssl_scaling_plot, \
+    zero_shot_vs_transform_plot, clip_plot
 
 
 def generate_plot(results, plot_type, y_metric, output_dir, export_format='.pdf', prefix=''):
@@ -17,11 +18,15 @@ def generate_plot(results, plot_type, y_metric, output_dir, export_format='.pdf'
     elif plot_type == 'ssl-scaling':
         fig = ssl_scaling_plot(results=results, network_metadata=networks, y_metric=y_metric)
         fig.savefig(join(output_dir, prefix + 'ssl-scaling' + export_format), bbox_inches='tight')
+    elif plot_type == 'clip':
+        fig = clip_plot(results=results, network_metadata=networks, y_metric=y_metric,
+                        x_metric='imagenet_accuracy')
+        fig.savefig(join(output_dir, prefix + 'clip' + export_format), bbox_inches='tight')
     else:
         raise ValueError('Unknown plot type.')
 
 
-PLOT_TYPES = ['overview', 'loss-imagenet', 'ssl-scaling']
+PLOT_TYPES = ['overview', 'loss-imagenet', 'ssl-scaling', 'clip']
 RESOURCES_FOLDER = 'resources'
 DATASETS = ['multi-arrangement', 'free-arrangement/set1', 'free-arrangement/set2', 'things']
 
