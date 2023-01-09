@@ -41,26 +41,29 @@ if __name__ == '__main__':
     plot_types = PLOT_TYPES if args.type == 'all' else [args.type]
 
     for dataset in datasets:
-        print(dataset)
         for plot_type in plot_types:
             input_dir = join(RESOURCES_FOLDER, 'results', dataset)
             output_dir = join(RESOURCES_FOLDER, 'plots', dataset)
             os.makedirs(output_dir, exist_ok=True)
 
             if dataset in ['things']:
-                y_metric = 'zero-shot'
+                y_metrics = ['zero-shot']
+                prefixes = ['']
             else:
-                y_metric = 'spearman_rho_correlation'
+                y_metrics = ['spearman_rho_correlation', 'pearson_corr_correlation']
+                prefixes = ['spearman_', 'pearson_']
 
-            zero_shot_results = pd.read_csv(join(input_dir, 'zero-shot.csv'))
-            generate_plot(zero_shot_results, plot_type=plot_type, y_metric=y_metric,
-                          output_dir=output_dir, export_format=args.export_format)
+            for y_metric, prefix in zip(y_metrics, prefixes):
+                zero_shot_results = pd.read_csv(join(input_dir, 'zero-shot.csv'))
+                generate_plot(zero_shot_results, plot_type=plot_type, y_metric=y_metric,
+                              output_dir=output_dir, export_format=args.export_format,
+                              prefix=prefix)
 
-            if dataset != 'things':
-                transform_results = pd.read_csv(join(input_dir, 'transform.csv'))
-                generate_plot(transform_results, plot_type=plot_type, y_metric=y_metric,
-                              output_dir=output_dir, prefix='transform_', export_format=args.export_format)
-                fig = zero_shot_vs_transform_plot(zero_shot=zero_shot_results,
-                                                  transform=transform_results, y_metric=y_metric)
-                fig.savefig(join(output_dir, 'zshot_vs_transform' + args.export_format),
-                            bbox_inches='tight')
+                if dataset != 'things':
+                    transform_results = pd.read_csv(join(input_dir, 'transform.csv'))
+                    generate_plot(transform_results, plot_type=plot_type, y_metric=y_metric,
+                                  output_dir=output_dir, prefix=prefix + 'transform_', export_format=args.export_format)
+                    fig = zero_shot_vs_transform_plot(zero_shot=zero_shot_results,
+                                                      transform=transform_results, y_metric=y_metric)
+                    fig.savefig(join(output_dir, prefix + 'zshot_vs_transform' + args.export_format),
+                                bbox_inches='tight')

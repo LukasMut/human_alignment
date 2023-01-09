@@ -1,3 +1,4 @@
+import copy
 import matplotlib.pyplot as plt
 import seaborn as sns
 from copy import deepcopy
@@ -147,9 +148,9 @@ def objective(x):
 
 
 def plot_loss_models(df, x_metric, y_metric):
-    df = df[df.source == 'loss']
-    df['Augmentation'] = list(map(lambda x: augmentation_strategy(x), deepcopy(df.model.values)))
-    df['Objective'] = df.apply(lambda x: objective(x), axis=1)
+    df = copy.deepcopy(df[df.source == 'loss'])
+    df.loc[:, 'Augmentation'] = list(map(lambda x: augmentation_strategy(x), deepcopy(df.model.values)))
+    df.loc[:, 'Objective'] = df.apply(lambda x: objective(x), axis=1)
     df = df.assign(model=df.model.map(lambda x: loss_mapping[x]['name']))
 
     ax = sns.scatterplot(

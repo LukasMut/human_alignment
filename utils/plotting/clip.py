@@ -4,6 +4,17 @@ from utils.plotting import metric_to_ylabel
 from sklearn import linear_model
 import numpy as np
 
+NAME_MAPPING = {
+    'clip_ViT-B/32': 'ViT-B/32',
+    'clip_ViT-B/16': 'ViT-B/16',
+    'clip_ViT-L/14': 'ViT-B/16',
+    'clip_RN50': 'ResNet 50',
+    'clip_RN101': 'ResNet 101',
+    'clip_RN50x4': 'ResNet 50x4',
+    'clip_RN50x16': 'ResNet 50x16',
+    'clip_RN50x64': 'ResNet 50x64'
+}
+
 LEGEND_FONT_SIZE = 24
 X_AXIS_FONT_SIZE = 35
 Y_AXIS_FONT_SIZE = 35
@@ -35,6 +46,7 @@ def clip_plot(results, network_metadata, y_metric, x_metric):
             df.loc[df.training == name, 'count'] = count
 
         df = df.sort_values(by='count', ascending=False)
+        df.loc[:, 'model'] = list(map(lambda x: NAME_MAPPING[x], df.model.values.tolist()))
 
         ax = sns.scatterplot(
             data=df,
@@ -46,7 +58,6 @@ def clip_plot(results, network_metadata, y_metric, x_metric):
             alpha=0.6,
             legend="full",
         )
-        linestyle = 'dotted'
 
         ax.set_ylim([things_y_lim[0], things_y_lim[1]])
 
@@ -55,7 +66,7 @@ def clip_plot(results, network_metadata, y_metric, x_metric):
         ax.set_ylabel(metric_to_ylabel(y_metric), fontsize=Y_AXIS_FONT_SIZE, labelpad=AXIS_LABELPAD)
 
         ax.set_xlabel(xlabel, fontsize=X_AXIS_FONT_SIZE, labelpad=AXIS_LABELPAD)
-        ax.legend(title="", ncol=1, loc='upper left', fancybox=True, fontsize=17)
+        ax.legend(title="", ncol=1, loc='lower left', fancybox=True, fontsize=17)
 
         regr = linear_model.LinearRegression()
         length = len(df)
