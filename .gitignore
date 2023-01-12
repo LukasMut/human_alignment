@@ -1,6 +1,5 @@
 .idea
 resources
-*.csv
 *.txt
 *.npy
 *.png
