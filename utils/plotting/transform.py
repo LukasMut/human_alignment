@@ -17,11 +17,15 @@ DEFAULT_SCATTER_PARAMS = dict(s=MARKER_SIZE,
 y_lim = [0.0, 1.0]
 
 
-def zero_shot_vs_transform_plot(zero_shot, transform, y_metric):
+def zero_shot_vs_transform_plot(zero_shot, transform, y_metric, dataset):
     f = plt.figure(figsize=(14, 10), dpi=200)
     gs = f.add_gridspec(1, 1)
 
     sns.set_context("paper")
+
+    if dataset == 'things':
+        zero_shot['accuracy'] = zero_shot['zero-shot']
+        transform['accuracy'] = transform['probing']
 
     with sns.axes_style("ticks"):
         f.add_subplot(gs[0, 0])
@@ -46,6 +50,16 @@ def zero_shot_vs_transform_plot(zero_shot, transform, y_metric):
             style_order=PALETTE.keys(),
             palette=PALETTE,
         )
+
+        y_lim = [0, 1.0]
+        if dataset == 'things':
+            y_lim = [0.3, 0.7]
+            linestyle = 'dotted'
+            ax.set_ylim(*y_lim)
+            ax.axhline(y=0.673, color='magenta', linestyle=linestyle)
+            ax.axhline(y=0.333, color='k', linestyle=linestyle)
+
+        ax.set_ylim(*y_lim)
 
         lims = [
             np.min([ax.get_xlim(), ax.get_ylim()]),  # min of both axes

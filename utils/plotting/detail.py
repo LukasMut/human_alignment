@@ -92,12 +92,18 @@ DEFAULT_SCATTER_PARAMS = dict(s=MARKER_SIZE,
                               legend="full")
 ALPHA = 0.5
 
-y_lim = [0.0, 1.0]
-
 x_lim = [0.71, 0.82]
 
 
-def configure_axis(ax, y_metric, limit_x=True, limit_y=True, show_ylabel=True):
+def configure_axis(ax, y_metric, dataset, limit_x=True, limit_y=True, show_ylabel=True):
+    y_lim = [0.0, 1.0]
+    if dataset == 'things':
+        y_lim = [0.3, 0.7]
+        linestyle = 'dotted'
+        ax.set_ylim(*y_lim)
+        ax.axhline(y=0.673, color='magenta', linestyle=linestyle)
+        ax.axhline(y=0.333, color='k', linestyle=linestyle)
+
     ylabel = metric_to_ylabel(y_metric)
     if limit_y:
         ax.set_ylim(y_lim)
@@ -112,7 +118,7 @@ def configure_axis(ax, y_metric, limit_x=True, limit_y=True, show_ylabel=True):
     ax.set_xlabel(xlabel, fontsize=X_AXIS_FONT_SIZE, labelpad=AXIS_LABELPAD)
 
 
-def plot_imagenet_models(df, x_metric, y_metric):
+def plot_imagenet_models(df, x_metric, y_metric, dataset):
     df = df[df.source == 'imagenet']
     ax = sns.scatterplot(
         data=df,
@@ -123,7 +129,7 @@ def plot_imagenet_models(df, x_metric, y_metric):
         alpha=ALPHA,
         **DEFAULT_SCATTER_PARAMS
     )
-    configure_axis(ax, show_ylabel=False, y_metric=y_metric)
+    configure_axis(ax, show_ylabel=False, y_metric=y_metric, dataset=dataset)
     ax.legend(title="",
               ncol=1,
               loc='upper left',
@@ -147,7 +153,7 @@ def objective(x):
     return loss_mapping[x['model']]['name']
 
 
-def plot_loss_models(df, x_metric, y_metric):
+def plot_loss_models(df, x_metric, y_metric, dataset):
     df = copy.deepcopy(df[df.source == 'loss'])
     df.loc[:, 'Augmentation'] = list(map(lambda x: augmentation_strategy(x), deepcopy(df.model.values)))
     df.loc[:, 'Objective'] = df.apply(lambda x: objective(x), axis=1)
@@ -162,7 +168,7 @@ def plot_loss_models(df, x_metric, y_metric):
         s=MARKER_SIZE,
         alpha=ALPHA,
     )
-    configure_axis(ax, y_metric=y_metric)
+    configure_axis(ax, y_metric=y_metric, dataset=dataset)
     ax.plot(np.zeros(1), np.zeros([1, 6]), color='w', alpha=0, label=' ')
     ax.legend(title="", ncol=2,
               loc='upper left',
@@ -171,7 +177,7 @@ def plot_loss_models(df, x_metric, y_metric):
     plt.title('Varying objective', fontsize=30, pad=20)
 
 
-def plot_ssl_models(df, x_metric, y_metric):
+def plot_ssl_models(df, x_metric, y_metric, dataset):
     df = df[df.training == 'Self-Supervised']
     df = df.assign(model=df.model.map(lambda x: ssl_mapping[x]))
 
@@ -184,7 +190,7 @@ def plot_ssl_models(df, x_metric, y_metric):
         alpha=ALPHA,
         **DEFAULT_SCATTER_PARAMS
     )
-    configure_axis(ax, limit_x=False, y_metric=y_metric)
+    configure_axis(ax, limit_x=False, y_metric=y_metric, dataset=dataset)
     ax.legend(title="", ncol=2,
               fancybox=True,
               loc='upper left',
@@ -192,7 +198,7 @@ def plot_ssl_models(df, x_metric, y_metric):
     plt.title('Self-sup. models', fontsize=30, pad=20)
 
 
-def plot_arch_models(df, y_metric):
+def plot_arch_models(df, y_metric, dataset):
     selectors = [('VGG', df.family.isin(['VGG'])),
                  ('EfficientNet', df.family.isin(['EfficientNet'])),
                  ('ResNet', ((df.family == 'ResNet') & (df.source == 'torchvision'))),
@@ -220,7 +226,7 @@ def plot_arch_models(df, y_metric):
         style="label",
         **DEFAULT_SCATTER_PARAMS
     )
-    configure_axis(ax, limit_x=False, show_ylabel=False, y_metric=y_metric)
+    configure_axis(ax, limit_x=False, show_ylabel=False, y_metric=y_metric, dataset=dataset)
     ax.set_xlabel('#Parameters (Million)', fontsize=X_AXIS_FONT_SIZE)
     ax.legend(title="", ncol=1,
               loc='upper right',
@@ -234,7 +240,7 @@ def rescale_accuracy(x):
     return (x - chance_level) / (max_acc - chance_level)
 
 
-def loss_imagenet_plot(results, network_metadata, y_metric, x_metric='imagenet_accuracy', legend_loc='upper left'):
+def loss_imagenet_plot(results, network_metadata, y_metric, dataset, x_metric='imagenet_accuracy'):
     final_layer_results = reduce_best_final_layer(results, metric=y_metric)
     df = final_layer_results.merge(network_metadata, on='model')
     df.loc[df.training.str.startswith('SSL'), 'training'] = 'Self-Supervised'
@@ -245,14 +251,14 @@ def loss_imagenet_plot(results, network_metadata, y_metric, x_metric='imagenet_a
     sns.set_context("talk")
     with sns.axes_style("ticks"):
         f.add_subplot(gs[0, 0])
-        plot_loss_models(df, x_metric=x_metric, y_metric=y_metric)
+        plot_loss_models(df, x_metric=x_metric, y_metric=y_metric, dataset=dataset)
         f.add_subplot(gs[0, 1])
-        plot_imagenet_models(df, x_metric=x_metric, y_metric=y_metric)
+        plot_imagenet_models(df, x_metric=x_metric, y_metric=y_metric, dataset=dataset)
     f.tight_layout()
     return f
 
 
-def ssl_scaling_plot(results, network_metadata, y_metric, x_metric='imagenet_accuracy', legend_loc='upper left'):
+def ssl_scaling_plot(results, network_metadata, y_metric, dataset, x_metric='imagenet_accuracy'):
     final_layer_results = reduce_best_final_layer(results, metric=y_metric)
     df = final_layer_results.merge(network_metadata, on='model')
     df.loc[df.training.str.startswith('SSL'), 'training'] = 'Self-Supervised'
@@ -263,8 +269,8 @@ def ssl_scaling_plot(results, network_metadata, y_metric, x_metric='imagenet_acc
     sns.set_context("talk")
     with sns.axes_style("ticks"):
         f.add_subplot(gs[0, 0])
-        plot_ssl_models(df, x_metric=x_metric, y_metric=y_metric)
+        plot_ssl_models(df, x_metric=x_metric, y_metric=y_metric, dataset=dataset)
         f.add_subplot(gs[0, 1])
-        plot_arch_models(df, y_metric=y_metric)
+        plot_arch_models(df, y_metric=y_metric, dataset=dataset)
     f.tight_layout()
     return f

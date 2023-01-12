@@ -5,6 +5,10 @@ def metric_to_ylabel(metric):
         return 'Pearson correlation coefficient'
     elif metric == 'zero-shot':
         return 'Zero-shot odd-one-out accuracy'
+    elif metric == 'probing':
+        return 'Probing odd-one-out accuracy'
+    elif metric == 'accuracy':
+        return 'Odd-one-out accuracy'
     else:
         raise ValueError()
 

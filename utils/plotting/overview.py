@@ -16,10 +16,10 @@ DEFAULT_SCATTER_PARAMS = dict(s=MARKER_SIZE,
                               alpha=0.9,
                               legend="full")
 x_lim = [0.45, 0.92]
-y_lim = [0.0, 1.0]
 
 
-def overview_plot(results, network_metadata, y_metric, x_metric='imagenet_accuracy', legend_loc='upper left'):
+def overview_plot(results, network_metadata, y_metric, dataset, x_metric='imagenet_accuracy',
+                  legend_loc='upper left'):
     sns.set_context("paper")
     f = plt.figure(figsize=(14, 10), dpi=200)
     gs = f.add_gridspec(1, 1)
@@ -50,7 +50,18 @@ def overview_plot(results, network_metadata, y_metric, x_metric='imagenet_accura
             style_order=PALETTE.keys(),
             palette=PALETTE,
         )
-        ax.set_ylim([y_lim[0], y_lim[1]])
+
+        y_lim = [0.0, 1.0]
+        if dataset == 'things':
+            y_lim = [0.3, 0.7]
+            linestyle = 'dotted'
+            ax.set_ylim(*y_lim)
+            ax.axhline(y=0.673, color='magenta', linestyle=linestyle)
+            ax.axhline(y=0.333, color='k', linestyle=linestyle)
+
+        ax.set_ylim(*y_lim)
+        if dataset == 'things':
+            ax.set_yticks(np.arange(*y_lim, 0.05), fontsize=TICKS_LABELSIZE)
         ax.yaxis.set_tick_params(labelsize=TICKS_LABELSIZE)
         ax.xaxis.set_tick_params(labelsize=TICKS_LABELSIZE)
         ax.set_ylabel(metric_to_ylabel(y_metric), fontsize=Y_AXIS_FONT_SIZE, labelpad=AXIS_LABELPAD)

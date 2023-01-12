@@ -29,7 +29,6 @@ $ pip install -r requirements.txt
 $ pip install git+https://github.com/openai/CLIP.git
 ```
 
-
 ## Repository structure
 
 ```bash
@@ -63,40 +62,115 @@ root
 └── visualize_embeddings.py
 ```
 
-
 ## Usage
 
 Run evaluation script on things triplet odd-one-out task with some pretrained model.
 
 ```python
-$ python main_model_triplet_eval.py --data_root /path/to/data/name \ 
---dataset name \
---model_names resnet101 vgg11 clip_ViT-B/32 clip_RN50 vit_b_16 \
---module logits \
---overall_source thingsvision \
---sources torchvision torchvision custom custom torchvision  \
---model_dict_path /path/to/model_dict.json \
---batch_size 128 \
---distance cosine \
---out_path /path/to/results \
---device cpu \
---verbose \
---rnd_seed 42 \
+$ python
+main_model_triplet_eval.py - -data_root / path / to / data / name
+- -dataset
+name
+- -model_names
+resnet101
+vgg11
+clip_ViT - B / 32
+clip_RN50
+vit_b_16
+- -module
+logits
+- -overall_source
+thingsvision
+- -sources
+torchvision
+torchvision
+custom
+custom
+torchvision
+- -model_dict_path / path / to / model_dict.json
+- -batch_size
+128
+- -distance
+cosine
+- -out_path / path / to / results
+- -device
+cpu
+- -verbose
+- -rnd_seed
+42 \
 ```
 
 Run evaluation script on multi-arrangement similarity judgements with some pretrained model.
 
 ```python
-$ python main_model_sim_eval.py --data_root /path/to/data/name \ 
---dataset name \
---model_names resnet101 vgg11 clip_ViT-B/32 clip_RN50 vit_b_16 \
---module logits \
---overall_source thingsvision \
---sources torchvision torchvision custom custom torchvision  \
---model_dict_path /path/to/model_dict.json \
---batch_size 118 
---out_path /path/to/results \
---device cpu \
---verbose \
---rnd_seed 42 \
+$ python
+main_model_sim_eval.py - -data_root / path / to / data / name
+- -dataset
+name
+- -model_names
+resnet101
+vgg11
+clip_ViT - B / 32
+clip_RN50
+vit_b_16
+- -module
+logits
+- -overall_source
+thingsvision
+- -sources
+torchvision
+torchvision
+custom
+custom
+torchvision
+- -model_dict_path / path / to / model_dict.json
+- -batch_size
+118
+--out_path / path / to / results
+- -device
+cpu
+- -verbose
+- -rnd_seed
+42 \
 ```
+
+## Plot Results
+
+For each dataset, it is necessary to create a folder under `resources/results` (it is also possible to choose another
+root path).
+
+```bash
+resources/results
+├── free-arrangement
+│   ├── set1
+│   │   ├── transform
+│   │   └── zero-shot
+│   └── set2
+│       ├── transform
+│       └── zero-shot
+├── multi-arrangement
+│   ├── transform
+│   │   ├── google
+│   │   ├── imagenet
+│   │   ├── loss
+│   │   ├── thingsvision
+│   │   ├── vit_best
+│   │   └── vit_same
+│   └── zero-shot
+│       ├── google
+│       ├── imagenet
+│       ├── loss
+│       ├── thingsvision
+│       ├── vit_best
+│       └── vit_same
+└── things
+    ├── transform
+    │   └── best_probing_results_without_norm_no_ooo_choices.pkl
+    └── zero-shot
+        └── all_results.pkl
+
+```
+
+Run the `parse_results.py` script to generate `zero-shot.csv` and `transform.csv` for each dataset. After creating the
+csv files, we can run `plot_results.py` which by default creates all plots for all datasets. This can be potentially
+limited with the `--dataset` and `--type`flag.
