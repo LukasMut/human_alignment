@@ -7,7 +7,7 @@ import numpy as np
 NAME_MAPPING = {
     'clip_ViT-B/32': 'ViT-B/32',
     'clip_ViT-B/16': 'ViT-B/16',
-    'clip_ViT-L/14': 'ViT-B/16',
+    'clip_ViT-L/14': 'ViT-L/14',
     'clip_RN50': 'ResNet 50',
     'clip_RN101': 'ResNet 101',
     'clip_RN50x4': 'ResNet 50x4',
@@ -30,7 +30,7 @@ x_lim = [0.45, 0.92]
 things_y_lim = [0.0, 1.0]
 
 
-def clip_plot(results, network_metadata, y_metric, x_metric):
+def clip_plot(results, network_metadata, y_metric, x_metric, dataset):
     sns.set_context("paper")
     f = plt.figure(figsize=(14, 10), dpi=200)
     gs = f.add_gridspec(1, 1)
@@ -59,7 +59,15 @@ def clip_plot(results, network_metadata, y_metric, x_metric):
             legend="full",
         )
 
-        ax.set_ylim([things_y_lim[0], things_y_lim[1]])
+        y_lim = [0, 1.0]
+        if dataset == 'things':
+            y_lim = [0.3, 0.7]
+            linestyle = 'dotted'
+            ax.set_ylim(*y_lim)
+            ax.axhline(y=0.673, color='magenta', linestyle=linestyle)
+            ax.axhline(y=0.333, color='k', linestyle=linestyle)
+
+        ax.set_ylim(*y_lim)
 
         ax.yaxis.set_tick_params(labelsize=TICKS_LABELSIZE)
         ax.xaxis.set_tick_params(labelsize=TICKS_LABELSIZE)
