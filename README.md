@@ -130,9 +130,9 @@ resources/results
 │       └── vit_same
 └── things
     ├── transform
-    │   └── best_probing_results_without_norm_no_ooo_choices.pkl
+    │   └── probing_results.pkl
     └── zero-shot
-        └── all_results.pkl
+        └── results.pkl
 
 ```
 
