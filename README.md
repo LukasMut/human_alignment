@@ -67,37 +67,19 @@ root
 Run evaluation script on things triplet odd-one-out task with some pretrained model.
 
 ```python
-$ python
-main_model_triplet_eval.py - -data_root / path / to / data / name
-- -dataset
-name
-- -model_names
-resnet101
-vgg11
-clip_ViT - B / 32
-clip_RN50
-vit_b_16
-- -module
-logits
-- -overall_source
-thingsvision
-- -sources
-torchvision
-torchvision
-custom
-custom
-torchvision
-- -model_dict_path / path / to / model_dict.json
-- -batch_size
-128
-- -distance
-cosine
-- -out_path / path / to / results
-- -device
-cpu
-- -verbose
-- -rnd_seed
-42 \
+$ python main_model_triplet_eval.py --data_root /path/to/data/name \ 
+--dataset name \
+--model_names resnet101 vgg11 clip_ViT-B/32 clip_RN50 vit_b_16 \
+--module logits \
+--overall_source thingsvision \
+--sources torchvision torchvision custom custom torchvision  \
+--model_dict_path /path/to/model_dict.json \
+--batch_size 128 \
+--distance cosine \
+--out_path /path/to/results \
+--device cpu \
+--verbose \
+--rnd_seed 42
 ```
 
 Run evaluation script on multi-arrangement similarity judgements with some pretrained model.
