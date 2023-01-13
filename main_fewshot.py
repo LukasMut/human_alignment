@@ -1,7 +1,9 @@
 import argparse
 import os
 import pickle
+import copy
 import warnings
+from datetime import datetime
 from typing import Any, List, Tuple
 
 import numpy as np
@@ -14,7 +16,11 @@ from sklearn.metrics import accuracy_score, make_scorer
 from thingsvision import get_extractor
 from torchvision.datasets import CIFAR100, DTD
 import torch.nn.functional as F
+from functools import partial
 
+from multiprocessing import get_context, Pool
+
+from tqdm import tqdm
 import utils
 from main_model_sim_eval import get_module_names
 
@@ -50,9 +56,7 @@ def parseargs():
         nargs="+",
         choices=[
             "custom",
-            "timm",
             "torchvision",
-            "vissl",
             "ssl",
             "google",
             "loss",
@@ -72,6 +76,7 @@ def parseargs():
     aa(
         "--n_shot",
         type=int,
+        nargs="+",
         help="Number samples per class for training",
         default=10,
     )
@@ -86,6 +91,22 @@ def parseargs():
         type=int,
         help="Number of repetitions per experiment",
         default=1,
+    )
+    aa(
+        "--input_dim",
+        type=int,
+        help="Side-length of the input images.",
+        default=32,
+    )
+    aa(
+        "--regressor_type",
+            type=str,
+            nargs="+",
+            choices=[
+                "ridge",
+                "knn"
+            ],
+            help="Few shot model.",
     )
     aa(
         "--n_classes",
@@ -126,7 +147,7 @@ def train_regression(train_targets: Array, train_features: Array, k: int = None)
         Cs=(1e-4, 1e-3, 1e-2, 1e-1, 1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6),
         fit_intercept=True,
         penalty="l2",
-        #scoring=make_scorer(accuracy_score),
+        # scoring=make_scorer(accuracy_score),
         cv=k,
         max_iter=500,
         solver="sag",
@@ -144,7 +165,6 @@ def train_knn(train_targets: Array, train_features: Array, k: int = 1):
     reg = KNeighborsRegressor(
         n_neighbors=k,
         algorithm="ball_tree",
-        #scoring=make_scorer(accuracy_score),
     )
 
     reg.fit(train_features, train_targets)
@@ -160,9 +180,8 @@ def test_regression(
     n_test = test_features.shape[0]
     print("N. test:", n_test)
 
-    #acc = regressor.score(test_features, test_targets)
     preds = regressor.predict(test_features)
-    acc = np.sum([p==t for p,t in zip(preds, test_targets)]) / len(preds)
+    acc = np.sum([p == t for p, t in zip(preds, test_targets)]) / len(preds)
     try:
         regularization_strength = regressor.C_
         print("Accuracy: %.3f, Regularization:" % acc, regularization_strength)
@@ -178,7 +197,7 @@ def regress(
     test_targets: Array,
     test_features: Array,
     k: int = None,
-    regressor: str = "ridge"
+    regressor: str = "ridge",
 ):
     if regressor == "ridge":
         reg = train_regression(train_targets, train_features, k)
@@ -219,6 +238,7 @@ def get_features_targets(
     data_cfg,
     batch_size,
     train,
+    embeddings_root=None,
     ids_subset=None,
     n_batches=1,
     shuffle=False,
@@ -226,27 +246,25 @@ def get_features_targets(
 ):
     ids_subset = class_ids if ids_subset is None else ids_subset
 
-    extractor = get_extractor(
-        model_name=model_name,
-        source=source,
-        device=device,
-        pretrained=True,
-        model_parameters=model_params,
-    )
-    if model_name.endswith("ecoset"):
-        dataset = load_dataset(
-            name=args.dataset,
-            data_dir=data_cfg.root,
-            transform=extractor.get_transformations(resize_dim=128, crop_dim=128),
+    if embeddings_root:
+        embeddings = utils.evaluation.load_embeddings(
+                embeddings_root=embeddings_root,
+                module="embeddings" if module == "penultimate" else "logits"
         )
     else:
-        dataset = load_dataset(
-            name=data_cfg.name,
-            data_dir=data_cfg.root,
-            train=train,
-            transform=extractor.get_transformations(),
+        extractor = get_extractor(
+            model_name=model_name,
+            source=source,
+            device=device,
+            pretrained=True,
+            model_parameters=model_params,
         )
-
+    dataset = load_dataset(
+        name=data_cfg.name,
+        data_dir=data_cfg.root,
+        train=train,
+        transform=extractor.get_transformations(),
+    )
     features_all = []
     Y_all = []
     for i_batch in range(n_batches):
@@ -255,7 +273,6 @@ def get_features_targets(
         for i_cls_id, cls_id in enumerate(class_ids):
             if cls_id not in ids_subset:
                 continue
-
             try:
                 subset_indices = [
                     i_cls for i_cls, cls in enumerate(dataset.targets) if cls == cls_id
@@ -272,7 +289,7 @@ def get_features_targets(
                 subset,
                 batch_size=batch_size,
                 shuffle=shuffle,
-                num_workers=4,
+                num_workers=1,
                 worker_init_fn=lambda id: np.random.seed(id + i_batch * 4),
             )
 
@@ -323,7 +340,7 @@ def create_config_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
     model_cfg = config_dict.FrozenConfigDict(model_cfg)
     data_cfg.root = args.data_root
     data_cfg.name = args.dataset
-    data_cfg.category = args.category
+    data_cfg.category = None
     data_cfg = config_dict.FrozenConfigDict(data_cfg)
     return model_cfg, data_cfg
 
@@ -339,7 +356,7 @@ def run(
     features_things: Array,
     transforms: Array,
     transform_type: str = None,
-    regressor_type: str = "ridge"
+    regressor_type: str = "ridge",
 ):
     transform_options = [False, True]
 
@@ -409,8 +426,10 @@ def run(
                         train_features = train_features @ transform
                         if transform_type == "with_norm":
                             train_features = torch.from_numpy(train_features)
-                            train_features = F.normalize(train_features, dim=1).cpu().numpy()
-                            
+                            train_features = (
+                                F.normalize(train_features, dim=1).cpu().numpy()
+                            )
+
                     else:
                         train_features = train_features_original - things_mean
 
@@ -419,9 +438,7 @@ def run(
                             train_targets, train_features, k=n_shot
                         )
                     elif regressor_type == "knn":
-                        regressor = train_knn(
-                            train_targets, train_features
-                        )
+                        regressor = train_knn(train_targets, train_features)
                     else:
                         raise ValueError(f"Unknown regressor: {args.regressor}")
                     regressors[use_transforms].append(regressor)
@@ -466,7 +483,9 @@ def run(
                             test_features = test_features @ transform
                             if transform_type == "with_norm":
                                 test_features = torch.from_numpy(test_features)
-                                test_features = F.normalize(test_features, dim=1).cpu().numpy()
+                                test_features = (
+                                    F.normalize(test_features, dim=1).cpu().numpy()
+                                )
                         else:
                             test_features = test_features_original - things_mean
 
@@ -491,7 +510,7 @@ def run(
                         "n_train": n_shot,
                         "repetition": i_rep,
                         "transform_type": transform_type if use_transforms else None,
-                        "regressor": regressor_type
+                        "regressor": regressor_type,
                     }
                     results.append(summary)
 
@@ -501,7 +520,13 @@ def run(
     return results
 
 
+def _add_model(model_cfg, f):
+    return f(model_cfg=model_cfg)
+
+
 if __name__ == "__main__":
+    start_t = datetime.now()
+
     # parse arguments
     args = parseargs()
     class_id_sets = [[i for i in range(args.n_classes)]]
@@ -510,32 +535,102 @@ if __name__ == "__main__":
     device = torch.device(args.device)
     model_cfg, data_cfg = create_config_dicts(args)
 
+    # Load transforms and things embeddings
     features_things = utils.evaluation.load_features(path=args.things_embeddings_path)
     transforms = utils.evaluation.helpers.load_transforms(
         root=args.transforms_root, type=args.transform_type
     )
 
-    results = run(
-        n_shot=args.n_shot,
-        n_test=args.n_test,
-        n_reps=args.n_reps,
-        class_id_sets=class_id_sets,
-        device=args.device,
-        model_cfg=model_cfg,
-        data_cfg=data_cfg,
-        features_things=features_things,
-        transforms=transforms,
-        transform_type=args.transform_type,
-        regressor_type=args.regressor_type,
+    # Reduce to the needed models
+    transforms = {
+        src: {
+            mdl: transforms[src][mdl]
+            for mdl_i, mdl in enumerate(args.model_names)
+            if args.sources[mdl_i] == src
+        }
+        for src in args.sources
+    }
+
+    features_things = {
+        src: {
+            mdl: features_things[src][mdl]
+            for mdl_i, mdl in enumerate(args.model_names)
+            if args.sources[mdl_i] == src
+        }
+        for src in args.sources
+    }
+
+    # Do few-shot
+    all_results = []
+    regressor_types = args.regressor_type
+    n_shots = args.n_shot
+    for regressor_type in regressor_types:
+        for shots in n_shots:
+            if regressor_type == "ridge" and shots==1:
+                continue
+            args.n_shot = shots
+            args.regressor_type = regressor_type
+            model_cfg, data_cfg = create_config_dicts(args)
+
+            if False:#args.device == "cpu":
+                model_names = args.model_names
+                sources = args.sources
+                model_cfgs = []
+                for mod, src in zip(model_names, sources):
+                    mod_args = copy.copy(args)
+                    mod_args.model_name = mod
+                    mod_args.source = src
+                    model_cfgs.append(create_config_dicts(mod_args)[0])
+
+                # args.n_shot = shots
+                _, data_cfg = create_config_dicts(args)
+                runp = partial(
+                    run,
+                    n_shot=args.n_shot,
+                    n_test=args.n_test,
+                    n_reps=args.n_reps,
+                    class_id_sets=class_id_sets,
+                    device=args.device,
+                    data_cfg=data_cfg,
+                    features_things=features_things,
+                    transforms=transforms,
+                    transform_type=args.transform_type,
+                    regressor_type=args.regressor_type,
+                )
+                mapp = partial(
+                    _add_model, f=runp
+                )
+
+                with get_context("spawn").Pool() as pool:
+                    all_results = list(
+                        tqdm(pool.map(mapp, model_cfgs), total=len(model_cfgs)),
+                        chunksize=10,
+                    )
+            else:
+                results = run(
+                    n_shot=args.n_shot,
+                    n_test=args.n_test,
+                    n_reps=args.n_reps,
+                    class_id_sets=class_id_sets,
+                    device=args.device,
+                    model_cfg=model_cfg,
+                    data_cfg=data_cfg,
+                    features_things=features_things,
+                    transforms=transforms,
+                    transform_type=args.transform_type,
+                    regressor_type=args.regressor_type,
+                )
+            all_results.append(results)
+    results = pd.concat(all_results)
+
+    out_path = os.path.join(
+        args.out_dir, args.dataset, args.overall_source, args.module
     )
+    if not os.path.exists(out_path):
+        print("\nOutput directory does not exist...")
+        print("Creating output directory to save results...\n")
+        os.makedirs(out_path)
 
-    if not os.path.exists(args.out_dir):
-        os.makedirs(args.out_dir, exist_ok=True)
+    results.to_pickle(os.path.join(out_path, "fewshot_results.pkl"))
 
-    with open(os.path.join(args.out_dir, "fewshot_results.npy"), "w+b") as f:
-        try:
-            old_results = np.load(f)
-            results = pd.concat([old_results, results], ignore_index=True)
-        except FileNotFoundError:
-            print("No previous results")
-        np.save(file=f, arr=results)
+    print("Elapsed time (init):", datetime.now() - start_t)
