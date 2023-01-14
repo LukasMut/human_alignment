@@ -3,7 +3,7 @@ import os
 from os.path import join
 import pandas as pd
 from utils.plotting import overview_plot, make_detail_plot, \
-    zero_shot_vs_transform_plot, clip_plot
+    zero_shot_vs_transform_plot, clip_plot, logits_penultimate_plot
 
 
 def generate_plot(results, plot_type, y_metric, output_dir, dataset, export_format='.pdf', prefix=''):
@@ -17,12 +17,15 @@ def generate_plot(results, plot_type, y_metric, output_dir, dataset, export_form
     elif plot_type == 'clip':
         fig = clip_plot(results=results, network_metadata=networks, y_metric=y_metric,
                         x_metric='imagenet_accuracy', dataset=dataset)
+    elif plot_type == 'logits_penultimate':
+        fig = logits_penultimate_plot(results=results, network_metadata=networks, y_metric=y_metric,
+                                      x_metric='imagenet_accuracy', dataset=dataset)
     else:
         raise ValueError('Unknown plot type.')
     fig.savefig(join(output_dir, prefix + plot_type + export_format), bbox_inches='tight')
 
 
-PLOT_TYPES = ['overview', 'loss', 'imagenet', 'scaling', 'ssl', 'clip']
+PLOT_TYPES = ['overview', 'loss', 'imagenet', 'scaling', 'ssl', 'clip', 'logits_penultimate']
 DATASETS = ['multi-arrangement', 'free-arrangement/set1', 'free-arrangement/set2', 'things']
 
 if __name__ == '__main__':
