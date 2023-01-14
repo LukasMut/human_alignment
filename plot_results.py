@@ -2,7 +2,7 @@ import argparse
 import os
 from os.path import join
 import pandas as pd
-from utils.plotting import overview_plot, loss_imagenet_plot, ssl_scaling_plot, \
+from utils.plotting import overview_plot, make_detail_plot, \
     zero_shot_vs_transform_plot, clip_plot
 
 
@@ -11,23 +11,18 @@ def generate_plot(results, plot_type, y_metric, output_dir, dataset, export_form
     if plot_type == 'overview':
         fig = overview_plot(results=results, network_metadata=networks, y_metric=y_metric,
                             dataset=dataset)
-        fig.savefig(join(output_dir, prefix + 'overview' + export_format), bbox_inches='tight')
-    elif plot_type == 'loss-imagenet':
-        fig = loss_imagenet_plot(results=results, network_metadata=networks, y_metric=y_metric, dataset=dataset)
-        fig.savefig(join(output_dir, prefix + 'loss-imagenet' + export_format), bbox_inches='tight')
-        pass
-    elif plot_type == 'ssl-scaling':
-        fig = ssl_scaling_plot(results=results, network_metadata=networks, y_metric=y_metric, dataset=dataset)
-        fig.savefig(join(output_dir, prefix + 'ssl-scaling' + export_format), bbox_inches='tight')
+    elif plot_type in ['ssl', 'imagenet', 'loss', 'scaling']:
+        fig = make_detail_plot(results=results, network_metadata=networks, y_metric=y_metric,
+                               dataset=dataset, plot_type=plot_type)
     elif plot_type == 'clip':
         fig = clip_plot(results=results, network_metadata=networks, y_metric=y_metric,
                         x_metric='imagenet_accuracy', dataset=dataset)
-        fig.savefig(join(output_dir, prefix + 'clip' + export_format), bbox_inches='tight')
     else:
         raise ValueError('Unknown plot type.')
+    fig.savefig(join(output_dir, prefix + plot_type + export_format), bbox_inches='tight')
 
 
-PLOT_TYPES = ['overview', 'loss-imagenet', 'ssl-scaling', 'clip']
+PLOT_TYPES = ['overview', 'loss', 'imagenet', 'scaling', 'ssl', 'clip']
 DATASETS = ['multi-arrangement', 'free-arrangement/set1', 'free-arrangement/set2', 'things']
 
 if __name__ == '__main__':

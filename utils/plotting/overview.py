@@ -77,4 +77,6 @@ def overview_plot(results, network_metadata, y_metric, dataset, x_metric='imagen
         # now plot both limits against each other
         ax.plot(lims, regr.predict(np.array(lims).reshape(-1, 1)), "--", alpha=0.8, color="grey", zorder=0)
         ax.margins(x=0)
+        plt.title('-', fontsize=30, pad=20)
+        f.tight_layout()
         return f
