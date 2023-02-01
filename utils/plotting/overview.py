@@ -58,6 +58,11 @@ def overview_plot(results, network_metadata, y_metric, dataset, x_metric='imagen
             ax.set_ylim(*y_lim)
             ax.axhline(y=0.673, color='magenta', linestyle=linestyle)
             ax.axhline(y=0.333, color='k', linestyle=linestyle)
+        elif dataset == 'cifar100-coarse':
+            y_lim = [0.3, 1.0]
+            linestyle = 'dotted'
+            ax.set_ylim(*y_lim)
+            ax.axhline(y=0.333, color='k', linestyle=linestyle)
 
         ax.set_ylim(*y_lim)
         if dataset == 'things':

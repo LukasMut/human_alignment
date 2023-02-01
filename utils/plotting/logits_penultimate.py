@@ -1,9 +1,9 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
-from utils.plotting import metric_to_ylabel
 import numpy as np
 from utils.analyses.helpers import map_objective_function
 import pandas as pd
+import matplotlib.ticker as plticker
 
 LEGEND_FONT_SIZE = 24
 X_AXIS_FONT_SIZE = 35
@@ -45,6 +45,9 @@ def logits_penultimate_plot(results, network_metadata, y_metric, x_metric, datas
                     'penultimate': penultimate,
                     'objective': objective
                 })
+            else:
+                print(group)
+                # raise RuntimeError()
 
         module_df = pd.DataFrame(models)
         ax = sns.scatterplot(
@@ -58,17 +61,12 @@ def logits_penultimate_plot(results, network_metadata, y_metric, x_metric, datas
             legend="full"
         )
 
-        """if dataset == 'things':
-            ax.set_ylim([things_y_lim[0] - 0.02, things_y_lim[1]])
-            ax.set_xlim([things_y_lim[0] - 0.02, things_y_lim[1]])
-        else:
-            ax.set_ylim([0, 1])
-            ax.set_xlim([0, 1])"""
-
         lims = [
             np.min([ax.get_xlim(), ax.get_ylim()]),  # min of both axes
             np.max([ax.get_xlim(), ax.get_ylim()]),  # max of both axes
         ]
+        ax.set_xlim(lims)
+        ax.set_ylim(lims)
 
         # now plot both limits against each other
         ax.plot(lims, lims, "--", alpha=0.8, color="grey", zorder=0)
@@ -78,5 +76,13 @@ def logits_penultimate_plot(results, network_metadata, y_metric, x_metric, datas
         ax.set_xlabel('Penultimate', fontsize=X_AXIS_FONT_SIZE, labelpad=AXIS_LABELPAD)
         ax.legend(title="Objective", ncol=1, loc='upper left', fancybox=True, fontsize=20, title_fontsize=20)
         ax.margins(x=0)
+
+        step_size = 0.1
+        if dataset == 'things':
+            step_size = 0.05
+        loc = plticker.MultipleLocator(base=step_size)
+        ax.xaxis.set_major_locator(loc)
+        ax.yaxis.set_major_locator(loc)
+
     f.tight_layout()
     return f
