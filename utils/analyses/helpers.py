@@ -103,7 +103,10 @@ def map_model_name(name: str) -> str:
         "mobilenet_v2_1": "MobileNet v2 (1.4x)",
         "nasnet_mobile-retrained-no_ls-no_dropout-no_aux": "NASNet Mobile",
         "nasnet_large-retrained-no_ls-no_dropout-no_aux": "NASNet Large",
-        "vice": "VICE"
+        "vice": "VICE",
+        "Alexnet_ecoset": "AlexNet (Ecoset)",
+        "VGG16_ecoset": "VGG-16 (Ecoset)",
+        "Resnet50_ecoset": "RN-50 (Ecoset)"
     }
 
     if name in mapping:
@@ -123,14 +126,17 @@ def map_model_name(name: str) -> str:
             name = name.replace("-i1k", " (i1k)").replace("-i21k", " (i21k)")
 
         name = (
-            name.replace("r50", "RN50").replace("resnet", "RN")
+            name.replace("r50", "RN-50").replace("resnet", "RN-")
         )
+
+        if name.endswith("-rn50"):
+            name = "RN-50-"+name[:-5]
 
         capitalize = {
             "net": "Net",
             "_b": "_B",
             "efficient": "Efficient",
-            "vgg": "VGG",
+            "vgg": "VGG-",
             "mobile": "Mobile",
             "alex": "Alex",
             "vit": "ViT",
@@ -149,7 +155,6 @@ def map_model_name(name: str) -> str:
         for k, v in capitalize.items():
             name = name.replace(k, v)
 
-        name = name.replace("ecoset", " (Ecoset)")
         name = name.replace(" openai", "")
         name = name.replace("Net_", "Net")
         name = name.replace("_", " ")

@@ -22,6 +22,7 @@ PALETTE = {
 MARKERS = {
     "Image/Text": "o",
     "Supervised (ImageNet-1K)": "s",
+    "Supervised (Ecoset)": "^",
     "Supervised (ImageNet-21K)": "P",
     "Supervised (JFT-3B)": "X",
     "Self-Supervised": "D",
