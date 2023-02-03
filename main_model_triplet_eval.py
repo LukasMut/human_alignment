@@ -15,6 +15,7 @@ from ml_collections import config_dict
 from thingsvision import get_extractor
 from thingsvision.utils.data import DataLoader
 from tqdm import tqdm
+from torch.utils.data import Subset
 
 import utils
 from data import DATASETS, load_dataset
@@ -209,12 +210,23 @@ def evaluate(args) -> None:
             and args.module == "penultimate"
             and model_name.startswith("vit")
         ):
-            features = extractor.extract_features(
-                batches=batches,
-                module_name=model_cfg.modules[i],
-                flatten_acts=False,
-            )
-            features = features[:, 0]  # select classifier token
+            num_slices = len(dataset) // 2000
+            subsets = [Subset(dataset, indices=indices) for indices in np.array_split(range(len(dataset)), num_slices)]
+            features_list = []
+            for subset in subsets:
+                subset_batches = DataLoader(
+                    dataset=subset,
+                    batch_size=args.batch_size,
+                    backend=extractor.get_backend(),
+                )
+                features = extractor.extract_features(
+                    batches=subset_batches,
+                    module_name=model_cfg.modules[i],
+                    flatten_acts=False,
+                )
+                features = features[:, 0].copy()  # select classifier token
+                features_list.append(features)
+            features = np.concatenate(features_list, axis=0)
             features = features.reshape((features.shape[0], -1))
         else:
             features = extractor.extract_features(
