@@ -9,7 +9,7 @@
 
 # Human alignment of neural network representations
 
-This is the official GitHub repository to the ICLR 2023 paper ["Human alignment of neural network representations"](https://arxiv.org/abs/2211.01201).
+This is the official GitHub repository to the ICLR 2023 paper ["Human alignment of neural network representations"](https://arxiv.org/abs/2211.01201). The GitHub repository should allow you to reproduce the results of most, if not all, of our experiments.
 
 ## Environment setup and dependencies
 
