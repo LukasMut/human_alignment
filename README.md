@@ -9,6 +9,8 @@
 
 # Human alignment of neural network representations
 
+This is the official GitHub repository to the ICLR 2023 paper ["Human alignment of neural network representations"](https://arxiv.org/abs/2211.01201).
+
 ## Environment setup and dependencies
 
 We recommend to create a virtual environment (e.g., human_alignment), including all dependencies, via `conda`
