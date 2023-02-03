@@ -19,11 +19,6 @@ def reduce_best_final_layer(results, metric, module=None):
         if 'seed1' in name:
             continue
 
-        """if len(group.index) > 2:
-            sources = group.source.values.tolist()
-            assert 'vit_best' in sources and 'vit_same' in sources
-            group = group[group.source == 'vit_same']"""
-
         if module is None:
             final_layer_indices.append(group[group[metric].max() == group[metric]].index[0])
         else:

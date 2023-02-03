@@ -8,7 +8,7 @@ Array = np.ndarray
 
 class CIFAR100Coarse(CIFAR100):
     def __init__(
-        self, root, train=True, transform=None, target_transform=None, download=False
+            self, root, train=True, transform=None, target_transform=None, download=False
     ):
         super(CIFAR100Coarse, self).__init__(
             root, train, transform, target_transform, download
@@ -119,6 +119,8 @@ class CIFAR100Coarse(CIFAR100):
                 13,
             ]
         )
+        self.coarse_labels = coarse_labels
+        self.fine_targets = self.targets
         self.targets = coarse_labels[self.targets]
 
         # update classes
@@ -160,8 +162,9 @@ class CIFAR100CoarseTriplet(CIFAR100Coarse):
     def get_triplets(self):
         return self.triplets
 
-    def __len__(self):
-        return 8
+    def __getitem__(self, item):
+        x, y = super().__getitem__(item)
+        return x
 
 
 class CIFAR100Triplet(CIFAR100):

@@ -15,6 +15,7 @@ NAME_MAPPING = {
     'clip_RN50x64': 'ResNet 50x64'
 }
 
+
 LEGEND_FONT_SIZE = 24
 X_AXIS_FONT_SIZE = 35
 Y_AXIS_FONT_SIZE = 35
@@ -83,4 +84,6 @@ def clip_plot(results, network_metadata, y_metric, x_metric, dataset):
         # now plot both limits against each other
         ax.plot(lims, regr.predict(np.array(lims).reshape(-1, 1)), "--", alpha=0.8, color="grey", zorder=0)
         ax.margins(x=0)
+        plt.title('Image/text models', fontsize=30, pad=20)
+    f.tight_layout()
     return f

@@ -92,10 +92,8 @@ DEFAULT_SCATTER_PARAMS = dict(s=MARKER_SIZE,
                               legend="full")
 ALPHA = 0.5
 
-x_lim = [0.71, 0.82]
 
-
-def configure_axis(ax, y_metric, dataset, limit_x=True, limit_y=True, show_ylabel=True):
+def configure_axis(ax, y_metric, dataset, limit_y=True, show_ylabel=True, x_lim=[0.71, 0.82]):
     y_lim = [0.0, 1.0]
     if dataset == 'things':
         y_lim = [0.3, 0.7]
@@ -107,8 +105,8 @@ def configure_axis(ax, y_metric, dataset, limit_x=True, limit_y=True, show_ylabe
     ylabel = metric_to_ylabel(y_metric)
     if limit_y:
         ax.set_ylim(y_lim)
-    if limit_x:
-        ax.set_xlim(x_lim)
+    ax.set_xlim(x_lim)
+
     ax.xaxis.set_tick_params(labelsize=TICKS_LABELSIZE)
     ax.yaxis.set_tick_params(labelsize=TICKS_LABELSIZE)
     if show_ylabel:
@@ -129,7 +127,7 @@ def plot_imagenet_models(df, x_metric, y_metric, dataset):
         alpha=ALPHA,
         **DEFAULT_SCATTER_PARAMS
     )
-    configure_axis(ax, show_ylabel=False, y_metric=y_metric, dataset=dataset)
+    configure_axis(ax, y_metric=y_metric, dataset=dataset)
     ax.legend(title="",
               ncol=1,
               loc='upper left',
@@ -190,7 +188,7 @@ def plot_ssl_models(df, x_metric, y_metric, dataset):
         alpha=ALPHA,
         **DEFAULT_SCATTER_PARAMS
     )
-    configure_axis(ax, limit_x=False, y_metric=y_metric, dataset=dataset)
+    configure_axis(ax, y_metric=y_metric, dataset=dataset, x_lim=[0.45, 0.8])
     ax.legend(title="", ncol=2,
               fancybox=True,
               loc='upper left',
@@ -226,7 +224,7 @@ def plot_arch_models(df, y_metric, dataset):
         style="label",
         **DEFAULT_SCATTER_PARAMS
     )
-    configure_axis(ax, limit_x=False, show_ylabel=False, y_metric=y_metric, dataset=dataset)
+    configure_axis(ax, y_metric=y_metric, dataset=dataset,  x_lim=[-20, 350])
     ax.set_xlabel('#Parameters (Million)', fontsize=X_AXIS_FONT_SIZE)
     ax.legend(title="", ncol=1,
               loc='upper right',
@@ -240,37 +238,26 @@ def rescale_accuracy(x):
     return (x - chance_level) / (max_acc - chance_level)
 
 
-def loss_imagenet_plot(results, network_metadata, y_metric, dataset, x_metric='imagenet_accuracy'):
+def make_detail_plot(plot_type, results, network_metadata, y_metric, dataset, x_metric='imagenet_accuracy'):
+    assert plot_type in ['ssl', 'imagenet', 'loss', 'scaling']
     final_layer_results = reduce_best_final_layer(results, metric=y_metric)
     df = final_layer_results.merge(network_metadata, on='model')
     df.loc[df.training.str.startswith('SSL'), 'training'] = 'Self-Supervised'
     df.imagenet_accuracy /= 100.0
 
-    f = plt.figure(figsize=(28, 10), dpi=200)
-    gs = f.add_gridspec(1, 2)
+    f = plt.figure(figsize=(14, 10), dpi=200)
+    gs = f.add_gridspec(1, 1)
+
     sns.set_context("talk")
     with sns.axes_style("ticks"):
         f.add_subplot(gs[0, 0])
-        plot_loss_models(df, x_metric=x_metric, y_metric=y_metric, dataset=dataset)
-        f.add_subplot(gs[0, 1])
-        plot_imagenet_models(df, x_metric=x_metric, y_metric=y_metric, dataset=dataset)
-    f.tight_layout()
-    return f
-
-
-def ssl_scaling_plot(results, network_metadata, y_metric, dataset, x_metric='imagenet_accuracy'):
-    final_layer_results = reduce_best_final_layer(results, metric=y_metric)
-    df = final_layer_results.merge(network_metadata, on='model')
-    df.loc[df.training.str.startswith('SSL'), 'training'] = 'Self-Supervised'
-    df.imagenet_accuracy /= 100.0
-
-    f = plt.figure(figsize=(28, 10), dpi=200)
-    gs = f.add_gridspec(1, 2)
-    sns.set_context("talk")
-    with sns.axes_style("ticks"):
-        f.add_subplot(gs[0, 0])
-        plot_ssl_models(df, x_metric=x_metric, y_metric=y_metric, dataset=dataset)
-        f.add_subplot(gs[0, 1])
-        plot_arch_models(df, y_metric=y_metric, dataset=dataset)
+        if plot_type == 'ssl':
+            plot_ssl_models(df, x_metric=x_metric, y_metric=y_metric, dataset=dataset)
+        elif plot_type == 'scaling':
+            plot_arch_models(df, y_metric=y_metric, dataset=dataset)
+        elif plot_type == 'imagenet':
+            plot_imagenet_models(df, x_metric=x_metric, y_metric=y_metric, dataset=dataset)
+        elif plot_type == 'loss':
+            plot_loss_models(df, x_metric=x_metric, y_metric=y_metric, dataset=dataset)
     f.tight_layout()
     return f
