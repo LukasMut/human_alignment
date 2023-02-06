@@ -15,7 +15,7 @@ This is the official GitHub repository to the ICLR 2023 paper ["Human alignment 
 
 - [`thingsvision`](https://github.com/ViCCo-Group/thingsvision)
 - [VICE](https://github.com/LukasMut/VICE)
-- [THINGS-data](https://things-initiative.org/)
+- [THINGS](https://things-initiative.org/)
 
 ## Environment setup and dependencies
 
