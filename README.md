@@ -11,7 +11,7 @@
 
 This is the official GitHub repository to the ICLR 2023 paper ["Human alignment of neural network representations"](https://arxiv.org/abs/2211.01201). The GitHub repository should allow you to reproduce the results of most, if not all, of the experiments we present in our paper.
 
-## Resources used in this project:
+## Relevant resources used in this project
 
 - [`thingsvision`](https://github.com/ViCCo-Group/thingsvision)
 - [VICE](https://github.com/LukasMut/VICE)
