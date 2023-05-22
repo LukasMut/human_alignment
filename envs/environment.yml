@@ -15,9 +15,9 @@ dependencies:
  - Pillow=9.1.* 
  - pip
  - pip:
-   - thingsvision==2.2.22
+   - thingsvision==2.3.14
    - functorch==0.2.*
-   - pytorch_lightning==1.7.*
+   - pytorch_lightning==1.9.*
    - einops 
    - tueplots 
    - ml_collections 
