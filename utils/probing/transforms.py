@@ -26,32 +26,40 @@ class Linear(pl.LightningModule):
         self.optim = optim_cfg["optim"]
         self.lr = optim_cfg["lr"]
         self.lmbda = optim_cfg["lmbda"]
-        self.apply_normalization = optim_cfg["apply_normalization"]
+        self.use_bias = optim_cfg["use_bias"]
         self.loss_fun = TripletLoss(temperature=1.0)
         initialization = self.get_initialization(optim_cfg)
-        self.transform = torch.nn.Parameter(
-            data=initialization,
-            requires_grad=True,
-        )
+        if self.use_bias:
+            self.transform_w = torch.nn.Parameter(
+                data=initialization[0],
+                requires_grad=True,
+            )
+            self.transform_b = torch.nn.Parameter(
+                data=initialization[1],
+                requires_grad=True,
+            )
+        else:
+            self.transform_w = torch.nn.Parameter(
+                data=initialization,
+                requires_grad=True,
+            )
 
     def get_initialization(self, optim_cfg: Dict[str, Any]) -> Tensor:
         """Initialize the transformation matrix."""
-        if self.apply_normalization:
-            # initialize the transformation matrix with \tau I (temperature-scaled identity matrix)
-            initialization = torch.eye(self.feature_dim) * optim_cfg["temperature"]
-        else:
-            # initialize the transformation matrix with values drawn from a tight Gaussian with very small width
-            initialization = torch.normal(
-                mean=torch.zeros(self.feature_dim, self.feature_dim),
-                std=torch.ones(self.feature_dim, self.feature_dim) * optim_cfg["sigma"],
-            )
-        return initialization
+        # initialize the transformation matrix with values drawn from a tight Gaussian with very small width
+        weights = torch.normal(
+            mean=torch.zeros(self.feature_dim, self.feature_dim),
+            std=torch.ones(self.feature_dim, self.feature_dim) * optim_cfg["sigma"],
+        )
+        if self.use_bias:
+            bias = torch.ones(self.feature_dim) * optim_cfg["sigma"]
+            return weights, bias
+        return weights
 
     def forward(self, one_hots: Tensor) -> Tensor:
-        embedding = self.features @ self.transform
-        # normalize object embeddings to lie on the unit-sphere
-        if self.apply_normalization:
-            embedding = F.normalize(embedding, dim=1)
+        embedding = self.features @ self.transform_w
+        if self.use_bias:
+            embedding += self.transform_b
         batch_embeddings = one_hots @ embedding
         return batch_embeddings
 
@@ -109,10 +117,10 @@ class Linear(pl.LightningModule):
 
     def regularization(self, alpha: float = 1.0) -> Tensor:
         """Apply combination of l2 and l1 regularization during training."""
-        # NOTE: Frobenius norm in PyTorch is equivalent to torch.linalg.vector_norm(self.transform, ord=2, dim=(0, 1)))
-        l2_reg = alpha * torch.linalg.norm(self.transform, ord="fro")
+        # NOTE: Frobenius norm in PyTorch is equivalent to torch.linalg.vector_norm(self.transform_w, ord=2, dim=(0, 1))) which is l2
+        l2_reg = alpha * torch.linalg.norm(self.transform_w, ord="fro")
         l1_reg = (1 - alpha) * torch.linalg.vector_norm(
-            self.transform, ord=1, dim=(0, 1)
+            self.transform_w, ord=1, dim=(0, 1)
         )
         complexity_loss = self.lmbda * (l2_reg + l1_reg)
         return complexity_loss

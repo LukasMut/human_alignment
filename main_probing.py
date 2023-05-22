@@ -112,9 +112,9 @@ def parseargs():
         help="Number of devices to use for performing distributed training on CPU",
     )
     aa(
-        "--apply_normalization",
+        "--use_bias",
         action="store_true",
-        help="whether to normalize embeddings during the optimization process",
+        help="whether or not to use a bias for the naive transform",
     )
     aa("--probing_root", type=str, help="path/to/probing")
     aa("--log_dir", type=str, help="directory to checkpoint transformations")
@@ -134,7 +134,7 @@ def create_optimization_config(args) -> Tuple[FrozenDict, FrozenDict]:
     optim_cfg["max_epochs"] = args.epochs
     optim_cfg["min_epochs"] = args.burnin
     optim_cfg["patience"] = args.patience
-    optim_cfg["apply_normalization"] = args.apply_normalization
+    optim_cfg["use_bias"] = args.use_bias
     optim_cfg["ckptdir"] = os.path.join(args.log_dir, args.model, args.module)
     return optim_cfg
 
@@ -221,7 +221,7 @@ def make_results_df(
     optim: str,
     lr: float,
     n_folds: int,
-    normalization: bool,
+    bias: bool,
 ) -> pd.DataFrame:
     probing_results_current_run = pd.DataFrame(index=range(1), columns=columns)
     probing_results_current_run["model"] = model_name
@@ -235,7 +235,7 @@ def make_results_df(
     probing_results_current_run["optim"] = optim.lower()
     probing_results_current_run["lr"] = lr
     probing_results_current_run["n_folds"] = n_folds
-    probing_results_current_run["normalization"] = normalization
+    probing_results_current_run["bias"] = bias
     return probing_results_current_run
 
 
@@ -264,7 +264,7 @@ def save_results(args, probing_acc: float, probing_loss: float, ooo_choices: Arr
             optim=args.optim,
             lr=args.learning_rate,
             n_folds=args.n_folds,
-            normalization=args.apply_normalization,
+            bias=args.use_bias,
         )
         probing_results = pd.concat(
             [probing_results_overall, probing_results_current_run],
@@ -286,7 +286,7 @@ def save_results(args, probing_acc: float, probing_loss: float, ooo_choices: Arr
             "optim",
             "lr",
             "n_folds",
-            "normalization",
+            "bias",
         ]
         probing_results = make_results_df(
             columns=columns,
@@ -300,7 +300,7 @@ def save_results(args, probing_acc: float, probing_loss: float, ooo_choices: Arr
             optim=args.optim,
             lr=args.learning_rate,
             n_folds=args.n_folds,
-            normalization=args.apply_normalization,
+            bias=args.use_bias,
         )
         probing_results.to_pickle(os.path.join(out_path, "probing_results.pkl"))
 
@@ -325,16 +325,7 @@ def run(
     features = (
         features - features.mean()
     ) / features.std()  # subtract mean and normalize by standard deviation
-    if optim_cfg["apply_normalization"]:
-        model_config = utils.evaluation.load_model_config(config_path)
-        temperature = get_temperature(
-            model_config=model_config,
-            model=model,
-            module=module,
-        )
-        optim_cfg["temperature"] = temperature
-    else:
-        optim_cfg["sigma"] = 1e-3
+    optim_cfg["sigma"] = 1e-3
     objects = np.arange(n_objects)
     # Perform k-fold cross-validation with k = 3 or k = 4
     kf = KFold(n_splits=optim_cfg["n_folds"], random_state=rnd_seed, shuffle=True)
