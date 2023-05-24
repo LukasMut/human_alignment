@@ -381,7 +381,10 @@ def run(
         predictions = torch.cat(predictions, dim=0).tolist()
         ooo_choices.append(predictions)
         cv_results[f"fold_{k:02d}"] = val_performance
-    transformation = linear_probe.transform.data.detach().cpu().numpy()
+    transformation = linear_probe.transform_w.data.detach().cpu().numpy()
+    if optim_cfg["use_bias"]:
+        bias = linear_probe.transform_b.data.detach().cpu().numpy()
+        transformation = np.concatenate((transformation, bias[:, None]), axis=1)
     ooo_choices = np.concatenate(ooo_choices)
     return ooo_choices, cv_results, transformation
 
