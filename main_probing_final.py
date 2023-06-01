@@ -248,6 +248,7 @@ def save_results(args, probing_acc: float, probing_loss: float) -> None:
 
 def run(
     features: Array,
+    n_objects: int,
     data_root: str,
     device: str,
     optim_cfg: FrozenDict,
@@ -264,6 +265,14 @@ def run(
     features = (features - features.mean()) / features.std()
     # initialize transformation with small values
     optim_cfg["sigma"] = 1e-3
+    train_triplets = utils.probing.TripletData(
+        triplets=train_triplets,
+        n_objects=n_objects,
+    )
+    val_triplets = utils.probing.TripletData(
+        triplets=val_triplets,
+        n_objects=n_objects,
+    )
     train_batches = DataLoader(
         dataset=train_triplets,
         batch_size=optim_cfg["batch_size"],
@@ -322,6 +331,7 @@ if __name__ == "__main__":
     optim_cfg = create_optimization_config(args)
     ooo_choices, val_performance, transform = run(
         features=model_features,
+        n_objects=args.n_objects,
         data_root=args.data_root,
         device=args.device,
         optim_cfg=optim_cfg,
