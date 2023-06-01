@@ -15,9 +15,9 @@ import torch.nn.functional as F
 from ml_collections import config_dict
 from thingsvision import get_extractor
 from thingsvision.utils.data import DataLoader
+from torch.utils.data import Subset
 from torchvision.transforms import Compose, Lambda
 from tqdm import tqdm
-from torch.utils.data import Subset
 
 import utils
 from data import DATASETS, load_dataset
@@ -200,7 +200,6 @@ def evaluate(args) -> None:
     for i, (model_name, source) in tqdm(
         enumerate(zip(model_cfg.names, model_cfg.sources)), desc="Model"
     ):
-
         if model_name.startswith("OpenCLIP"):
             name, variant, data = model_name.split("_")
             model_params = dict(variant=variant, dataset=data)
@@ -249,7 +248,10 @@ def evaluate(args) -> None:
             and model_name.startswith("vit")
         ):
             num_slices = len(dataset) // 2000
-            subsets = [Subset(dataset, indices=indices) for indices in np.array_split(range(len(dataset)), num_slices)]
+            subsets = [
+                Subset(dataset, indices=indices)
+                for indices in np.array_split(range(len(dataset)), num_slices)
+            ]
             features_list = []
             for subset in subsets:
                 subset_batches = DataLoader(

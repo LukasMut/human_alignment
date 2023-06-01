@@ -14,8 +14,8 @@ import torch
 from ml_collections import config_dict
 from thingsvision import get_extractor
 from thingsvision.utils.data import DataLoader
-from tqdm import tqdm
 from torch.utils.data import Subset
+from tqdm import tqdm
 
 import utils
 from data import DATASETS, load_dataset
@@ -211,7 +211,10 @@ def evaluate(args) -> None:
             and model_name.startswith("vit")
         ):
             num_slices = len(dataset) // 2000
-            subsets = [Subset(dataset, indices=indices) for indices in np.array_split(range(len(dataset)), num_slices)]
+            subsets = [
+                Subset(dataset, indices=indices)
+                for indices in np.array_split(range(len(dataset)), num_slices)
+            ]
             features_list = []
             for subset in subsets:
                 subset_batches = DataLoader(

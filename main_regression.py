@@ -173,7 +173,7 @@ if __name__ == "__main__":
     # Run regression
     for m_i, model in enumerate(model_names):
         out_file_path = os.path.join(
-            out_path, "regression_results_k%d_%s.pkl" % (k, model.replace("/",""))
+            out_path, "regression_results_k%d_%s.pkl" % (k, model.replace("/", ""))
         )
         results = {model: {}}
         load = args.load

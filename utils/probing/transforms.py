@@ -52,6 +52,7 @@ class Linear(pl.LightningModule):
             std=torch.ones(self.feature_dim, self.feature_dim) * optim_cfg["sigma"],
         )
         if self.use_bias:
+            # intialized the bias vector with small values equivalent to the standard deviation of the Gaussian
             bias = torch.ones(self.feature_dim) * optim_cfg["sigma"]
             return weights, bias
         return weights
@@ -88,7 +89,12 @@ class Linear(pl.LightningModule):
     def break_ties(probas: Tensor) -> Tensor:
         return torch.tensor(
             [
-                -1 if (torch.unique(pmf).shape[0] != pmf.shape[0] or torch.unique(pmf.round(decimals=2)).shape[0] == 1) else torch.argmax(pmf)
+                -1
+                if (
+                    torch.unique(pmf).shape[0] != pmf.shape[0]
+                    or torch.unique(pmf.round(decimals=2)).shape[0] == 1
+                )
+                else torch.argmax(pmf)
                 for pmf in probas
             ]
         )
