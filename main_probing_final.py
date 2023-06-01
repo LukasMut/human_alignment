@@ -323,7 +323,6 @@ if __name__ == "__main__":
     ooo_choices, val_performance, transform = run(
         features=model_features,
         data_root=args.data_root,
-        config_path=args.model_dict_path,
         device=args.device,
         optim_cfg=optim_cfg,
         num_processes=args.num_processes,
