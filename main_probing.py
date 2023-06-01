@@ -1,7 +1,6 @@
 import argparse
 import os
 import pickle
-import warnings
 from typing import Any, Callable, Dict, Iterator, List, Tuple
 
 import numpy as np
@@ -295,10 +294,7 @@ def save_results(
 
 def run(
     features: Array,
-    model: str,
-    module: str,
     data_root: str,
-    config_path: str,
     n_objects: int,
     device: str,
     optim_cfg: FrozenDict,
@@ -387,10 +383,7 @@ if __name__ == "__main__":
     optim_cfg = create_optimization_config(args)
     ooo_choices, cv_results, transform = run(
         features=model_features,
-        model=args.model,
-        module=args.module,
         data_root=args.data_root,
-        config_path=args.model_dict_path,
         n_objects=args.n_objects,
         device=args.device,
         optim_cfg=optim_cfg,
