@@ -1,17 +1,14 @@
 import argparse
 import os
 import pickle
-import warnings
-from typing import Any, Callable, Dict, Iterator, List, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
 import torch
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from sklearn.model_selection import KFold
 from torch.utils.data import DataLoader
-from tqdm import tqdm
 
 import utils
 
@@ -63,27 +60,20 @@ def parseargs():
         help="Number of object categories in the data",
         default=1854,
     )
-    aa(
-        "--n_folds",
-        type=int,
-        default=3,
-        choices=[2, 3, 4, 5],
-        help="Number of folds in k-fold cross-validation.",
-    )
     aa("--optim", type=str, default="Adam", choices=["Adam", "AdamW", "SGD"])
     aa("--learning_rate", type=float, default=1e-3)
     aa(
         "--lmbda",
         type=float,
-        default=1e-3,
+        default=1e-1,
         help="Relative contribution of the regularization term",
-        choices=[1.0, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5],
+        choices=[1e1, 1.0, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5],
     )
     aa(
         "--batch_size",
         type=int,
         default=256,
-        help="Use power of 2 for running optimization on GPU",
+        help="Use a power of 2 for running mini-batch SGD on GPU",
         choices=[64, 128, 256, 512, 1024],
     )
     aa(
@@ -97,12 +87,14 @@ def parseargs():
         type=int,
         help="Minimum number of epochs to perform finetuning",
         default=10,
+        choices=[5, 10, 15, 20, 25],
     )
     aa(
         "--patience",
         type=int,
         help="number of checks with no improvement after which training will be stopped",
         default=10,
+        choices=[5, 10, 15, 20, 25, 30],
     )
     aa("--device", type=str, default="cpu", choices=["cpu", "gpu"])
     aa(
@@ -129,7 +121,6 @@ def create_optimization_config(args) -> Tuple[FrozenDict, FrozenDict]:
     optim_cfg["optim"] = args.optim
     optim_cfg["lr"] = args.learning_rate
     optim_cfg["lmbda"] = args.lmbda
-    optim_cfg["n_folds"] = args.n_folds
     optim_cfg["batch_size"] = args.batch_size
     optim_cfg["max_epochs"] = args.epochs
     optim_cfg["min_epochs"] = args.burnin
@@ -144,18 +135,6 @@ def load_features(probing_root: str, subfolder: str = "embeddings") -> Dict[str,
     with open(os.path.join(probing_root, subfolder, "features.pkl"), "rb") as f:
         features = pickle.load(f)
     return features
-
-
-def get_batches(triplets: Tensor, batch_size: int, train: bool) -> Iterator:
-    batches = DataLoader(
-        dataset=triplets,
-        batch_size=batch_size,
-        shuffle=True if train else False,
-        num_workers=0,
-        drop_last=False,
-        pin_memory=True if train else False,
-    )
-    return batches
 
 
 def get_callbacks(optim_cfg: FrozenDict, steps: int = 20) -> List[Callable]:
@@ -181,53 +160,33 @@ def get_callbacks(optim_cfg: FrozenDict, steps: int = 20) -> List[Callable]:
     return callbacks
 
 
-def get_mean_cv_acc(
-    cv_results: Dict[str, List[float]], metric: str = "test_acc"
-) -> float:
-    avg_val_acc = np.mean([vals[0][metric] for vals in cv_results.values()])
-    return avg_val_acc
-
-
-def get_mean_cv_loss(
-    cv_results: Dict[str, List[float]], metric: str = "test_loss"
-) -> float:
-    avg_val_loss = np.mean([vals[0][metric] for vals in cv_results.values()])
-    return avg_val_loss
-
-
 def make_results_df(
     columns: List[str],
     probing_acc: float,
     probing_loss: float,
-    ooo_choices: Array,
     model_name: str,
     module_name: str,
     source: str,
     lmbda: float,
     optim: str,
     lr: float,
-    n_folds: int,
     bias: bool,
 ) -> pd.DataFrame:
     probing_results_current_run = pd.DataFrame(index=range(1), columns=columns)
     probing_results_current_run["model"] = model_name
     probing_results_current_run["probing"] = probing_acc
     probing_results_current_run["cross-entropy"] = probing_loss
-    # probing_results_current_run["choices"] = [ooo_choices]
     probing_results_current_run["module"] = module_name
     probing_results_current_run["family"] = utils.analyses.get_family_name(model_name)
     probing_results_current_run["source"] = source
     probing_results_current_run["l2_reg"] = lmbda
     probing_results_current_run["optim"] = optim.lower()
     probing_results_current_run["lr"] = lr
-    probing_results_current_run["n_folds"] = n_folds
     probing_results_current_run["bias"] = bias
     return probing_results_current_run
 
 
-def save_results(
-    args, probing_acc: float, probing_loss: float, ooo_choices: Array
-) -> None:
+def save_results(args, probing_acc: float, probing_loss: float) -> None:
     out_path = os.path.join(args.probing_root, "results")
     if not os.path.exists(out_path):
         print("\nCreating results directory...\n")
@@ -244,14 +203,12 @@ def save_results(
             columns=probing_results_overall.columns.values,
             probing_acc=probing_acc,
             probing_loss=probing_loss,
-            ooo_choices=ooo_choices,
             model_name=args.model,
             module_name=args.module,
             source=args.source,
             lmbda=args.lmbda,
             optim=args.optim,
             lr=args.learning_rate,
-            n_folds=args.n_folds,
             bias=args.use_bias,
         )
         probing_results = pd.concat(
@@ -266,28 +223,24 @@ def save_results(
             "model",
             "probing",
             "cross-entropy",
-            # "choices",
             "module",
             "family",
             "source",
             "l2_reg",
             "optim",
             "lr",
-            "n_folds",
             "bias",
         ]
         probing_results = make_results_df(
             columns=columns,
             probing_acc=probing_acc,
             probing_loss=probing_loss,
-            ooo_choices=ooo_choices,
             model_name=args.model,
             module_name=args.module,
             source=args.source,
             lmbda=args.lmbda,
             optim=args.optim,
             lr=args.learning_rate,
-            n_folds=args.n_folds,
             bias=args.use_bias,
         )
         probing_results.to_pickle(os.path.join(out_path, "probing_results.pkl"))
@@ -295,86 +248,68 @@ def save_results(
 
 def run(
     features: Array,
-    model: str,
-    module: str,
     data_root: str,
-    config_path: str,
-    n_objects: int,
     device: str,
     optim_cfg: FrozenDict,
-    rnd_seed: int,
     num_processes: int,
 ) -> Tuple[Dict[str, List[float]], Array]:
-    """Run optimization process."""
+    """Run the optimization process."""
     callbacks = get_callbacks(optim_cfg)
-    triplets = utils.probing.load_triplets(data_root)
-    # features -= features.mean(axis=0) # center input features
-    # features = utils.probing.standardize(features) # z-transform / standardize input features
-    features = (
-        features - features.mean()
-    ) / features.std()  # subtract mean and normalize by standard deviation
+    # use the original train and validation splits from the THINGS data paper (Hebart et al., 2023)
+    train_triplets = np.load(
+        os.path.join(data_root, "triplets", "train_90.npy")
+    ).tolist()
+    val_triplets = np.load(os.path.join(data_root, "triplets", "test_10.npy")).tolist()
+    # subtract global mean and normalize by global standard deviation
+    features = (features - features.mean()) / features.std()
+    # initialize transformation with small values
     optim_cfg["sigma"] = 1e-3
-    objects = np.arange(n_objects)
-    # Perform k-fold cross-validation with k = 3 or k = 4
-    kf = KFold(n_splits=optim_cfg["n_folds"], random_state=rnd_seed, shuffle=True)
-    cv_results = {}
-    ooo_choices = []
-    for k, (train_idx, _) in tqdm(enumerate(kf.split(objects), start=1), desc="Fold"):
-        train_objects = objects[train_idx]
-        # partition triplets into disjoint object sets
-        triplet_partitioning = utils.probing.partition_triplets(
-            triplets=triplets,
-            train_objects=train_objects,
-        )
-        train_triplets = utils.probing.TripletData(
-            triplets=triplet_partitioning["train"],
-            n_objects=n_objects,
-        )
-        val_triplets = utils.probing.TripletData(
-            triplets=triplet_partitioning["val"],
-            n_objects=n_objects,
-        )
-        train_batches = get_batches(
-            triplets=train_triplets,
-            batch_size=optim_cfg["batch_size"],
-            train=True,
-        )
-        val_batches = get_batches(
-            triplets=val_triplets,
-            batch_size=optim_cfg["batch_size"],
-            train=False,
-        )
-        linear_probe = utils.probing.Linear(
-            features=features,
-            optim_cfg=optim_cfg,
-        )
-        trainer = Trainer(
-            accelerator=device,
-            callbacks=callbacks,
-            # strategy="ddp_spawn" if device == "cpu" else None,
-            strategy="ddp",
-            max_epochs=optim_cfg["max_epochs"],
-            min_epochs=optim_cfg["min_epochs"],
-            devices=num_processes if device == "cpu" else "auto",
-            enable_progress_bar=True,
-            gradient_clip_val=1.0,
-            gradient_clip_algorithm="norm",
-        )
-        trainer.fit(linear_probe, train_batches, val_batches)
-        val_performance = trainer.test(
-            linear_probe,
-            dataloaders=val_batches,
-        )
-        predictions = trainer.predict(linear_probe, dataloaders=val_batches)
-        predictions = torch.cat(predictions, dim=0).tolist()
-        ooo_choices.append(predictions)
-        cv_results[f"fold_{k:02d}"] = val_performance
+    train_batches = DataLoader(
+        dataset=train_triplets,
+        batch_size=optim_cfg["batch_size"],
+        shuffle=True,
+        num_workers=0,
+        drop_last=False,
+        pin_memory=True,
+    )
+    val_batches = DataLoader(
+        dataset=val_triplets,
+        batch_size=optim_cfg["batch_size"],
+        shuffle=False,
+        num_workers=0,
+        drop_last=False,
+        pin_memory=False,
+    )
+    linear_probe = utils.probing.Linear(
+        features=features,
+        optim_cfg=optim_cfg,
+    )
+    trainer = Trainer(
+        accelerator=device,
+        callbacks=callbacks,
+        # strategy="ddp_spawn" if device == "cpu" else None,
+        strategy="ddp",
+        max_epochs=optim_cfg["max_epochs"],
+        min_epochs=optim_cfg["min_epochs"],
+        devices=num_processes if device == "cpu" else "auto",
+        enable_progress_bar=True,
+        gradient_clip_val=1.0,
+        gradient_clip_algorithm="norm",
+    )
+    trainer.fit(linear_probe, train_batches, val_batches)
+    val_performance = trainer.test(
+        linear_probe,
+        dataloaders=val_batches,
+    )
+    predictions = trainer.predict(linear_probe, dataloaders=val_batches)
+    predictions = torch.cat(predictions, dim=0).tolist()
+    ooo_choices.append(predictions)
     transformation = linear_probe.transform_w.data.detach().cpu().numpy()
     if optim_cfg["use_bias"]:
         bias = linear_probe.transform_b.data.detach().cpu().numpy()
         transformation = np.concatenate((transformation, bias[:, None]), axis=1)
     ooo_choices = np.concatenate(ooo_choices)
-    return ooo_choices, cv_results, transformation
+    return ooo_choices, val_performance, transformation
 
 
 if __name__ == "__main__":
@@ -385,31 +320,25 @@ if __name__ == "__main__":
     features = load_features(args.probing_root)
     model_features = features[args.source][args.model][args.module]
     optim_cfg = create_optimization_config(args)
-    ooo_choices, cv_results, transform = run(
+    ooo_choices, val_performance, transform = run(
         features=model_features,
-        model=args.model,
-        module=args.module,
         data_root=args.data_root,
         config_path=args.model_dict_path,
-        n_objects=args.n_objects,
         device=args.device,
         optim_cfg=optim_cfg,
-        rnd_seed=args.rnd_seed,
         num_processes=args.num_processes,
     )
-    avg_cv_acc = get_mean_cv_acc(cv_results)
-    avg_cv_loss = get_mean_cv_loss(cv_results)
-    save_results(
-        args, probing_acc=avg_cv_acc, probing_loss=avg_cv_loss, ooo_choices=ooo_choices
-    )
+    probing_acc = val_performance[0]["test_acc"]
+    probing_loss = val_performance[0]["test_loss"]
+    save_results(args, probing_acc=probing_acc, probing_loss=probing_loss)
 
     out_path = os.path.join(
         args.probing_root,
         "results",
+        "full",
         args.source,
         args.model,
         args.module,
-        str(args.n_folds),
         str(args.lmbda),
         args.optim.lower(),
         str(args.learning_rate),
