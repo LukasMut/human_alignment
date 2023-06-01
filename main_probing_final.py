@@ -187,7 +187,7 @@ def make_results_df(
 
 
 def save_results(args, probing_acc: float, probing_loss: float) -> None:
-    out_path = os.path.join(args.probing_root, "results")
+    out_path = os.path.join(args.probing_root, "results",  "full")
     if not os.path.exists(out_path):
         print("\nCreating results directory...\n")
         os.makedirs(out_path)
