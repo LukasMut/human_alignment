@@ -312,12 +312,11 @@ def run(
     )
     predictions = trainer.predict(linear_probe, dataloaders=val_batches)
     predictions = torch.cat(predictions, dim=0).tolist()
-    ooo_choices.append(predictions)
     transformation = linear_probe.transform_w.data.detach().cpu().numpy()
     if optim_cfg["use_bias"]:
         bias = linear_probe.transform_b.data.detach().cpu().numpy()
         transformation = np.concatenate((transformation, bias[:, None]), axis=1)
-    ooo_choices = np.concatenate(ooo_choices)
+    ooo_choices = np.concatenate(predictions)
     return ooo_choices, val_performance, transformation
 
 
