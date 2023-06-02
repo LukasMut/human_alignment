@@ -311,13 +311,12 @@ def run(
         dataloaders=val_batches,
     )
     predictions = trainer.predict(linear_probe, dataloaders=val_batches)
-    predictions = torch.cat(predictions, dim=0).tolist()
+    # predictions = torch.cat(predictions, dim=0).tolist()
     transformation = linear_probe.transform_w.data.detach().cpu().numpy()
     if optim_cfg["use_bias"]:
         bias = linear_probe.transform_b.data.detach().cpu().numpy()
         transformation = np.concatenate((transformation, bias[:, None]), axis=1)
-    ooo_choices = np.concatenate(predictions)
-    return ooo_choices, val_performance, transformation
+    return val_performance, transformation
 
 
 if __name__ == "__main__":
@@ -328,7 +327,7 @@ if __name__ == "__main__":
     features = load_features(args.probing_root)
     model_features = features[args.source][args.model][args.module]
     optim_cfg = create_optimization_config(args)
-    ooo_choices, val_performance, transform = run(
+    val_performance, transform = run(
         features=model_features,
         n_objects=args.n_objects,
         data_root=args.data_root,
