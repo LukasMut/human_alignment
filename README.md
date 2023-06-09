@@ -11,6 +11,20 @@
 
 This is the official GitHub repository to the ICLR 2023 paper ["Human alignment of neural network representations"](https://arxiv.org/abs/2211.01201). The GitHub repository should allow you to reproduce the results of most, if not all, of the experiments we present in our paper.
 
+## Citation
+
+```latex
+@inproceedings{muttenthaler2023,
+  author    = {Muttenthaler, Lukas and Dippel, Jonas and Linhardt, Lorenz and Vandermeulen,
+  Robert A and Kornblith, Simon},
+  title     = {Human alignment of neural network representations},
+  booktitle = {11th International Conference on Learning Representations, {ICLR} 2023,
+               Kigali, Rwanda, Mai 01-05, 2023},
+  publisher = {OpenReview.net},
+  year      = {2023}
+}
+```
+
 ## Relevant resources used in this project
 
 - [`thingsvision`](https://github.com/ViCCo-Group/thingsvision)
