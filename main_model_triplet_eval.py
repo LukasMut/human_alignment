@@ -4,6 +4,7 @@
 import argparse
 import os
 import random
+import re
 import warnings
 from collections import defaultdict
 from typing import Any, List, Tuple
@@ -114,6 +115,11 @@ def parseargs():
         action="store_true",
         help="load random model instead of pretrained",
     )
+    aa(
+        "--extract_cls_token",
+        action="store_true",
+        help="whether to exclusively extract the [cls] token for DINO models",
+    )
     args = parser.parse_args()
     return args
 
@@ -161,6 +167,7 @@ def create_config_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
     )
     model_cfg.sources = args.sources
     model_cfg.input_dim = args.input_dim
+    model_cfg.extract_cls_token = args.extract_cls_token
     model_cfg = config_dict.FrozenConfigDict(model_cfg)
     data_cfg.root = args.data_root
     data_cfg.name = args.dataset
@@ -168,32 +175,61 @@ def create_config_dicts(args) -> Tuple[FrozenDict, FrozenDict]:
     return model_cfg, data_cfg
 
 
+def load_extractor(
+    model_name: str, source: str, device: str, extract_cls_token: bool = False
+):
+    if model_name.startswith("OpenCLIP"):
+        if "laion" in model_name:
+            meta_vars = model_name.split("_")
+            name = meta_vars[0]
+            variant = meta_vars[1]
+            data = "_".join(meta_vars[2:])
+        else:
+            name, variant, data = model_name.split("_")
+        model_params = dict(variant=variant, dataset=data)
+    elif model_name.startswith("clip"):
+        name, variant = model_name.split("_")
+        model_params = dict(variant=variant)
+    elif model_name.startswith("DreamSim"):
+        model_name = model_name.split("_")
+        name = model_name[0]
+        variant = "_".join(model_name[1:])
+        model_params = dict(variant=variant)
+    elif extract_cls_token:
+        name = model_name
+        model_params = dict(extract_cls_token=True)
+    else:
+        name = model_name
+        model_params = None
+
+    extractor = get_extractor(
+        model_name=name,
+        source=source,
+        device=device,
+        pretrained=not args.not_pretrained,
+        model_parameters=model_params,
+    )
+    return extractor
+
+
 def evaluate(args) -> None:
     """Perform evaluation with optimal temperature values."""
-    device = torch.device(args.device)
     model_cfg, data_cfg = create_config_dicts(args)
     for i, (model_name, source) in tqdm(
         enumerate(zip(model_cfg.names, model_cfg.sources)), desc="Model"
     ):
         model_features = defaultdict(lambda: defaultdict(dict))
-
-        if model_name.startswith("OpenCLIP"):
-            name, variant, data = model_name.split("_")
-            model_params = dict(variant=variant, dataset=data)
-        elif model_name.startswith("clip"):
-            name, variant = model_name.split("_")
-            model_params = dict(variant=variant)
-        else:
-            name = model_name
-            model_params = None
-
-        family_name = utils.analyses.get_family_name(model_name)
-        extractor = get_extractor(
-            model_name=name,
+        family_name = (
+            "DINO"
+            if re.search(r"dino", model_name)
+            else utils.analyses.get_family_name(model_name)
+        )
+        extractor = load_extractor(
+            model_name=model_name,
             source=source,
-            device=device,
+            device=args.device,
             pretrained=not args.not_pretrained,
-            model_parameters=model_params,
+            extract_cls_token=model_cfg.extract_cls_token,
         )
         dataset = load_dataset(
             name=args.dataset,
